@@ -1,31 +1,110 @@
-using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using NUnit.Framework.Constraints;
+using UnityEngine;
 
 public class Chunk : MonoBehaviour
 {
-    [SerializeField] private GameObject cubePrefab;
-    [SerializeField] private int blockSize = 16;
-    [SerializeField] private float delayBetweenLayers = 0.5f;
+    [Header("Основные настройки")]
+    [SerializeField] private GameObject voxelPrefab; 
+    [SerializeField] private float voxelSize = 1f; 
+    [SerializeField] private int mapSize = 64; 
+    [SerializeField] private float noiseScale = 20f;
+    [SerializeField] private float heightMultiplier = 10f; 
+
+    [Header("Настройки генерации")]
+    [SerializeField] private float delayPerColumn = 0.01f;
+    
+    [Header("Генерация")]
+    [SerializeField] private bool autoGenerateOnStart = true;
+    [SerializeField] private bool showEditorButton = true;
+
+    private List<GameObject> voxels = new List<GameObject>(); // Список для хранения созданных кубов
+    private bool _isGeneratorWork = false;
+    
+    // mapSize = 64 / 0.1 = 640
+    private int WorldSize => Mathf.RoundToInt(mapSize / voxelSize); 
+    
     void Start()
     {
-        StartCoroutine(GenerateBlockLayerByLayer());
+        if (autoGenerateOnStart)
+            StartCoroutine(GenerateTerrain());
+
     }
 
-    IEnumerator GenerateBlockLayerByLayer()
+    public IEnumerator GenerateTerrain()
     {
-        GameObject blockParent = new GameObject("GeneratedBlock");
-
-        for (int y = 0; y < blockSize; y++)
+        _isGeneratorWork = true;
+        ClearTerrain();
+        
+        float seed = Random.Range(0f, 1000f); // Добавляем случайное смещение для генерации
+        
+        for (int x = 0; x < WorldSize; x++)
         {
-            for (int x = 0; x < blockSize; x++)
+            for (int z = 0; z < WorldSize; z++)
             {
-                for (int z = 0; z < blockSize; z++)
-                {
-                    Vector3 position = new Vector3(x, y, z);
-                    Instantiate(cubePrefab, position, Quaternion.identity, blockParent.transform);
-                }
+                // Генерация высоты с использованием 3D-шума
+                float height = Mathf.PerlinNoise(
+                    (x + seed) / noiseScale, 
+                    (z + seed) / noiseScale
+                ) * heightMultiplier;
+
+                
+                GameObject voxel = Instantiate(
+                    voxelPrefab, 
+                    new Vector3(x * voxelSize, height * voxelSize, z * voxelSize), 
+                    Quaternion.identity, 
+                    transform
+                );
+                voxel.transform.localScale = Vector3.one * voxelSize;
+                voxels.Add(voxel);
+                
             }
-            yield return new WaitForSeconds(delayBetweenLayers); // Ждём 0.5 сек
+            
+            yield return new WaitForSeconds(delayPerColumn);
+        }
+        
+        Debug.Log($"Сгенерировано вокселей: {voxels.Count}");
+       
+        _isGeneratorWork = false;
+    }
+
+    void ClearTerrain()
+    {
+        foreach (GameObject voxel in voxels)
+        {
+            if (voxel != null)
+                Destroy(voxel);
+        }
+        voxels.Clear();
+    }
+
+    // 1. Кнопка через ContextMenu (правая кнопка мыши на компоненте)
+    [ContextMenu("Сгенерировать")]
+    public void RegenerateTerrain()
+    {
+        if (!_isGeneratorWork)
+        {
+            StartCoroutine(GenerateTerrain());
         }
     }
+
+    // 2. Кнопка в окне инспектора (только в редакторе)
+    #if UNITY_EDITOR
+    [UnityEditor.CustomEditor(typeof(Chunk))]
+    public class ChunkEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+            
+            Chunk chunk = (Chunk)target;
+            
+            if (chunk.showEditorButton && GUILayout.Button("Перегенерировать"))
+            {
+                chunk.RegenerateTerrain();
+            }
+        }
+    }
+    #endif
 }
