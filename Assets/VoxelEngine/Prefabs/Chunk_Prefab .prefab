@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7429355956319226950}
   - component: {fileID: 945787114141979776}
   - component: {fileID: 4646975960770399971}
+  - component: {fileID: 8120271598353957500}
   m_Layer: 0
   m_Name: 'Chunk_Prefab '
   m_TagString: Untagged
@@ -86,3 +87,17 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8120271598353957500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2125091245981871606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10706daac4eec004dbcad5865e2a1697, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _size: 16
+  _voxelSize: 1
