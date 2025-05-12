@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework.Constraints;
 using UnityEngine;
 
-public class Chunk : MonoBehaviour
+public class ChunkTest : MonoBehaviour
 {
     [Header("Основные настройки")]
     [SerializeField] private GameObject voxelPrefab; 
@@ -91,14 +91,14 @@ public class Chunk : MonoBehaviour
 
     // 2. Кнопка в окне инспектора (только в редакторе)
     #if UNITY_EDITOR
-    [UnityEditor.CustomEditor(typeof(Chunk))]
+    [UnityEditor.CustomEditor(typeof(ChunkTest))]
     public class ChunkEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
             
-            Chunk chunk = (Chunk)target;
+            ChunkTest chunk = (ChunkTest)target;
             
             if (chunk.showEditorButton && GUILayout.Button("Перегенерировать"))
             {
