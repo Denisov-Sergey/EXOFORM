@@ -12,12 +12,14 @@ namespace VoxelEngine.Core
         [SerializeField] private float _voxelSize = 1f;
         public int Size => _size;
         private MeshFilter _meshFilter;
+        private MeshRenderer _meshRenderer;
         private bool _isDataDirty;
 
         void Awake() 
         {
             Voxels = new VoxelData[_size, _size, _size];
             _meshFilter = GetComponent<MeshFilter>();
+            _meshRenderer = GetComponent<MeshRenderer>();
         }
 
         public void Initialize(Vector3Int position) 
@@ -45,6 +47,7 @@ namespace VoxelEngine.Core
         {
             Mesh mesh = VoxelEngineManager.Instance.GreedyMesher.GenerateMesh(Voxels);
             _meshFilter.mesh = mesh;
+            _meshRenderer.material = VoxelEngineManager.Instance.VoxelMaterial; 
         }
     }
 }

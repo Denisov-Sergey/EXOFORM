@@ -29,8 +29,10 @@ namespace VoxelEngine.Generation
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
                     // Генерация высот с использованием Domain Warping
-                    Vector2 warpedPos = _domainWarping.Warp(x, z);
-                    float height = Mathf.PerlinNoise(warpedPos.x / _noiseScale, warpedPos.y / _noiseScale) * _heightMultiplier;
+                    // Vector2 warpedPos = _domainWarping.Warp(x, z);
+                    // float height = Mathf.PerlinNoise(warpedPos.x / _noiseScale, warpedPos.y / _noiseScale) * _heightMultiplier;
+                    // Vector2 warpedPos = _domainWarping.Warp(x, z);
+                    float height = Mathf.PerlinNoise(x / _noiseScale, z / _noiseScale) * _heightMultiplier;
                 
                     for (int y = 0; y < height; y++) {
                         data[x, y, z] = new VoxelData { Type = 1 }; // Камень

@@ -88,23 +88,28 @@ namespace VoxelEngine.Core
             Chunk chunk = chunkObj.GetComponent<Chunk>();
             chunk.Initialize(chunkPosition);
             
+            // Вызов события после создания чанка
+            OnChunkLoad?.Invoke(chunk);
+            
             _chunks.Add(chunkPosition, chunkObj);
         }
         
+        
+        
 #if UNITY_EDITOR
-        [UnityEditor.CustomEditor(typeof(Chunk))]
+        [UnityEditor.CustomEditor(typeof(ChunkManager))]
         public class ChunkEditor : UnityEditor.Editor
         {
             public override void OnInspectorGUI()
             {
                 DrawDefaultInspector();
             
-                Chunk chunk = (Chunk)target;
+                ChunkManager chunkManager = (ChunkManager)target;
             
-                // if (chunk.showEditorButton && GUILayout.Button("Сгенерировать чанки"))
-                // {
-                //     
-                // }
+                if (chunkManager.showEditorButton && GUILayout.Button("Сгенерировать чанки"))
+                {
+                    chunkManager.GenerateInEditor();
+                }
             }
         }
 #endif

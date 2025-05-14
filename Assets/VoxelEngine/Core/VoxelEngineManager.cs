@@ -11,6 +11,9 @@ namespace VoxelEngine.Core
         [SerializeField] private ChunkManager _chunkManager;
         [SerializeField] private GreedyMesher _greedyMesher;
         
+        [Header("Материалы")]
+        [SerializeField] private Material _voxelMaterial;
+
         void Awake() {
             // Реализация Singleton
             // if (Instance == null) Instance = this;
@@ -26,7 +29,7 @@ namespace VoxelEngine.Core
         }
 
         public ChunkManager ChunkManager => _chunkManager;
-        
         public GreedyMesher GreedyMesher => _greedyMesher;
+        public Material VoxelMaterial => _voxelMaterial;
     }
 }
