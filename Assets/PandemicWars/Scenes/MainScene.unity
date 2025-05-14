@@ -920,7 +920,7 @@ MonoBehaviour:
   _loadDistance: 3
   showEditorButton: 1
   _editorChunkPosition: {x: 0, y: 0, z: 0}
-  _editorLoadRadius: 3
+  _editorLoadRadius: 10
   _voxelSize: 1
   _autoGenerateInEditMode: 0
   _clearOnRegenerate: 1

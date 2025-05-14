@@ -4,10 +4,14 @@ namespace VoxelEngine.Core
 {
     public struct VoxelData
     {
-        public byte Type;
-        public byte Biome;
-        public float Light;
+        public VoxelType Type;
+        public byte CorruptionLevel;
         
-        public static VoxelData Air => new VoxelData { Type = 0 };
+        public byte LightLevel;
+        public byte Moisture;
+        
+        
+        public static implicit operator byte(VoxelData data) => (byte)data.Type;
+        public static implicit operator VoxelType(VoxelData data) => data.Type;
     }
 }

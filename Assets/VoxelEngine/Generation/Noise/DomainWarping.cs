@@ -1,19 +1,22 @@
 using UnityEngine;
 
-
 namespace VoxelEngine.Generation.Noise
 {
     public class DomainWarping
     {
-        private float _seed;
+        private NoiseGenerator _noise;
+        private float _warpStrength;
 
-        public DomainWarping(float seed) {
-            _seed = seed;
+        public DomainWarping(int seed, float warpStrength = 50f)
+        {
+            _noise = new NoiseGenerator(seed);
+            _warpStrength = warpStrength;
         }
 
-        public Vector2 Warp(float x, float z) {
-            float warpX = Mathf.PerlinNoise((x + _seed + 1000) / 10f, (z + _seed) / 10f) * 5f;
-            float warpZ = Mathf.PerlinNoise((x + _seed) / 10f, (z + _seed + 1000) / 10f) * 5f;
+        public Vector2 Warp(float x, float z)
+        {
+            float warpX = _noise.GetPerlin(x * 0.1f, z * 0.1f) * _warpStrength;
+            float warpZ = _noise.GetPerlin(x * 0.1f + 1000, z * 0.1f + 1000) * _warpStrength;
             return new Vector2(x + warpX, z + warpZ);
         }
     }

@@ -6,258 +6,150 @@ namespace VoxelEngine.Rendering.Meshing
 {
     public class GreedyMesher : MonoBehaviour
     {
-        private int _width, _height, _depth;
-        private bool[,,] _processed;
         private List<Vector3> _vertices = new List<Vector3>();
         private List<int> _triangles = new List<int>();
         private List<Vector2> _uvs = new List<Vector2>();
+        private int _currentVertexIndex;
 
         public Mesh GenerateMesh(VoxelData[,,] voxels)
         {
-            _width = voxels.GetLength(0);
-            _height = voxels.GetLength(1);
-            _depth = voxels.GetLength(2);
-            _processed = new bool[_width, _height, _depth];
-
             _vertices.Clear();
             _triangles.Clear();
             _uvs.Clear();
+            _currentVertexIndex = 0;
 
-            GenerateFaces(voxels, Direction.Forward);
-            GenerateFaces(voxels, Direction.Back);
-            GenerateFaces(voxels, Direction.Left);
-            GenerateFaces(voxels, Direction.Right);
-            GenerateFaces(voxels, Direction.Up);
-            GenerateFaces(voxels, Direction.Down);
+            // Проход по всем осям
+            for (int y = 0; y < 16; y++)
+            {
+                for (int x = 0; x < 16; x++)
+                {
+                    for (int z = 0; z < 16; z++)
+                    {
+                        if (voxels[x, y, z].Type == 0) continue;
+
+                        // Проверка видимости граней
+                        if (IsTransparent(x + 1, y, z, voxels)) CreateFace(x, y, z, FaceDirection.East, (byte)voxels[x, y, z].Type);
+                        if (IsTransparent(x - 1, y, z, voxels)) CreateFace(x, y, z, FaceDirection.West, (byte)voxels[x, y, z].Type);
+                        if (IsTransparent(x, y + 1, z, voxels)) CreateFace(x, y, z, FaceDirection.Top, (byte)voxels[x, y, z].Type);
+                        if (IsTransparent(x, y - 1, z, voxels)) CreateFace(x, y, z, FaceDirection.Bottom, (byte)voxels[x, y, z].Type);
+                        if (IsTransparent(x, y, z + 1, voxels)) CreateFace(x, y, z, FaceDirection.North, (byte)voxels[x, y, z].Type);
+                        if (IsTransparent(x, y, z - 1, voxels)) CreateFace(x, y, z, FaceDirection.South, (byte)voxels[x, y, z].Type);
+                    }
+                }
+            }
 
             Mesh mesh = new Mesh();
+            mesh.name = "Chunk Mesh";
             mesh.vertices = _vertices.ToArray();
             mesh.triangles = _triangles.ToArray();
             mesh.uv = _uvs.ToArray();
             mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
-            Debug.Log($"Vertices: {_vertices.Count}, Triangles: {_triangles.Count}");
             return mesh;
         }
 
-        private enum Direction { Forward, Back, Left, Right, Up, Down }
-
-        private void GenerateFaces(VoxelData[,,] voxels, Direction dir)
+        private bool IsTransparent(int x, int y, int z, VoxelData[,,] voxels)
         {
-            Axis axis1, axis2;
-            int depth;
-            switch (dir)
+            if (x < 0 || x >= 16 || y < 0 || y >= 16 || z < 0 || z >= 16) return true;
+            return voxels[x, y, z].Type == VoxelType.Air;
+        }
+
+        private void CreateFace(int x, int y, int z, FaceDirection direction, byte blockType)
+        {
+            Vector3 offset = new Vector3(x, y, z);
+            Vector3[] faceVertices = GetFaceVertices(direction);
+            Vector2[] faceUVs = GetFaceUVs(blockType, direction);
+
+            foreach (Vector3 vertex in faceVertices)
             {
-                case Direction.Forward:
-                case Direction.Back:
-                    axis1 = Axis.X;
-                    axis2 = Axis.Y;
-                    depth = _depth;
-                    break;
-                case Direction.Left:
-                case Direction.Right:
-                    axis1 = Axis.Z;
-                    axis2 = Axis.Y;
-                    depth = _width;
-                    break;
-                default:
-                    axis1 = Axis.X;
-                    axis2 = Axis.Z;
-                    depth = _height;
-                    break;
+                _vertices.Add(vertex + offset);
             }
 
-            for (int d = 0; d < depth; d++)
+            _triangles.Add(_currentVertexIndex);
+            _triangles.Add(_currentVertexIndex + 1);
+            _triangles.Add(_currentVertexIndex + 2);
+            _triangles.Add(_currentVertexIndex);
+            _triangles.Add(_currentVertexIndex + 2);
+            _triangles.Add(_currentVertexIndex + 3);
+
+            _uvs.AddRange(faceUVs);
+            _currentVertexIndex += 4;
+        }
+
+        private Vector3[] GetFaceVertices(FaceDirection direction)
+        {
+            switch (direction)
             {
-                for (int a1 = 0; a1 < GetAxisSize(axis1); a1++)
-                {
-                    for (int a2 = 0; a2 < GetAxisSize(axis2); a2++)
-                    {
-                        GetVoxelCoords(dir, a1, a2, d, out int x, out int y, out int z);
-                        if (x < 0 || y < 0 || z < 0 || x >= _width || y >= _height || z >= _depth)
-                            continue;
+                case FaceDirection.North:
+                    return new Vector3[] {
+                        new Vector3(0, 0, 1),
+                        new Vector3(1, 0, 1),
+                        new Vector3(1, 1, 1),
+                        new Vector3(0, 1, 1)
+                    };
+        
+                case FaceDirection.South:
+                    return new Vector3[] {
+                        new Vector3(1, 0, 0),
+                        new Vector3(0, 0, 0),
+                        new Vector3(0, 1, 0),
+                        new Vector3(1, 1, 0)
+                    };
 
-                        if (_processed[x, y, z] || voxels[x, y, z].Type == 0)
-                            continue;
+                case FaceDirection.East:
+                    return new Vector3[] {
+                        new Vector3(1, 0, 1),
+                        new Vector3(1, 0, 0),
+                        new Vector3(1, 1, 0),
+                        new Vector3(1, 1, 1)
+                    };
 
-                        int width = 1, height = 1;
-                        while (a1 + width < GetAxisSize(axis1) && CanMerge(voxels, dir, a1, a2, d, width, 0))
-                            width++;
-                        while (a2 + height < GetAxisSize(axis2) && CanMerge(voxels, dir, a1, a2, d, width, height))
-                            height++;
+                case FaceDirection.West:
+                    return new Vector3[] {
+                        new Vector3(0, 0, 0),
+                        new Vector3(0, 0, 1),
+                        new Vector3(0, 1, 1),
+                        new Vector3(0, 1, 0)
+                    };
 
-                        AddQuad(x, y, z, dir, width, height);
-                        MarkProcessed(dir, a1, a2, d, width, height);
-                    }
-                }
+                case FaceDirection.Top:
+                    return new Vector3[] {
+                        new Vector3(0, 1, 1),
+                        new Vector3(1, 1, 1),
+                        new Vector3(1, 1, 0),
+                        new Vector3(0, 1, 0)
+                    };
+
+                case FaceDirection.Bottom:
+                    return new Vector3[] {
+                        new Vector3(0, 0, 0),
+                        new Vector3(1, 0, 0),
+                        new Vector3(1, 0, 1),
+                        new Vector3(0, 0, 1)
+                    };
+
+                default: return new Vector3[4];
             }
         }
 
-        private bool CanMerge(VoxelData[,,] voxels, Direction dir, int a1, int a2, int d, int w, int h)
+        private Vector2[] GetFaceUVs(byte blockType, FaceDirection direction)
         {
-            for (int i = 0; i < w; i++)
-            {
-                for (int j = 0; j < h; j++)
-                {
-                    GetVoxelCoords(dir, a1 + i, a2 + j, d, out int x, out int y, out int z);
-                    if (x >= _width || y >= _height || z >= _depth || x < 0 || y < 0 || z < 0)
-                        return false;
-                    if (_processed[x, y, z] || voxels[x, y, z].Type == 0)
-                        return false;
-                }
-            }
-            return true;
-        }
-
-        private void AddQuad(int x, int y, int z, Direction dir, int width, int height)
-        {
-            Vector3[] corners = GetQuadCorners(x, y, z, dir, width, height);
-            int startIndex = _vertices.Count;
-
-            _vertices.AddRange(corners);
-
-            _uvs.Add(new Vector2(0, 0));
-            _uvs.Add(new Vector2(1, 0));
-            _uvs.Add(new Vector2(0, 1));
-            _uvs.Add(new Vector2(1, 1));
-
-            // Исправленный порядок треугольников для корректных нормалей
-            _triangles.Add(startIndex);
-            _triangles.Add(startIndex + 2);
-            _triangles.Add(startIndex + 1);
-
-            _triangles.Add(startIndex + 1);
-            _triangles.Add(startIndex + 2);
-            _triangles.Add(startIndex + 3);
-        }
-
-        private Vector3[] GetQuadCorners(int x, int y, int z, Direction dir, int w, int h)
-        {
-            float half = 0.5f;
-            Vector3[] corners = new Vector3[4];
-
-            switch (dir)
-            {
-                case Direction.Forward:
-                    corners[0] = new Vector3(x - half, y - half, z + half);
-                    corners[1] = new Vector3(x + w - half, y - half, z + half);
-                    corners[2] = new Vector3(x - half, y + h - half, z + half);
-                    corners[3] = new Vector3(x + w - half, y + h - half, z + half);
-                    break;
-                case Direction.Back:
-                    corners[0] = new Vector3(x - half, y - half, z - half);
-                    corners[1] = new Vector3(x + w - half, y - half, z - half);
-                    corners[2] = new Vector3(x - half, y + h - half, z - half);
-                    corners[3] = new Vector3(x + w - half, y + h - half, z - half);
-                    break;
-                case Direction.Left:
-                    corners[0] = new Vector3(x - half, y - half, z - half);
-                    corners[1] = new Vector3(x - half, y - half, z + h - half);
-                    corners[2] = new Vector3(x - half, y + h - half, z - half);
-                    corners[3] = new Vector3(x - half, y + h - half, z + h - half);
-                    break;
-                case Direction.Right:
-                    corners[0] = new Vector3(x + half, y - half, z + h - half);
-                    corners[1] = new Vector3(x + half, y - half, z - half);
-                    corners[2] = new Vector3(x + half, y + h - half, z + h - half);
-                    corners[3] = new Vector3(x + half, y + h - half, z - half);
-                    break;
-                case Direction.Up:
-                    corners[0] = new Vector3(x - half, y + half, z - half);
-                    corners[1] = new Vector3(x + w - half, y + half, z - half);
-                    corners[2] = new Vector3(x - half, y + half, z + h - half);
-                    corners[3] = new Vector3(x + w - half, y + half, z + h - half);
-                    break;
-                case Direction.Down:
-                    corners[0] = new Vector3(x - half, y - half, z - half);
-                    corners[1] = new Vector3(x + w - half, y - half, z - half);
-                    corners[2] = new Vector3(x - half, y - half, z + h - half);
-                    corners[3] = new Vector3(x + w - half, y - half, z + h - half);
-                    break;
-            }
-
-            return corners;
-        }
-
-        private enum Axis { X, Y, Z }
-
-        private int GetAxisSize(Axis axis)
-        {
-            return axis switch
-            {
-                Axis.X => _width,
-                Axis.Y => _height,
-                Axis.Z => _depth,
-                _ => 0
+            // Реализуйте логику текстур в зависимости от типа блока и направления
+            return new Vector2[] {
+                new Vector2(0, 0),
+                new Vector2(1, 0),
+                new Vector2(1, 1),
+                new Vector2(0, 1)
             };
         }
 
-        private Vector3 GetDirectionNormal(Direction dir)
+        private enum FaceDirection
         {
-            return dir switch
-            {
-                Direction.Forward => Vector3.forward,
-                Direction.Back => Vector3.back,
-                Direction.Left => Vector3.left,
-                Direction.Right => Vector3.right,
-                Direction.Up => Vector3.up,
-                Direction.Down => Vector3.down,
-                _ => Vector3.zero
-            };
-        }
-
-        // Вспомогательные методы для преобразования координат
-        private void GetVoxelCoords(Direction dir, int a1, int a2, int d, out int x, out int y, out int z)
-        {
-            x = y = z = 0;
-
-            switch (dir)
-            {
-                case Direction.Forward:
-                    x = a1;
-                    y = a2;
-                    z = d;
-                    break;
-                case Direction.Back:
-                    x = a1;
-                    y = a2;
-                    z = _depth - 1 - d;
-                    break;
-                case Direction.Left:
-                    x = d;
-                    y = a2;
-                    z = _depth - 1 - a1;
-                    break;
-                case Direction.Right:
-                    x = _width - 1 - d;
-                    y = a2;
-                    z = a1;
-                    break;
-                case Direction.Up:
-                    x = a1;
-                    y = _height - 1 - d;
-                    z = a2;
-                    break;
-                case Direction.Down:
-                    x = a1;
-                    y = d;
-                    z = a2;
-                    break;
-            }
-        }
-
-        private void MarkProcessed(Direction dir, int a1, int a2, int d, int w, int h)
-        {
-            for (int i = 0; i < w; i++)
-            {
-                for (int j = 0; j < h; j++)
-                {
-                    int x, y, z;
-                    GetVoxelCoords(dir, a1 + i, a2 + j, d, out x, out y, out z);
-                    _processed[x, y, z] = true;
-                }
-            }
+            North,
+            South,
+            East,
+            West,
+            Top,
+            Bottom
         }
     }
 }
