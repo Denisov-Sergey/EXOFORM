@@ -405,11 +405,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0da77b738dad004682ec11c3173733a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _seed: 123
-  _noiseScale: 20
-  _heightMultiplier: 3
-  _warpScale: 10
-  _warpStrength: 5
+  _seed: 12345
+  _terrainScale: 80
+  _baseHeight: 0
+  _mountainFrequency: 0.3
+  _mountainAmplitude: 5
+  _riverFrequency: 0.2
+  _riverDepth: 3
+  _volcanoFrequency: 0.1
+  _volcanoHeight: 5
 --- !u!1 &347062305
 GameObject:
   m_ObjectHideFlags: 0
