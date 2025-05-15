@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEditor;
 using VoxelEngine.Core;
 
 namespace VoxelEngine.Rendering.Meshing
@@ -15,6 +16,19 @@ namespace VoxelEngine.Rendering.Meshing
         private List<Vector2> _uvs = new List<Vector2>();
         private int _currentVertexIndex;
 
+        private GameObject _chunkPrefab;
+        private int _chunkSize;
+        private float _voxelSize;
+        
+        void Start()
+        {
+            _chunkPrefab = VoxelEngineManager.Instance.ChunkManager.ChunkPrefab;
+            GameObject chunkObj = PrefabUtility.InstantiatePrefab(_chunkPrefab) as GameObject;
+            
+            _chunkSize = chunkObj.GetComponent<Chunk>().Size;
+            _voxelSize = chunkObj.GetComponent<Chunk>().VoxelSize;
+        }
+        
         /// <summary>
         /// Генерирует оптимизированный меш на основе воксельных данных
         /// </summary>
@@ -29,11 +43,11 @@ namespace VoxelEngine.Rendering.Meshing
             _currentVertexIndex = 0;
 
             // Проход по всем вокселям чанка
-            for (int y = 0; y < 16; y++)
+            for (int y = 0; y < _chunkSize; y++)
             {
-                for (int x = 0; x < 16; x++)
+                for (int z = 0; z < _chunkSize; z++)
                 {
-                    for (int z = 0; z < 16; z++)
+                    for (int x = 0; x < _chunkSize; x++)
                     {
                         if (voxels[x, y, z].Type == 0) continue;
 
@@ -69,7 +83,7 @@ namespace VoxelEngine.Rendering.Meshing
         private bool IsTransparent(int x, int y, int z, VoxelData[,,] voxels)
         {
             // Граничные проверки считаются прозрачными (вне чанка)
-            if (x < 0 || x >= 16 || y < 0 || y >= 16 || z < 0 || z >= 16) return true;
+            if (x < 0 || x >= _chunkSize || y < 0 || y >= _chunkSize || z < 0 || z >= _chunkSize) return true;
             return voxels[x, y, z].Type == VoxelType.Air;
         }
 
@@ -83,7 +97,19 @@ namespace VoxelEngine.Rendering.Meshing
         /// <param name="blockType">Тип блока для текстурных координат</param>
         private void CreateFace(int x, int y, int z, FaceDirection direction, byte blockType)
         {
-            Vector3 offset = new Vector3(x, y, z);
+            // Рассчитываем реальный размер с учетом VoxelSize
+            Vector3 offset = new Vector3(
+                x * _voxelSize,
+                y * _voxelSize,
+                z * _voxelSize
+            );
+            // Центрирование чанка
+            // offset -= new Vector3(
+            //     _chunkSize * _voxelSize, 
+            //     _chunkSize * _voxelSize,
+            //     _chunkSize * _voxelSize
+            // );
+            
             Vector3[] faceVertices = GetFaceVertices(direction);
             Vector2[] faceUVs = GetFaceUVs(blockType, direction);
 
@@ -112,58 +138,74 @@ namespace VoxelEngine.Rendering.Meshing
         /// <returns>Массив из 4 вершин в локальных координатах</returns>
         private Vector3[] GetFaceVertices(FaceDirection direction)
         {
+            Vector3[] vertices;
             switch (direction)
             {
                 case FaceDirection.North:
-                    return new Vector3[] {
+                    vertices = new Vector3[] {
                         new Vector3(0, 0, 1),  // Левый нижний
                         new Vector3(1, 0, 1),  // Правый нижний
                         new Vector3(1, 1, 1),  // Правый верхний
                         new Vector3(0, 1, 1)   // Левый верхний
                     };
+                    break;
         
                 case FaceDirection.South:
-                    return new Vector3[] {
+                    vertices =  new Vector3[] {
                         new Vector3(1, 0, 0),
                         new Vector3(0, 0, 0),
                         new Vector3(0, 1, 0),
                         new Vector3(1, 1, 0)
                     };
+                    break;
 
                 case FaceDirection.East:
-                    return new Vector3[] {
+                    vertices =  new Vector3[] {
                         new Vector3(1, 0, 1),
                         new Vector3(1, 0, 0),
                         new Vector3(1, 1, 0),
                         new Vector3(1, 1, 1)
                     };
+                    break;
 
                 case FaceDirection.West:
-                    return new Vector3[] {
+                    vertices =  new Vector3[] {
                         new Vector3(0, 0, 0),
                         new Vector3(0, 0, 1),
                         new Vector3(0, 1, 1),
                         new Vector3(0, 1, 0)
                     };
+                    break;
 
                 case FaceDirection.Top:
-                    return new Vector3[] {
+                    vertices =  new Vector3[] {
                         new Vector3(0, 1, 1),
                         new Vector3(1, 1, 1),
                         new Vector3(1, 1, 0),
                         new Vector3(0, 1, 0)
                     };
+                    break;
 
                 case FaceDirection.Bottom:
-                    return new Vector3[] {
+                    vertices =  new Vector3[] {
                         new Vector3(0, 0, 0),
                         new Vector3(1, 0, 0),
                         new Vector3(1, 0, 1),
                         new Vector3(0, 0, 1)
                     };
+                    break;
 
-                default: return new Vector3[4];
+                default: vertices =  new Vector3[4];
+                    break;
             }
+            
+            // Масштабируем вершины
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] *= _voxelSize;
+            }
+
+            return vertices;
         }
 
         /// <summary>

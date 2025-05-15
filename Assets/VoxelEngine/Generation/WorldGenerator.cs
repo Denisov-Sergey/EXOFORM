@@ -57,19 +57,31 @@ namespace VoxelEngine.Generation
         /// <param name="chunk">Чанк для заполнения данными</param>
         private void GenerateChunk(Chunk chunk)
         {
-            VoxelData[,,] data = new VoxelData[16, 16, 16];
-            Vector3Int chunkWorldPos = chunk.ChunkPosition * 16;
+            Debug.Log($"chunk.Size: {chunk.Size}");
+            Debug.Log($"chunk.Size: {chunk.VoxelSize}");
+            
+            VoxelData[,,] data = new VoxelData[chunk.Size, chunk.Size, chunk.Size];
+            
+            // Учитываем размер вокселя при расчёте мировой позиции чанка
+            Vector3 chunkWorldPos = new Vector3(
+                chunk.ChunkPosition.x * (chunk.Size * chunk.VoxelSize),
+                chunk.ChunkPosition.y * (chunk.Size * chunk.VoxelSize),
+                chunk.ChunkPosition.z * (chunk.Size * chunk.VoxelSize)
+            );
 
-            for (int x = 0; x < 16; x++)
+            for (int x = 0; x < chunk.Size; x++)
             {
-                float globalX = chunkWorldPos.x + x;
-                for (int z = 0; z < 16; z++)
+                float globalX = chunkWorldPos.x + x * chunk.VoxelSize;
+                for (int z = 0; z < chunk.Size; z++)
                 {
-                    float globalZ = chunkWorldPos.z + z;
+                    float globalZ = chunkWorldPos.z + z * chunk.VoxelSize;
                     
                     // Расчет базовой высоты с шумом Перлина
                     float height = _baseHeight + 
-                        _noise.GetPerlin(globalX / _terrainScale, globalZ / _terrainScale) * 2f;
+                        _noise.GetPerlin(
+                            globalX / _terrainScale ,
+                            globalZ / _terrainScale 
+                        ) * 2f;
                     
                     // Наложение различных типов рельефа
                     height += CalculateMountain(globalX, globalZ);
@@ -77,9 +89,9 @@ namespace VoxelEngine.Generation
                     height += CalculateVolcano(globalX, globalZ);
 
                     // Заполнение вертикальных слоев
-                    for (int y = 0; y < 16; y++)
+                    for (int y = 0; y < chunk.Size; y++)
                     {
-                        int globalY = chunkWorldPos.y + y;
+                        float globalY = chunkWorldPos.y + y * chunk.VoxelSize;
                         data[x, y, z] = GetVoxelType(globalY, height);
                     }
                 }

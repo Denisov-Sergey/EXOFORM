@@ -347,8 +347,8 @@ MonoBehaviour:
     edgeBorderSize: 0.05
   zoom:
     speed: 25
-    minHeight: 75
-    maxHeight: 200
+    minHeight: 8
+    maxHeight: 24
     minAngle: 75
     maxAngle: 30
   keyboard:
@@ -406,10 +406,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _seed: 12345
-  _terrainScale: 80
+  _terrainScale: 8
   _baseHeight: 0
-  _mountainFrequency: 0.3
-  _mountainAmplitude: 5
+  _mountainFrequency: 3
+  _mountainAmplitude: 50
   _riverFrequency: 0.2
   _riverDepth: 3
   _volcanoFrequency: 0.1
@@ -925,7 +925,6 @@ MonoBehaviour:
   showEditorButton: 1
   _editorChunkPosition: {x: 0, y: 0, z: 0}
   _editorLoadRadius: 10
-  _voxelSize: 1
   _autoGenerateInEditMode: 0
   _clearOnRegenerate: 1
 --- !u!1001 &1376563989026710431

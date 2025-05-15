@@ -30,13 +30,7 @@ namespace VoxelEngine.Core
         [SerializeField] private Vector3Int _editorChunkPosition;
         
         [Tooltip("Радиус генерации чанков в редакторе")]
-        [SerializeField] private int _editorLoadRadius = 3;
-        
-        [Tooltip("Размер одного вокселя в мировых единицах")]
-        [SerializeField] private float _voxelSize = 1f;
-        
-        [Tooltip("Автоматическая генерация при изменении параметров в редакторе")]
-        [SerializeField] private bool _autoGenerateInEditMode;
+        [SerializeField] private int _editorLoadRadius = 10;
         
         [Tooltip("Очищать старые чанки перед генерацией новых")]
         [SerializeField] private bool _clearOnRegenerate = true;
@@ -45,15 +39,7 @@ namespace VoxelEngine.Core
         /// Хранилище созданных чанков (позиция -> GameObject)
         /// </summary>
         private Hashtable _chunks = new Hashtable();
-
-        /// <summary>
-        /// Проверка и автоматическая генерация при изменении параметров в редакторе
-        /// </summary>
-        private void OnValidate() 
-        {
-            if(_autoGenerateInEditMode && !Application.isPlaying)
-                GenerateInEditor();
-        }
+        public GameObject ChunkPrefab => _chunkPrefab;
         
         /// <summary>
         /// Генерация чанков в редакторе вокруг указанной позиции
@@ -119,7 +105,8 @@ namespace VoxelEngine.Core
             
             Chunk chunk = chunkObj.GetComponent<Chunk>();
             chunk.Initialize(chunkPosition);
-            
+            chunkObj.transform.position = chunk.transform.position;
+
             OnChunkLoad?.Invoke(chunk);
             
             _chunks.Add(chunkPosition, chunkObj);
@@ -152,7 +139,7 @@ namespace VoxelEngine.Core
         /// <returns>Размер чанка с учетом размера вокселя</returns>
         private float GetChunkWorldSize()
         {
-            return _chunkPrefab.GetComponent<Chunk>().Size * _voxelSize;
+            return _chunkPrefab.GetComponent<Chunk>().Size * _chunkPrefab.GetComponent<Chunk>().VoxelSize;
         }
         
         // Зарезервировано для будущей реализации динамической подгрузки

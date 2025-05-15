@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 945787114141979776}
   - component: {fileID: 4646975960770399971}
   - component: {fileID: 8120271598353957500}
+  - component: {fileID: 3184244006513989071}
   m_Layer: 0
   m_Name: 'Chunk_Prefab '
   m_TagString: Untagged
@@ -101,3 +102,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _size: 16
   _voxelSize: 1
+--- !u!64 &3184244006513989071
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2125091245981871606}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
