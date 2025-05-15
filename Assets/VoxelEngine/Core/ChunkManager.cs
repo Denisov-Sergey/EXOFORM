@@ -5,34 +5,59 @@ using UnityEngine;
 
 namespace VoxelEngine.Core
 {
+    /// <summary>
+    /// Управляет созданием, загрузкой и удалением чанков воксельного мира
+    /// </summary>
     public class ChunkManager : MonoBehaviour
     {
+        /// <summary>
+        /// Событие, вызываемое при загрузке нового чанка
+        /// </summary>
         public event Action<Chunk> OnChunkLoad;
 
-        [Header("Настройки")]
+        [Header("Основные настройки")]
+        [Tooltip("Префаб чанка должен содержать компонент Chunk")]
         [SerializeField] private GameObject _chunkPrefab;
+        
+        [Tooltip("Дистанция загрузки чанков вокруг игрока (в чанках)")]
         [SerializeField] private int _loadDistance = 3;
-        // [SerializeField] private float _voxelSize = 1f;
-       
-        [Header("Генерация в редакторе")]
-        [SerializeField] private bool showEditorButton = true;
-        [SerializeField] private Vector3Int _editorChunkPosition;
-        [SerializeField] private int _editorLoadRadius = 3;
-        [SerializeField] private float _voxelSize = 1f;
-        [SerializeField] private bool _autoGenerateInEditMode;
-        [SerializeField] private bool _clearOnRegenerate = true;
-        
-        // Для хранения созданных чанков
-        private Hashtable _chunks = new Hashtable();
-        
-        private Transform _player;
 
+        [Header("Редакторные настройки")]
+        [Tooltip("Показывать кнопку генерации в инспекторе")]
+        [SerializeField] private bool showEditorButton = true;
+        
+        [Tooltip("Центральная позиция для генерации в редакторе")]
+        [SerializeField] private Vector3Int _editorChunkPosition;
+        
+        [Tooltip("Радиус генерации чанков в редакторе")]
+        [SerializeField] private int _editorLoadRadius = 3;
+        
+        [Tooltip("Размер одного вокселя в мировых единицах")]
+        [SerializeField] private float _voxelSize = 1f;
+        
+        [Tooltip("Автоматическая генерация при изменении параметров в редакторе")]
+        [SerializeField] private bool _autoGenerateInEditMode;
+        
+        [Tooltip("Очищать старые чанки перед генерацией новых")]
+        [SerializeField] private bool _clearOnRegenerate = true;
+
+        /// <summary>
+        /// Хранилище созданных чанков (позиция -> GameObject)
+        /// </summary>
+        private Hashtable _chunks = new Hashtable();
+
+        /// <summary>
+        /// Проверка и автоматическая генерация при изменении параметров в редакторе
+        /// </summary>
         private void OnValidate() 
         {
             if(_autoGenerateInEditMode && !Application.isPlaying)
                 GenerateInEditor();
         }
         
+        /// <summary>
+        /// Генерация чанков в редакторе вокруг указанной позиции
+        /// </summary>
         [ContextMenu("Сгенерировать чанки")]
         public void GenerateInEditor()
         {
@@ -51,6 +76,10 @@ namespace VoxelEngine.Core
                 }
             }
         }
+
+        /// <summary>
+        /// Удаление всех созданных чанков
+        /// </summary>
         [ContextMenu("Очистить все чанки")]
         public void ClearAllChunks()
         {
@@ -61,6 +90,10 @@ namespace VoxelEngine.Core
             _chunks.Clear();
         }
 
+        /// <summary>
+        /// Загружает чанк по указанной позиции
+        /// </summary>
+        /// <param name="chunkPosition">Позиция чанка в чанковых координатах</param>
         private void LoadChunk(Vector3Int chunkPosition)
         {
             if (_chunkPrefab == null)
@@ -81,22 +114,21 @@ namespace VoxelEngine.Core
             
             GameObject chunkObj = PrefabUtility.InstantiatePrefab(_chunkPrefab) as GameObject;
             
-            // Преобразуем Vector3Int в Vector3 перед умножением на floatfloat chunkSize = GetChunkWorldSize();
             chunkObj.transform.position = (Vector3)chunkPosition * GetChunkWorldSize();
             chunkObj.transform.SetParent(transform);
             
             Chunk chunk = chunkObj.GetComponent<Chunk>();
             chunk.Initialize(chunkPosition);
             
-            // Вызов события после создания чанка
             OnChunkLoad?.Invoke(chunk);
             
             _chunks.Add(chunkPosition, chunkObj);
         }
-        
-        
-        
+
 #if UNITY_EDITOR
+        /// <summary>
+        /// Кастомный редактор для ChunkManager
+        /// </summary>
         [UnityEditor.CustomEditor(typeof(ChunkManager))]
         public class ChunkEditor : UnityEditor.Editor
         {
@@ -114,11 +146,16 @@ namespace VoxelEngine.Core
         }
 #endif
 
+        /// <summary>
+        /// Рассчитывает размер чанка в мировых единицах
+        /// </summary>
+        /// <returns>Размер чанка с учетом размера вокселя</returns>
         private float GetChunkWorldSize()
         {
             return _chunkPrefab.GetComponent<Chunk>().Size * _voxelSize;
         }
         
+        // Зарезервировано для будущей реализации динамической подгрузки
         /*
         void Start() 
         {
@@ -129,46 +166,6 @@ namespace VoxelEngine.Core
         {
             Vector3Int playerChunkPos = GetPlayerChunkPosition();
             LoadChunksAround(playerChunkPos);
-        }
-
-        // Загрузка чанка по координатам
-        public void LoadChunk(Vector3Int chunkPosition) 
-        {
-            GameObject chunkObj = Instantiate(_chunkPrefab);
-            Chunk chunk = chunkObj.GetComponent<Chunk>();
-            chunk.Initialize(chunkPosition);
-            OnChunkLoad?.Invoke(chunk);
-        }
-
-        // Выгрузка чанка
-        public void UnloadChunk(Vector3Int chunkPosition) 
-        {
-            // Логика поиска и уничтожения чанка...
-        }
-
-        // Получение позиции игрока в чанках
-        private Vector3Int GetPlayerChunkPosition() 
-        {
-            Vector3 playerPos = _player.position;
-            return new Vector3Int(
-                Mathf.FloorToInt(playerPos.x / (_chunkPrefab.GetComponent<Chunk>().Size * _voxelSize)),
-                Mathf.FloorToInt(playerPos.y / (_chunkPrefab.GetComponent<Chunk>().Size * _voxelSize)),
-                Mathf.FloorToInt(playerPos.z / (_chunkPrefab.GetComponent<Chunk>().Size * _voxelSize))
-            );
-        }
-
-        // Загрузка чанков вокруг игрока
-        private void LoadChunksAround(Vector3Int center) 
-        {
-            for (int x = -_loadDistance; x <= _loadDistance; x++) 
-            {
-                for (int z = -_loadDistance; z <= _loadDistance; z++) 
-                {
-                    Vector3Int chunkPos = new Vector3Int(center.x + x, 0, center.z + z);
-                    LoadChunk(chunkPos);
-                }
-            }
-        } */
+        }*/
     }    
 }
-
