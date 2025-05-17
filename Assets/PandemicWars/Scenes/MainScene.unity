@@ -406,14 +406,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _seed: 12345
-  _terrainScale: 8
+  _terrainScale: 80
   _baseHeight: 0
-  _mountainFrequency: 3
-  _mountainAmplitude: 50
+  _mountainFrequency: 0.3
+  _mountainAmplitude: 5
+  _rockSteepnessThreshold: 0.6
   _riverFrequency: 0.2
   _riverDepth: 3
   _volcanoFrequency: 0.1
   _volcanoHeight: 5
+  _biomeScale: 200
+  _corruptionScale: 150
+  _corruptionThreshold: 0.7
 --- !u!1 &347062305
 GameObject:
   m_ObjectHideFlags: 0
@@ -875,7 +879,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _chunkManager: {fileID: 1683244175}
   _greedyMesher: {fileID: 419228772}
-  _voxelMaterial: {fileID: 2100000, guid: d10849668e5abaa4b9ada140c5d06e32, type: 2}
 --- !u!1 &1683244173
 GameObject:
   m_ObjectHideFlags: 0
@@ -924,8 +927,7 @@ MonoBehaviour:
   _loadDistance: 3
   showEditorButton: 1
   _editorChunkPosition: {x: 0, y: 0, z: 0}
-  _editorLoadRadius: 10
-  _autoGenerateInEditMode: 0
+  _editorLoadRadius: 1
   _clearOnRegenerate: 1
 --- !u!1001 &1376563989026710431
 PrefabInstance:

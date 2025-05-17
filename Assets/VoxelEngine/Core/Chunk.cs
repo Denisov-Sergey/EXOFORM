@@ -128,7 +128,6 @@ namespace VoxelEngine.Core
         {
             _meshFilter.mesh = mesh;
             _meshCollider.sharedMesh = mesh;
-            _meshRenderer.material = VoxelEngineManager.Instance.VoxelMaterial;
             
             // Масштабирование трансформа для коллайдера
             // transform.localScale = Vector3.one * _voxelSize; 

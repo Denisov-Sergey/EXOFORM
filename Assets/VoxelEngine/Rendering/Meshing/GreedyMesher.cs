@@ -11,6 +11,9 @@ namespace VoxelEngine.Rendering.Meshing
     public class GreedyMesher : MonoBehaviour
     {
         // Временные буферы для данных меша
+        private List<Color32> _colors  = new List<Color32>();
+        // [SerializeField] private Texture2D _textureAtlas;
+        // private float _tileSize = 1f;
         private List<Vector3> _vertices = new List<Vector3>();
         private List<int> _triangles = new List<int>();
         private List<Vector2> _uvs = new List<Vector2>();
@@ -27,6 +30,8 @@ namespace VoxelEngine.Rendering.Meshing
             
             _chunkSize = chunkObj.GetComponent<Chunk>().Size;
             _voxelSize = chunkObj.GetComponent<Chunk>().VoxelSize;
+            
+            Destroy(chunkObj);
         }
         
         /// <summary>
@@ -40,6 +45,7 @@ namespace VoxelEngine.Rendering.Meshing
             _vertices.Clear();
             _triangles.Clear();
             _uvs.Clear();
+            _colors.Clear();
             _currentVertexIndex = 0;
 
             // Проход по всем вокселям чанка
@@ -49,15 +55,18 @@ namespace VoxelEngine.Rendering.Meshing
                 {
                     for (int x = 0; x < _chunkSize; x++)
                     {
+                        var voxel = voxels[x, y, z];
                         if (voxels[x, y, z].Type == 0) continue;
+                        
+                        Color32 voxelColor = voxel.Color;
 
                         // Проверка и создание видимых граней
-                        if (IsTransparent(x + 1, y, z, voxels)) CreateFace(x, y, z, FaceDirection.East, (byte)voxels[x, y, z].Type);
-                        if (IsTransparent(x - 1, y, z, voxels)) CreateFace(x, y, z, FaceDirection.West, (byte)voxels[x, y, z].Type);
-                        if (IsTransparent(x, y + 1, z, voxels)) CreateFace(x, y, z, FaceDirection.Top, (byte)voxels[x, y, z].Type);
-                        if (IsTransparent(x, y - 1, z, voxels)) CreateFace(x, y, z, FaceDirection.Bottom, (byte)voxels[x, y, z].Type);
-                        if (IsTransparent(x, y, z + 1, voxels)) CreateFace(x, y, z, FaceDirection.North, (byte)voxels[x, y, z].Type);
-                        if (IsTransparent(x, y, z - 1, voxels)) CreateFace(x, y, z, FaceDirection.South, (byte)voxels[x, y, z].Type);
+                        if (IsTransparent(x + 1, y, z, voxels)) CreateFace(x, y, z, FaceDirection.East,voxelColor);
+                        if (IsTransparent(x - 1, y, z, voxels)) CreateFace(x, y, z, FaceDirection.West, voxelColor);
+                        if (IsTransparent(x, y + 1, z, voxels)) CreateFace(x, y, z, FaceDirection.Top, voxelColor );
+                        if (IsTransparent(x, y - 1, z, voxels)) CreateFace(x, y, z, FaceDirection.Bottom, voxelColor );
+                        if (IsTransparent(x, y, z + 1, voxels)) CreateFace(x, y, z, FaceDirection.North,voxelColor );
+                        if (IsTransparent(x, y, z - 1, voxels)) CreateFace(x, y, z, FaceDirection.South, voxelColor );
                     }
                 }
             }
@@ -68,6 +77,7 @@ namespace VoxelEngine.Rendering.Meshing
             mesh.vertices = _vertices.ToArray();
             mesh.triangles = _triangles.ToArray();
             mesh.uv = _uvs.ToArray();
+            mesh.colors32 = _colors.ToArray();
             mesh.RecalculateNormals();
             return mesh;
         }
@@ -94,8 +104,8 @@ namespace VoxelEngine.Rendering.Meshing
         /// <param name="y">Y-позиция вокселя</param>
         /// <param name="z">Z-позиция вокселя</param>
         /// <param name="direction">Направление грани</param>
-        /// <param name="blockType">Тип блока для текстурных координат</param>
-        private void CreateFace(int x, int y, int z, FaceDirection direction, byte blockType)
+        /// <param name="color">Цвет блока</param>
+        private void CreateFace(int x, int y, int z, FaceDirection direction, Color32 color)
         {
             // Рассчитываем реальный размер с учетом VoxelSize
             Vector3 offset = new Vector3(
@@ -103,20 +113,16 @@ namespace VoxelEngine.Rendering.Meshing
                 y * _voxelSize,
                 z * _voxelSize
             );
-            // Центрирование чанка
-            // offset -= new Vector3(
-            //     _chunkSize * _voxelSize, 
-            //     _chunkSize * _voxelSize,
-            //     _chunkSize * _voxelSize
-            // );
             
             Vector3[] faceVertices = GetFaceVertices(direction);
-            Vector2[] faceUVs = GetFaceUVs(blockType, direction);
+            // Vector2[] faceUVs = GetFaceUVs(blockType, direction);
+            
 
             // Добавление вершин с учетом позиции вокселя
             foreach (Vector3 vertex in faceVertices)
             {
                 _vertices.Add(vertex + offset);
+                _colors.Add(color);
             }
 
             // Формирование двух треугольников для грани
@@ -127,7 +133,7 @@ namespace VoxelEngine.Rendering.Meshing
             _triangles.Add(_currentVertexIndex + 2);
             _triangles.Add(_currentVertexIndex + 3);
 
-            _uvs.AddRange(faceUVs);
+            // _uvs.AddRange(faceUVs);
             _currentVertexIndex += 4;
         }
 
@@ -217,16 +223,33 @@ namespace VoxelEngine.Rendering.Meshing
         /// <remarks>
         /// Реализуйте логику текстур на основе вашей системы текстурных атласов
         /// </remarks>
-        private Vector2[] GetFaceUVs(byte blockType, FaceDirection direction)
-        {
-            // Заглушка: равномерное текстурирование
-            return new Vector2[] {
-                new Vector2(0, 0),  // Левый нижний угол UV
-                new Vector2(1, 0),  // Правый нижний
-                new Vector2(1, 1),  // Правый верхний
-                new Vector2(0, 1)   // Левый верхний
-            };
-        }
+        // private Vector2[] GetFaceUVs(byte blockType, FaceDirection direction)
+        // {
+        //     // Определяем текстуру по типу блока и направлению
+        //     int textureIndex = GetTextureIndex((VoxelType)blockType, direction);
+        //
+        //     // Рассчитываем UV
+        //     float x = (textureIndex % 4) * _tileSize;
+        //     float y = (textureIndex / 4) * _tileSize;
+        //     
+        //     return new Vector2[] {
+        //         new Vector2(x, y), // Левый нижний угол UV
+        //         new Vector2(x + _tileSize, y), // Правый нижний
+        //         new Vector2(x + _tileSize, y + _tileSize), // Правый верхний
+        //         new Vector2(x, y + _tileSize) // Левый верхний
+        //     };
+        // }
+        // private int GetTextureIndex(VoxelType type, FaceDirection dir)
+        // {
+        //     switch(type)
+        //     {
+        //         case VoxelType.Grass: 
+        //             return dir == FaceDirection.Top ? 0 : 1; // 0 - верх, 1 - бок
+        //         case VoxelType.Stone: return 2;
+        //         case VoxelType.Dirt: return 3;
+        //         default: return 0;
+        //     }
+        // }
 
         /// <summary>
         /// Направления граней вокселя

@@ -22,10 +22,6 @@ namespace VoxelEngine.Core
         [Tooltip("Мешер, реализующий алгоритм Greedy Meshing для оптимизации мешей")]
         [SerializeField] private GreedyMesher _greedyMesher;
         
-        [Header("Материалы")]
-        [Tooltip("Базовый материал, используемый для рендеринга вокселей")]
-        [SerializeField] private Material _voxelMaterial;
-
         /// <summary>
         /// Инициализация Singleton при загрузке объекта
         /// </summary>
@@ -53,10 +49,5 @@ namespace VoxelEngine.Core
         /// Оптимизированный мешер для генерации мешей вокселей (только для чтения)
         /// </summary>
         public GreedyMesher GreedyMesher => _greedyMesher;
-
-        /// <summary>
-        /// Базовый материал для рендеринга вокселей (только для чтения)
-        /// </summary>
-        public Material VoxelMaterial => _voxelMaterial;
     }
 }

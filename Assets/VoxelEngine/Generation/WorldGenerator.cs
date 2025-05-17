@@ -25,6 +25,9 @@ namespace VoxelEngine.Generation
         
         [Tooltip("Высота горных пиков")]
         [SerializeField] private float _mountainAmplitude = 5f;
+        
+        [Tooltip("При _rockSteepnessThreshold = 0.3f: больше участков будут каменными, горы станут остреe")]
+        [SerializeField] [Range(0, 1)] private float _rockSteepnessThreshold = 0.6f;
 
         [Header("Речные русла")]
         [Tooltip("Частота извилистости рек")]
@@ -39,8 +42,14 @@ namespace VoxelEngine.Generation
         
         [Tooltip("Высота вулканических конусов")]
         [SerializeField] private float _volcanoHeight = 5f;
+        
+        [Header("Биомы и заражение")]
+        [SerializeField] private float _biomeScale = 200f;
+        [SerializeField] private float _corruptionScale = 150f;
+        [SerializeField] [Range(0, 1)] private float _corruptionThreshold = 0.7f;
 
         private NoiseGenerator _noise;
+        private float[,] _heightmapCache;
 
         /// <summary>
         /// Инициализация генератора и подписка на события менеджера чанков
@@ -57,18 +66,66 @@ namespace VoxelEngine.Generation
         /// <param name="chunk">Чанк для заполнения данными</param>
         private void GenerateChunk(Chunk chunk)
         {
-            Debug.Log($"chunk.Size: {chunk.Size}");
-            Debug.Log($"chunk.Size: {chunk.VoxelSize}");
-            
-            VoxelData[,,] data = new VoxelData[chunk.Size, chunk.Size, chunk.Size];
-            
             // Учитываем размер вокселя при расчёте мировой позиции чанка
             Vector3 chunkWorldPos = new Vector3(
                 chunk.ChunkPosition.x * (chunk.Size * chunk.VoxelSize),
                 chunk.ChunkPosition.y * (chunk.Size * chunk.VoxelSize),
                 chunk.ChunkPosition.z * (chunk.Size * chunk.VoxelSize)
             );
-
+            
+            _heightmapCache = new float[chunk.Size, chunk.Size];
+            
+            // Предварительный расчёт высот и биомов
+            PrecalculateHeightAndBiomes(chunk, chunkWorldPos);
+            
+            VoxelData[,,] data = new VoxelData[chunk.Size, chunk.Size, chunk.Size];
+            
+            
+            for (int x = 0; x < chunk.Size; x++)
+            {
+                // float globalX = chunkWorldPos.x + x * chunk.VoxelSize;
+                for (int z = 0; z < chunk.Size; z++)
+                {
+                    // float globalZ = chunkWorldPos.z + z * chunk.VoxelSize;
+                    float height = _heightmapCache[x, z];
+                    // Расчет базовой высоты с шумом Перлина
+                    // float height = _baseHeight + 
+                        // _noise.GetPerlin(
+                            // globalX / _terrainScale ,
+                            // globalZ / _terrainScale 
+                        // ) * 2f;
+                    
+                    // Наложение различных типов рельефа
+                    // height += CalculateMountain(globalX, globalZ);
+                    // height -= CalculateRiver(globalX, globalZ);
+                    // height += CalculateVolcano(globalX, globalZ);
+            
+                    // Заполнение вертикальных слоев
+                    for (int y = 0; y < chunk.Size; y++)
+                    {
+                        // float globalY = chunkWorldPos.y + y * chunk.VoxelSize;
+                        // data[x, y, z] = GetVoxelType(globalY, height);
+                        
+                        float globalY = chunkWorldPos.y + y * chunk.VoxelSize;
+                        data[x, y, z] = GetVoxelType(
+                            chunkWorldPos.x + x * chunk.VoxelSize,
+                            chunkWorldPos.z + z * chunk.VoxelSize,
+                            globalY, 
+                            height
+                        );
+                        
+                    }
+                }
+            }
+            
+            chunk.SetVoxelData(data);
+        }
+        
+        /// <summary>
+        /// Предварительный расчёт высот и биомов
+        /// </summary>
+        private void PrecalculateHeightAndBiomes(Chunk chunk, Vector3 chunkWorldPos)
+        {
             for (int x = 0; x < chunk.Size; x++)
             {
                 float globalX = chunkWorldPos.x + x * chunk.VoxelSize;
@@ -76,28 +133,16 @@ namespace VoxelEngine.Generation
                 {
                     float globalZ = chunkWorldPos.z + z * chunk.VoxelSize;
                     
-                    // Расчет базовой высоты с шумом Перлина
                     float height = _baseHeight + 
-                        _noise.GetPerlin(
-                            globalX / _terrainScale ,
-                            globalZ / _terrainScale 
-                        ) * 2f;
+                                   _noise.GetPerlin(globalX / _terrainScale, globalZ / _terrainScale) * 2f;
                     
-                    // Наложение различных типов рельефа
                     height += CalculateMountain(globalX, globalZ);
                     height -= CalculateRiver(globalX, globalZ);
                     height += CalculateVolcano(globalX, globalZ);
 
-                    // Заполнение вертикальных слоев
-                    for (int y = 0; y < chunk.Size; y++)
-                    {
-                        float globalY = chunkWorldPos.y + y * chunk.VoxelSize;
-                        data[x, y, z] = GetVoxelType(globalY, height);
-                    }
+                    _heightmapCache[x, z] = height;
                 }
             }
-
-            chunk.SetVoxelData(data);
         }
 
         /// <summary>
@@ -138,17 +183,76 @@ namespace VoxelEngine.Generation
         /// - Камень ниже поверхности
         /// Раскомментируйте строки для многослойной генерации
         /// </remarks>
-        private VoxelData GetVoxelType(float y, float height)
+        private VoxelData GetVoxelType(float globalX, float globalZ, float y, float height)
         {
-            if (y > height) return new VoxelData { Type = VoxelType.Air };
+            if (y > height) return new VoxelData { Type = VoxelType.Air};
             
-            // Автоматическое определение слоев (пример)
-            float depth = height - y;
+            // Определение биома
+            float biomeValue = _noise.GetPerlin(globalX / _biomeScale, globalZ / _biomeScale);
+            BiomeType biome = GetBiomeType(biomeValue);
+
+            // Расчёт крутизны
+            float steepness = CalculateSteepness(globalX, globalZ);
             
-            // if (depth < 1f) return new VoxelData { Type = VoxelType.Grass };
-            // if (depth < 3f) return new VoxelData { Type = VoxelType.Dirt };
+            // Уровень заражения
+            float corruption = _noise.GetSimplex(globalX / _corruptionScale, globalZ / _corruptionScale);
+
+            VoxelType type = DetermineVoxelType(biome, steepness, corruption, y, height);
             
-            return new VoxelData { Type = VoxelType.Stone };
+            return new VoxelData { Type = type, Color = GetColorByType(type) };
+        }
+        
+        private BiomeType GetBiomeType(float noiseValue)
+        {
+            if (noiseValue < -0.33f) return BiomeType.Wasteland;
+            if (noiseValue < 0.33f) return BiomeType.Mountains;
+            return BiomeType.InfectedCity;
+        }
+        
+        private float CalculateSteepness(float x, float z)
+        {
+            float dx = _noise.GetPerlin(x + 0.1f, z) - _noise.GetPerlin(x - 0.1f, z);
+            float dz = _noise.GetPerlin(x, z + 0.1f) - _noise.GetPerlin(x, z - 0.1f);
+            return Mathf.Sqrt(dx * dx + dz * dz);
+        }
+        
+        private VoxelType DetermineVoxelType(BiomeType biome, float steepness, float corruption, float y, float height)
+        {
+            // Приоритет заражения
+            if (corruption > _corruptionThreshold)
+                return VoxelType.CorruptedBiomass;
+
+            // Правила для биомов
+            switch (biome)
+            {
+                case BiomeType.Mountains:
+                    return steepness > _rockSteepnessThreshold ? 
+                        VoxelType.Stone : 
+                        VoxelType.VolcanicRock;
+
+                case BiomeType.Wasteland:
+                    if (steepness > 0.4f) return VoxelType.Stone;
+                    return y > height - 1f ? VoxelType.CrackedDirt : VoxelType.Dirt;
+
+                case BiomeType.InfectedCity:
+                    return y > height - 2f ? VoxelType.MetalDebris : VoxelType.RustedMetal;
+
+                default:
+                    return VoxelType.Stone;
+            }
+        }
+        
+        private Color32 GetColorByType(VoxelType type)
+        {
+            switch(type)
+            {
+                case VoxelType.CrackedDirt: return new Color32(100, 70, 50, 255);
+                case VoxelType.VolcanicRock: return new Color32(80, 80, 80, 255);
+                case VoxelType.CorruptedBiomass: return new Color32(160, 30, 200, 255);
+                case VoxelType.MetalDebris: return new Color32(150, 150, 150, 255);
+                case VoxelType.RustedMetal: return new Color32(180, 100, 50, 255);
+                default: return Color.magenta;
+            }
         }
     }
 }
