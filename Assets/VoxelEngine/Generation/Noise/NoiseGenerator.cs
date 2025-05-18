@@ -57,10 +57,10 @@ namespace VoxelEngine.Generation.Noise
         {
             _noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
             _noise.SetFractalType(FastNoiseLite.FractalType.Ridged);
-            _noise.SetFractalOctaves(6);
+            _noise.SetFractalOctaves(5);
             _noise.SetFractalGain(0.5f);
     
-            return _noise.GetNoise(x, z);
+            return (1 - Mathf.Abs(_noise.GetNoise(x, z))) * 2f;
         }
     }
 }

@@ -406,18 +406,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _seed: 12345
-  _terrainScale: 80
+  _terrainScale: 40
   _baseHeight: 0
-  _mountainFrequency: 0.3
-  _mountainAmplitude: 5
+  _mountainFrequency: 1.2
+  _mountainAmplitude: 15
   _rockSteepnessThreshold: 0.6
-  _riverFrequency: 0.2
-  _riverDepth: 3
-  _volcanoFrequency: 0.1
-  _volcanoHeight: 5
-  _biomeScale: 200
-  _corruptionScale: 150
-  _corruptionThreshold: 0.7
+  _riverFrequency: 0.3
+  _riverDepth: 5
+  _volcanoFrequency: 0.05
+  _volcanoHeight: 7
+  _biomeScale: 20
+  _corruptionScale: 350
+  _corruptionThreshold: 0.85
+  _warpStrength: 50
+  _warpScale: 0.1
+  _showHeightGizmos: 1
+  _debugGridStep: 4
 --- !u!1 &347062305
 GameObject:
   m_ObjectHideFlags: 0

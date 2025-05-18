@@ -136,8 +136,7 @@ namespace VoxelEngine.Rendering.Meshing
             // _uvs.AddRange(faceUVs);
             _currentVertexIndex += 4;
             
-            Debug.Log($"Грань блока ({x}, {y}, {z}): Цвет = {color}");
-
+            // Debug.Log($"Грань блока ({x}, {y}, {z}): Цвет = {color}");
         }
 
         /// <summary>
