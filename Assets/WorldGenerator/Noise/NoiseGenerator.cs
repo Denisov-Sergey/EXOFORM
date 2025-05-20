@@ -69,10 +69,12 @@ namespace Worldgenerator.Noise
         [Tooltip("Цвет точек.")] public Color gizmoColor = Color.red;
 
         // Приватные переменные
-        private float[,] noiseMap;
-        private MeshFilter meshFilter;
-        private MeshRenderer meshRenderer;
-        private Vector3[] vertices;
+        private float[,] _noiseMap;
+        private MeshFilter _meshFilter;
+        private MeshRenderer _meshRenderer;
+        private Vector3[] _vertices;
+        private Material _cachedMaterial;
+
 
         // Инициализация при старте или изменении
         private void Start()
@@ -84,26 +86,28 @@ namespace Worldgenerator.Noise
         // Создание компонентов, если их нет
         private void InitializeComponents()
         {
-            meshFilter = GetComponent<MeshFilter>();
-            if (meshFilter == null){
-                meshFilter = gameObject.AddComponent<MeshFilter>();
+            _meshFilter = GetComponent<MeshFilter>();
+            if (_meshFilter == null){
+                _meshFilter = gameObject.AddComponent<MeshFilter>();
                 #if UNITY_EDITOR
                     UnityEditor.Undo.RecordObject(gameObject, "Add MeshFilter");
                 #endif
             }
 
-            meshRenderer = GetComponent<MeshRenderer>();
-            if (meshRenderer == null)
+            _meshRenderer = GetComponent<MeshRenderer>();
+            if (_meshRenderer == null)
             {
-                meshRenderer = gameObject.AddComponent<MeshRenderer>();
+                _meshRenderer = gameObject.AddComponent<MeshRenderer>();
                 #if UNITY_EDITOR
                     UnityEditor.Undo.RecordObject(gameObject, "Add MeshRenderer");
                 #endif
         
-                // Яркий материал для видимости
-                var material = new Material(Shader.Find("Standard"));
-                material.color = new Color(0.8f, 0.8f, 0.8f, 1f);
-                meshRenderer.material = material;
+                if (_cachedMaterial == null)
+                {
+                    _cachedMaterial = new Material(Shader.Find("Standard"));
+                    _cachedMaterial.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+                }
+                _meshRenderer.material = _cachedMaterial;
             }
         }
 
@@ -118,7 +122,7 @@ namespace Worldgenerator.Noise
         // Генерация карты шума
         private void GenerateNoiseMap()
         {
-            noiseMap = new float[width, height];
+            _noiseMap = new float[width, height];
             var noise = new FastNoiseLite();
             noise.SetSeed(seed);
 
@@ -161,6 +165,7 @@ namespace Worldgenerator.Noise
 
                 // Основной шум
                 float noiseValue = noise.GetNoise(xCoord, yCoord);
+
                 
                 // Постобработка
                 noiseValue = Mathf.Pow(Mathf.Abs(noiseValue), sharpness); // Усиление контраста
@@ -183,7 +188,7 @@ namespace Worldgenerator.Noise
                     noiseValue = Mathf.Round(noiseValue / quantizeSteps) * quantizeSteps;
                 }
 
-                noiseMap[x, y] = noiseValue;
+                _noiseMap[x, y] = noiseValue;
             }
         }
         
@@ -209,7 +214,7 @@ namespace Worldgenerator.Noise
             var mesh = new Mesh();
             mesh.name = "ProceduralTerrain";
             
-            vertices = new Vector3[width * height];
+            _vertices = new Vector3[width * height];
             var triangles = new int[(width - 1) * (height - 1) * 6];
             var triIndex = 0;
 
@@ -218,34 +223,48 @@ namespace Worldgenerator.Noise
             for (var y = 0; y < height; y++)
             {
                 var index = x * height + y;
-                vertices[index] = new Vector3(
+                _vertices[index] = new Vector3(
                     x,
-                    noiseMap[x, y] * heightMultiplier,
+                    _noiseMap[x, y] * heightMultiplier,
                     y
                 );
 
                 // Формирование треугольников
                 if (x < width - 1 && y < height - 1)
                 {
-                    triangles[triIndex] = index;
-                    triangles[triIndex + 1] = index + height;
-                    triangles[triIndex + 2] = index + 1;
-                    triangles[triIndex + 3] = index + 1;
-                    triangles[triIndex + 4] = index + height;
-                    triangles[triIndex + 5] = index + height + 1;
+                    // Первый треугольник соединит точки (0,0,0) → (1,0,0) → (0,1,0).
+                    // Второй треугольник соединит (1,0,0) → (1,1,0) → (0,1,0).
+                    // Квадрат из 4 вершин:
+                    // A (x, y) ---- B (x+1, y)
+                        // |           |
+                        // |           |
+                    // C (x, y+1) -- D (x+1, y+1)
+
+                    
+                    // Первый треугольник (A → B → C)
+                    triangles[triIndex]     = index;          // A (x, y)
+                    triangles[triIndex + 1] = index + 1;      // B (x+1, y)
+                    triangles[triIndex + 2] = index + width;  // C (x, y+1)
+
+                    // Второй треугольник (B → D → C)
+                    triangles[triIndex + 3] = index + 1;          // B (x+1, y)
+                    triangles[triIndex + 4] = index + width + 1;  // D (x+1, y+1)
+                    triangles[triIndex + 5] = index + width;      // C (x, y+1)
                     triIndex += 6;
                 }
             }
-
-            mesh.vertices = vertices;
+            
+            mesh.vertices = _vertices;
             mesh.triangles = triangles;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
+            mesh.RecalculateTangents();
             
-            meshFilter.mesh = mesh;
+            
+            _meshFilter.mesh = mesh;
             
             #if UNITY_EDITOR
-                        UnityEditor.EditorUtility.SetDirty(meshFilter);
+                        UnityEditor.EditorUtility.SetDirty(_meshFilter);
                         UnityEditor.SceneView.RepaintAll();
             #endif
         }
@@ -253,22 +272,28 @@ namespace Worldgenerator.Noise
         // Отрисовка Gizmos
         private void OnDrawGizmos()
         {
-            if (!showGizmos || vertices == null) return;
+            if (!showGizmos || _vertices == null) return;
 
             Gizmos.color = gizmoColor;
-            foreach (var vertex in vertices) Gizmos.DrawSphere(transform.position + vertex, gizmoSize);
+            foreach (var vertex in _vertices) Gizmos.DrawSphere(transform.position + vertex, gizmoSize);
         }
 
         // Автоматическая генерация при изменении параметров
+        #if UNITY_EDITOR
         private void OnValidate()
         {
-            #if UNITY_EDITOR
-                if (!Application.isPlaying && UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
-                {
-                    InitializeComponents();
-                    Generate();
-                }
-            #endif
+            // Защита от частых вызовов
+            if (UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            // Обновление с задержкой
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this == null) return;
+                InitializeComponents();
+                Generate();
+            };
         }
+        #endif
     }
 }
