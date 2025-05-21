@@ -6,10 +6,10 @@ namespace Worldgenerator.Noise
     [ExecuteInEditMode] // Скрипт работает в режиме редактирования
     public class NoiseGenerator : MonoBehaviour
     {
-        [Header("Noise Settings")] [Tooltip("Сид для генерации шума. Измените, чтобы получить другую карту.")]
+        [Header("Noise Settings")] 
+        [Tooltip("Сид для генерации шума. Измените, чтобы получить другую карту.")]
         public int seed = 12345;
 
-        [Header("Noise Settings")]
         [Tooltip("Использовать шум Вороного для резких перепадов")]
         public bool useVoronoiNoise = true;
         
@@ -17,48 +17,64 @@ namespace Worldgenerator.Noise
         public bool useCombineNoise = false;
 
         [Tooltip("Резкость скал (степенная функция)")]
-        [Range(1, 5)] public float sharpness = 3f;
+        [Range(1, 5)] public float sharpness = 5f;
 
         [Tooltip("Квантование высот для ступенчатых уступов")]
-        [Range(0, 1)] public float quantizeSteps = 0.2f;
+        [Range(0, 1)] public float quantizeSteps = 0.1f;
         
         [Tooltip("Масштаб шума. Меньше = более детализировано.")]
-        public float scale = 20f;
+        public float scale = 250f;
 
         [Range(1, 8)] [Tooltip("Количество октав. Увеличивает детализацию шума.")]
-        public int octaves = 4;
+        public int octaves = 5;
 
         [Range(0.1f, 1f)] [Tooltip("Влияние каждой октавы. Меньше = сглаженный шум.")]
-        public float persistence = 0.5f;
+        public float persistence = 0.7f;
 
         [Tooltip("Множитель высоты ландшафта.")]
-        public float heightMultiplier = 50f;
+        public float heightMultiplier = 15f;
+        
+        [Header("Crack Settings")]
+        [Tooltip("Включить мелкие трещины")]
+        public bool enableCracks = true;
+
+        [Tooltip("Масштаб шума трещин")]
+        public float crackScale = 10f;
+
+        [Tooltip("Сила трещин")]
+        [Range(0, 1)] public float crackStrength = 0.3f;
+
+        [Tooltip("Порог для трещин")]
+        [Range(0, 1)] public float crackThreshold = 0.6f;
+
+        [Tooltip("Резкость трещин")]
+        [Range(1, 5)] public float crackSharpness = 2f;
         
         [Header("Depression Settings")]
         [Tooltip("Сила впадин (0 = нет впадин, 1 = максимальные)")]
-        [Range(0, 1)] public float depressionStrength = 0.5f;
+        [Range(0, 1)] public float depressionStrength = 0.55f;
 
         [Tooltip("Масштаб шума для впадин")]
-        public float depressionScale = 40f;
+        public float depressionScale = 15f;
 
         [Tooltip("Порог активации впадин")]
-        [Range(-1, 1)] public float depressionThreshold = 0.7f;
+        [Range(-1, 1)] public float depressionThreshold = -0.3f;
         
         [Header("Domain Warping Settings")]
         [Tooltip("Смещение для вторичного шума по X")]
-        public float warpOffsetX = 100f;
+        public float warpOffsetX = 150f;
 
         [Tooltip("Смещение для вторичного шума по Y")]
-        public float warpOffsetY = 100f;
+        public float warpOffsetY = 150f;
 
         [Tooltip("Сила искажения координат")]
-        public float warpStrength = 10f;
+        public float warpStrength = 100f;
         
         [Header("Dimensions")] [Tooltip("Ширина генерируемой карты.")]
-        public int width = 100;
+        public int width = 200;
 
         [Tooltip("Высота генерируемой карты.")]
-        public int height = 100;
+        public int height = 200;
 
         [Header("Gizmos")] [Tooltip("Показывать вершины меша как точки в сцене.")]
         public bool showGizmos = true;
@@ -74,6 +90,7 @@ namespace Worldgenerator.Noise
         private MeshRenderer _meshRenderer;
         private Vector3[] _vertices;
         private Material _cachedMaterial;
+        private FastNoiseLite _warpNoise;
 
 
         // Инициализация при старте или изменении
@@ -132,7 +149,7 @@ namespace Worldgenerator.Noise
                 noise.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.Euclidean);
                 noise.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
             }
-            else if (useCombineNoise && !useVoronoiNoise)
+            else if (useCombineNoise)
             {
                 noise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
             }
@@ -140,6 +157,24 @@ namespace Worldgenerator.Noise
             {
                 noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
             }
+            
+            // Инициализация отдельного шума для Domain Warping
+            _warpNoise = new FastNoiseLite();
+            _warpNoise.SetSeed(seed + 500);
+            
+            // Копируем настройки основного шума для _warpNoise
+            _warpNoise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+            _warpNoise.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.Euclidean);
+            _warpNoise.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
+            _warpNoise.SetFractalOctaves(octaves);
+            _warpNoise.SetFractalGain(persistence);
+            
+            // Шум для мелких трещин
+            var crackNoise = new FastNoiseLite(seed + 2000);
+            crackNoise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            crackNoise.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.Manhattan);
+            crackNoise.SetFrequency(1f / crackScale);
+            crackNoise.SetFractalOctaves(3);
             
             // Шум для впадин
             var depressionNoise = new FastNoiseLite(seed + 1000);
@@ -161,7 +196,7 @@ namespace Worldgenerator.Noise
                 var yCoord = (float)y / height * scale;
                 
                 // Domain Warping
-                ApplyDomainWarping(ref xCoord, ref yCoord, noise);
+                ApplyDomainWarping(ref xCoord, ref yCoord);
 
                 // Основной шум
                 float noiseValue = noise.GetNoise(xCoord, yCoord);
@@ -182,6 +217,17 @@ namespace Worldgenerator.Noise
                     noiseValue = -noiseValue * depressionStrength * 2f;
                 }
                 
+                // Добавляем мелкие трещины
+                if(enableCracks)
+                {
+                    float crackValue = crackNoise.GetNoise(x * 1.5f, y * 1.5f); // Удвоенная частота
+                    crackValue = Mathf.Pow(Mathf.Abs(crackValue), crackSharpness);
+                    if(crackValue > crackThreshold)
+                    {
+                        noiseValue -= crackStrength * crackValue;
+                    }
+                }
+                
                 // Квантование высот
                 if (quantizeSteps > 0)
                 {
@@ -192,14 +238,14 @@ namespace Worldgenerator.Noise
             }
         }
         
-        private void ApplyDomainWarping(ref float xCoord, ref float yCoord, FastNoiseLite noise)
+        private void ApplyDomainWarping(ref float xCoord, ref float yCoord)
         {
-            float warpX = noise.GetNoise(
+            float warpX = _warpNoise.GetNoise(
                 xCoord + warpOffsetX, 
                 yCoord + warpOffsetY
             ) * warpStrength;
 
-            float warpY = noise.GetNoise(
+            float warpY = _warpNoise.GetNoise(
                 xCoord - warpOffsetX, 
                 yCoord - warpOffsetY
             ) * warpStrength;
