@@ -4,17 +4,22 @@ using WorldGenerator.Abstract;
 
 namespace WorldGenerator.Settings
 {
-    [System.Serializable]
+    [CreateAssetMenu(fileName = "CrackSettings", menuName = "Noise/Crack Settings")]
     public class CrackSettings  : NoiseSettings
     {
+        [Tooltip("Включить мелкие трещины")]
         public bool enabled = true;
         
+        [Tooltip("Масштаб шума трещин")]
         public float scale = 10f;
         
-        [Range(0, 1)] public float strength = 0.3f;
+        [Tooltip("Сила трещин")]
+        [Range(0, 1)] public float strength = 0.1f;
         
-        [Range(0, 1)] public float threshold = 0.6f;
+        [Tooltip("Порог для трещин")]
+        [Range(0, 1)] public float threshold = 0.5f;
         
-        [Range(1, 5)] public float sharpness = 2f;
+        [Tooltip("Резкость трещин")]
+        [Range(1, 5)] public float sharpness = 5f;
     }
 }

@@ -2,17 +2,16 @@
 
 namespace WorldGenerator.Settings
 {
-    [System.Serializable]
-    public class MeshSettings
+    [CreateAssetMenu(fileName = "MeshSettings", menuName = "Noise/Mesh Settings")]
+    public class MeshSettings : ScriptableObject
     {
+        [Tooltip("Ширина генерируемой карты.")]
         public int width = 200;
         
+        [Tooltip("Высота генерируемой карты.")]
         public int height = 200;
         
+        [Tooltip("Множитель высоты ландшафта.")]
         public float heightMultiplier = 15f;
-        
-        [Range(1, 5)] public float sharpness = 5f;
-        
-        [Range(0, 1)] public float quantizeSteps = 0.1f;
     }
 }

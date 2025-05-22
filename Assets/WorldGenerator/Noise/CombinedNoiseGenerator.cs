@@ -5,22 +5,20 @@ using WorldGenerator.Settings;
 
 namespace WorldGenerator.Noise
 {
-    public class FractalNoiseGenerator : INoiseGenerator
+    public class CombinedNoiseGenerator : INoiseGenerator
     {
         private FastNoiseLite _noise;
-        private BaseNoiseSettings _settings;
+        private CombinedNoiseSettings _settings;
 
-        public FractalNoiseGenerator(BaseNoiseSettings settings)
+        public CombinedNoiseGenerator(CombinedNoiseSettings settings)
         {
-            settings = settings ?? new BaseNoiseSettings();
+            _settings = settings ?? _settings;
             ConfigureNoise();
         }
 
         private void ConfigureNoise()
         {
-            _noise = new FastNoiseLite(_settings.seed);
-            _noise.SetNoiseType(_settings.noiseType);
-            _noise.SetFrequency(1f / _settings.scale);
+            _noise = new FastNoiseLite();
         }
         
         public float[,] GenerateNoiseMap(int width, int height)
@@ -32,7 +30,7 @@ namespace WorldGenerator.Noise
 
         public void UpdateNoiseMap(object settings)
         {
-            if (settings is BaseNoiseSettings newSettings)
+            if (settings is CombinedNoiseSettings newSettings)
             {
                 _settings = newSettings;
                 ConfigureNoise();

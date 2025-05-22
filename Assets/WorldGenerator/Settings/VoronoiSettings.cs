@@ -4,14 +4,14 @@ using WorldGenerator.Abstract;
 
 namespace WorldGenerator.Settings
 {
-    [System.Serializable]
+    [CreateAssetMenu(fileName = "VoronoiSettings", menuName = "Noise/Voronoi Settings")]
     public class VoronoiSettings : NoiseSettings
     {
         public bool enabled = true;
         
-        public FastNoiseLite.CellularDistanceFunction distanceFunction = FastNoiseLite.CellularDistanceFunction.Euclidean;
+        public FastNoiseLite.CellularDistanceFunction cellularDistanceFunction = FastNoiseLite.CellularDistanceFunction.Euclidean;
         
-        public FastNoiseLite.CellularReturnType returnType = FastNoiseLite.CellularReturnType.Distance;
+        public FastNoiseLite.CellularReturnType cellularReturnType = FastNoiseLite.CellularReturnType.Distance;
         
         [Range(0, 1)] public float jitter = 0.75f;
     }

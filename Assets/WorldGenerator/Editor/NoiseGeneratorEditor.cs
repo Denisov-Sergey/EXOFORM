@@ -4,12 +4,12 @@ using Worldgenerator.Noise;
 
 namespace WorldGenerator.Editor
 {
-    [CustomEditor(typeof(NoiseGenerator))]
+    [CustomEditor(typeof(TestNoiseGenerator))]
     public class NoiseGeneratorEditor : UnityEditor.Editor {
         public override void OnInspectorGUI() {
             base.OnInspectorGUI(); // Отображаем стандартные поля
         
-            NoiseGenerator generator = (NoiseGenerator)target;
+            TestNoiseGenerator generator = (TestNoiseGenerator)target;
         
             // Кнопка генерации
             if (GUILayout.Button("Generate Terrain")) {

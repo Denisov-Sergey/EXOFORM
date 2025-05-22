@@ -13,7 +13,20 @@ namespace WorldGenerator.Factory
             switch (settings)
             {
                 case BaseNoiseSettings baseNoiseSettings:
-                    return new FractalNoiseGenerator(baseNoiseSettings);
+                    return new BaseNoiseGenerator(baseNoiseSettings);
+                
+                case DomainWarpSettings domainWarpSettings:
+                    return new DomainWarpNoiseGenerator(domainWarpSettings);
+
+                case VoronoiSettings voronoiSettings:
+                    return new VoronoiNoiseGenerator(voronoiSettings);
+                
+                case DepressionSettings depressionSettings:
+                    return new DepressionNoiseGenerator(depressionSettings);
+                
+                case CrackSettings crackSettings:
+                    return new CrackNoiseGenerator(crackSettings);
+                
                 
                 default:
                     throw new ArgumentException($"Settings not supported: {settings}");

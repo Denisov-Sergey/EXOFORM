@@ -4,18 +4,17 @@ using WorldGenerator.Abstract;
 
 namespace WorldGenerator.Settings
 {
-    [System.Serializable]
+    [CreateAssetMenu(fileName = "BaseNoiseSettings", menuName = "Noise/Base Settings")]
     public class BaseNoiseSettings : NoiseSettings
     {
-        
-        [Tooltip("Масштаб шума. Меньше = более детализировано.")]
-        public float scale = 250f;
-        
         [Range(1, 8)] [Tooltip("Количество октав. Увеличивает детализацию шума.")]
         public int octaves = 5;
         
         [Range(0.1f, 1f)] [Tooltip("Влияние каждой октавы. Меньше = сглаженный шум.")]
         public float persistence = 0.7f;
+        
+        [Tooltip("Квантование высот для ступенчатых уступов")]
+        [Range(0, 1)] public float quantizeSteps = 0.1f;
         
         public FastNoiseLite.NoiseType noiseType = FastNoiseLite.NoiseType.Perlin;
     }
