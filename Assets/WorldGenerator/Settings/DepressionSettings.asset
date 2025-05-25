@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: DepressionSettings
   m_EditorClassIdentifier: 
   seed: 12345
-  strength: 0.55
   scale: 15
-  threshold: -0.3
+  strength: 0.55
+  depressionScale: 15
+  threshold: 0.3
+  octaves: 5
+  baseNoise: {fileID: 0}
