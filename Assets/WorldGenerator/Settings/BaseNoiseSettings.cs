@@ -12,10 +12,7 @@ namespace WorldGenerator.Settings
         
         [Range(0.1f, 1f)] [Tooltip("Влияние каждой октавы. Меньше = сглаженный шум.")]
         public float persistence = 0.7f;
-        
-        [Tooltip("Квантование высот для ступенчатых уступов")]
-        [Range(0, 1)] public float quantizeSteps = 0.1f;
-        
+                
         public FastNoiseLite.NoiseType noiseType = FastNoiseLite.NoiseType.Perlin;
     }
 }

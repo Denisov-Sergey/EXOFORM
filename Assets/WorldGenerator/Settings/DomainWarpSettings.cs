@@ -30,5 +30,7 @@ namespace WorldGenerator.Settings
         public FastNoiseLite.CellularDistanceFunction cellularDistanceFunction = FastNoiseLite.CellularDistanceFunction.Euclidean;
         
         public FastNoiseLite.CellularReturnType cellularReturnType = FastNoiseLite.CellularReturnType.Distance;
+        
+        public NoiseSettings baseNoise;
     }
 }

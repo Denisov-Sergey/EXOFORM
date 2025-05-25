@@ -7,19 +7,30 @@ namespace WorldGenerator.Settings
     [CreateAssetMenu(fileName = "CrackSettings", menuName = "Noise/Crack Settings")]
     public class CrackSettings  : NoiseSettings
     {
-        [Tooltip("Включить мелкие трещины")]
-        public bool enabled = true;
-        
         [Tooltip("Масштаб шума трещин")]
-        public float scale = 10f;
+        public float crackScale = 10f;
         
         [Tooltip("Сила трещин")]
-        [Range(0, 1)] public float strength = 0.1f;
+        [Range(0, 1)] public float crackStrength = 0.1f;
         
         [Tooltip("Порог для трещин")]
-        [Range(0, 1)] public float threshold = 0.5f;
+        [Range(0, 1)] public float crackThreshold = 0.5f;
         
         [Tooltip("Резкость трещин")]
-        [Range(1, 5)] public float sharpness = 5f;
+        [Range(1, 5)] public float crackSharpness = 5f;
+        
+        [Header("Base Noise Reference")]
+        [Tooltip("Базовый шум для применения трещин")]
+        public NoiseSettings baseNoise;
+
+        public override int GetHashCode()
+        {
+            return System.HashCode.Combine(
+                base.GetHashCode(),
+                crackScale, crackStrength, 
+                crackThreshold, crackSharpness,
+                baseNoise?.GetHashCode() ?? 0
+            );
+        }
     }
 }

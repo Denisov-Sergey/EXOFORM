@@ -10,28 +10,25 @@ namespace WorldGenerator.Factory
     {
         public static INoiseGenerator CreateGenerator(NoiseSettings settings)
         {
-            switch (settings)
+            return settings switch
             {
-                case BaseNoiseSettings baseNoiseSettings:
-                    return new BaseNoiseGenerator(baseNoiseSettings);
+                BaseNoiseSettings baseNoiseSettings => new BaseNoiseGenerator(baseNoiseSettings),
+                VoronoiSettings voronoiSettings => new VoronoiNoiseGenerator(voronoiSettings),
+                CombinedNoiseSettings combinedNoiseSettings => new CombinedNoiseGenerator(combinedNoiseSettings),
                 
-                case DomainWarpSettings domainWarpSettings:
-                    return new DomainWarpNoiseGenerator(domainWarpSettings);
-
-                case VoronoiSettings voronoiSettings:
-                    return new VoronoiNoiseGenerator(voronoiSettings);
+                DomainWarpSettings domainWarpSettings => new DomainWarpNoiseGenerator(domainWarpSettings),
                 
-                case DepressionSettings depressionSettings:
-                    return new DepressionNoiseGenerator(depressionSettings);
-                
-                case CrackSettings crackSettings:
-                    return new CrackNoiseGenerator(crackSettings);
-                
-                
-                default:
-                    throw new ArgumentException($"Settings not supported: {settings}");
-            }
-            return null;
+                DepressionSettings depressionSettings => new DepressionNoiseGenerator(depressionSettings),
+                CrackSettings crackSettings => new CrackNoiseGenerator(crackSettings),
+                _ => throw new ArgumentException($"Settings not supported: {settings?.GetType().Name}")
+            };
+        }
+        
+        // Дополнительный метод для типобезопасного создания
+        public static T CreateGenerator<T>(NoiseSettings settings) where T : class, INoiseGenerator
+        {
+            var generator = CreateGenerator(settings);
+            return generator as T ?? throw new InvalidCastException($"Cannot cast to {typeof(T).Name}");
         }
     }
 }

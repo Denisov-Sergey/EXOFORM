@@ -18,13 +18,28 @@ namespace WorldGenerator.Noise
 
         private void ConfigureNoise()
         {
-            _noise = new FastNoiseLite();
+            _noise = new FastNoiseLite(_settings.seed);
+            _noise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            _noise.SetFractalOctaves(_settings.octaves);
+            _noise.SetFractalGain(_settings.persistence);
         }
         
         public float[,] GenerateNoiseMap(int width, int height)
         {
-            float[,] map = new float[height, width];
-            // ... генерация ...
+            float[,] map = new float[width, height];
+            
+            for(int x = 0; x < width; x++)
+            for(int y = 0; y < height; y++)
+            {
+                float xCoord = (float)x / width * _settings.scale;
+                float yCoord = (float)y / height * _settings.scale;
+                
+                // Основной шум
+                float noiseValue = _noise.GetNoise(xCoord, yCoord);
+                
+                map[x,y] = noiseValue;
+            }
+
             return map;
         }
 

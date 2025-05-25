@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32b899f6c5b44ba4a10f5ea7be323c1b, type: 3}
   m_Name: MeshSettings
   m_EditorClassIdentifier: 
-  width: 200
-  height: 200
+  width: 100
+  height: 100
   heightMultiplier: 15
-  sharpness: 5
-  quantizeSteps: 0.1
