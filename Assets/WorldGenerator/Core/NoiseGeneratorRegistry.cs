@@ -97,6 +97,14 @@ namespace WorldGenerator.Core
         {
             if (_settingsManager.UseCombinedNoise && _settingsManager.CombinedNoiseSettings != null)
             {
+                // ОТЛАДКА: Проверяем настройки
+                // var settings = _settingsManager.CombinedNoiseSettings;
+                // Debug.Log($"Creating CombinedNoiseGenerator with:");
+                // Debug.Log($"  - Seed: {settings.seed}");
+                // Debug.Log($"  - Scale: {settings.scale}");
+                // Debug.Log($"  - Octaves: {settings.octaves}");
+                // Debug.Log($"  - Persistence: {settings.persistence}");
+                
                 _generators[typeof(CombinedNoiseSettings)] = 
                     NoiseFactory.CreateGenerator(_settingsManager.CombinedNoiseSettings);
             }

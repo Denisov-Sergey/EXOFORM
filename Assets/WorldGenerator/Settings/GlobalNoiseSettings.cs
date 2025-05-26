@@ -7,7 +7,7 @@ namespace WorldGenerator.Settings
     public class GlobalNoiseSettings : NoiseSettings
     {
         [Header("Global Post-Processing")]
-        [Tooltip("Глобальная резкость (как в TestNoiseGenerator)")]
+        [Tooltip("Глобальная резкость")]
         [Range(1, 5)] public float globalSharpness = 5f;
     
         [Tooltip("Глобальное квантование")]

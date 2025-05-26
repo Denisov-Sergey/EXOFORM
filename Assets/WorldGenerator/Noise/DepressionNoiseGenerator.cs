@@ -113,9 +113,12 @@ namespace WorldGenerator.Noise
         {
             float depressionValue = _noise.GetNoise(x, y);
             
-            // Применение впадин (точно как в TestNoiseGenerator)
+            // Применение впадин 
             if (depressionValue > _settings.threshold)
             {
+                float depressionStrength = (depressionValue - _settings.threshold) * _settings.strength;
+                return originalValue - depressionStrength;
+                
                 Debug.Log($"Depression: {depressionValue}, Threshold: {_settings.threshold}");
                 return -originalValue * _settings.strength * 2f;
             }

@@ -18,6 +18,7 @@ namespace WorldGenerator.Noise
 
         private void ConfigureNoise()
         {
+            
             _noise = new FastNoiseLite(_settings.seed);
             _noise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
             _noise.SetFractalOctaves(_settings.octaves);
@@ -34,10 +35,11 @@ namespace WorldGenerator.Noise
                 float xCoord = (float)x / width * _settings.scale;
                 float yCoord = (float)y / height * _settings.scale;
                 
+                
                 // Основной шум
                 float noiseValue = _noise.GetNoise(xCoord, yCoord);
                 
-                map[x,y] = noiseValue;
+                map[x,y] = -noiseValue;
             }
 
             return map;

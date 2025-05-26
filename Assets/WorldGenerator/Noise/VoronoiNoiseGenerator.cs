@@ -37,7 +37,7 @@ namespace WorldGenerator.Noise
                 float xCoord = (float)x / width * _settings.scale;
                 float yCoord = (float)y / height * _settings.scale;
                 
-                map[x,y] = _noise.GetNoise(xCoord, yCoord);
+                map[x,y] = -_noise.GetNoise(xCoord, yCoord);
             }
 
             return map;

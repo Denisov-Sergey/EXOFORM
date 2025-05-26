@@ -57,9 +57,12 @@ namespace WorldGenerator.Core
                 for (var y = 0; y < height; y++)
                 {
                     var index = x * height + y;
-                    var worldHeight = heightMap[x, y] * meshSettings.heightMultiplier;
                     
-                    vertices[index] = new Vector3(x, worldHeight, y);
+                    vertices[index] = new Vector3(
+                        x,
+                        heightMap[x, y] * meshSettings.heightMultiplier,
+                        y
+                    );
                 }
             }
 
@@ -83,23 +86,18 @@ namespace WorldGenerator.Core
             {
                 for (var y = 0; y < height - 1; y++)
                 {
-                    var vertexIndex = x * height + y;
-
-                    // Определяем индексы вершин квада
-                    var bottomLeft = vertexIndex;           // (x, y)
-                    var bottomRight = vertexIndex + 1;      // (x, y+1)
-                    var topLeft = vertexIndex + height;     // (x+1, y)
-                    var topRight = vertexIndex + height + 1; // (x+1, y+1)
+                    var index = x * height + y;
 
                     // Первый треугольник: bottom-left → top-left → bottom-right
-                    triangles[triIndex] = bottomLeft;
-                    triangles[triIndex + 1] = topLeft;
-                    triangles[triIndex + 2] = bottomRight;
+                    // Первый треугольник (A → B → C)
+                    triangles[triIndex] = index; // A (x, y)
+                    triangles[triIndex + 1] = index + 1; // B (x+1, y)
+                    triangles[triIndex + 2] = index + height; // C (x, y+1)
 
-                    // Второй треугольник: bottom-right → top-left → top-right
-                    triangles[triIndex + 3] = bottomRight;
-                    triangles[triIndex + 4] = topLeft;
-                    triangles[triIndex + 5] = topRight;
+                    // Второй треугольник (B → D → C)
+                    triangles[triIndex + 3] = index + 1; // B (x+1, y)
+                    triangles[triIndex + 4] = index + height + 1; // D (x+1, y+1)
+                    triangles[triIndex + 5] = index + height; // C (x, y+1)
 
                     triIndex += 6;
                 }

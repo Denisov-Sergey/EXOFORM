@@ -9,12 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8cf4fb3249ce4c5d8cc56e183724a5db, type: 3}
-  m_Name: CombinedNoiseSettings
+  m_Script: {fileID: 11500000, guid: 52c44eef8d3e435d9dcd51572a4e7c46, type: 3}
+  m_Name: GlobalNoiseSettings
   m_EditorClassIdentifier: 
   seed: 12345
-  scale: 150
-  octaves: 5
-  persistence: 0.7
-  sharpness: 4.15
-  quantizeSteps: 0.1
+  scale: 250
+  globalSharpness: 5
+  globalQuantizeSteps: 0.1
+  enableDepressionLogging: 1
