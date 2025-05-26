@@ -1,7 +1,7 @@
 using UnityEngine;
 using VoxelEngine.Generation.Noise;
 
-namespace Worldgenerator.Noise
+namespace WorldGenerator.Core
 {
     [ExecuteInEditMode] // Скрипт работает в режиме редактирования
     public class TestNoiseGenerator : MonoBehaviour

@@ -1,6 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-using Worldgenerator.Noise;
+using WorldGenerator.Core;
 
 namespace WorldGenerator.Editor
 {
