@@ -71,10 +71,10 @@ namespace WorldGenerator.Core
         public float warpStrength = 100f;
         
         [Header("Dimensions")] [Tooltip("Ширина генерируемой карты.")]
-        public int width = 200;
+        public int width = 100;
 
         [Tooltip("Высота генерируемой карты.")]
-        public int height = 200;
+        public int height = 100;
 
         [Header("Gizmos")] [Tooltip("Показывать вершины меша как точки в сцене.")]
         public bool showGizmos = true;

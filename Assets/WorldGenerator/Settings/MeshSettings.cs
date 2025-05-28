@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
+using WorldGenerator.Abstract;
 
 namespace WorldGenerator.Settings
 {
     [CreateAssetMenu(fileName = "MeshSettings", menuName = "Noise/Mesh Settings")]
-    public class MeshSettings : ScriptableObject
+    public class MeshSettings : NoiseSettings
     {
         [Tooltip("Ширина генерируемой карты.")]
         public int width = 200;

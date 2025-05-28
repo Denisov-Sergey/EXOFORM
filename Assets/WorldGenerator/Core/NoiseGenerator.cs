@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using WorldGenerator.Abstract;
 using WorldGenerator.Settings;
 
 namespace WorldGenerator.Core
@@ -49,10 +52,13 @@ namespace WorldGenerator.Core
         private NoiseCompositor _noiseCompositor;
         private TerrainMeshGenerator _meshGenerator;
         private TerrainRenderer _terrainRenderer;
+        private bool _forceRegeneration = false;
 
         // Кэшированные данные
         private float[,] _cachedNoiseMap;
         private Vector3[] _lastGeneratedVertices;
+        private static System.Reflection.FieldInfo[] _noiseSettingsFields;
+        private readonly List<NoiseSettings> _subscribedSettings = new();
 
         #endregion
 
@@ -62,10 +68,12 @@ namespace WorldGenerator.Core
         {
             InitializeComponents();
             UpdateSettingsFromInspector();
+            SubscribeToSettingsChanges();
         }
 
         private void OnDisable()
         {
+            UnsubscribeFromSettingsChanges();
             CleanupResources();
         }
 
@@ -78,6 +86,61 @@ namespace WorldGenerator.Core
         }
 
         #endregion
+
+        #region Subscripbe to Settings Changes
+
+        private void SubscribeToSettingsChanges()
+        {
+            UnsubscribeFromSettingsChanges();
+        
+            // Инициализируем кэш полей только один раз
+            if (_noiseSettingsFields == null)
+            {
+                _noiseSettingsFields = this.GetType()
+                    .GetFields(System.Reflection.BindingFlags.Instance | 
+                               System.Reflection.BindingFlags.NonPublic | 
+                               System.Reflection.BindingFlags.Public)
+                    .Where(field => typeof(NoiseSettings).IsAssignableFrom(field.FieldType))
+                    .ToArray();
+            }
+
+            foreach (var field in _noiseSettingsFields)
+            {
+                var settings = field.GetValue(this) as NoiseSettings;
+                if (settings != null)
+                {
+                    settings.OnSettingsChanged += OnAnySettingsChanged;
+                    _subscribedSettings.Add(settings);
+                }
+            }
+        }
+
+        private void UnsubscribeFromSettingsChanges()
+        {
+            foreach (var settings in _subscribedSettings)
+            {
+                if (settings != null)
+                {
+                    settings.OnSettingsChanged -= OnAnySettingsChanged;
+                }
+            }
+            _subscribedSettings.Clear();
+        }
+
+        #endregion
+        
+
+        private void OnAnySettingsChanged()
+        {
+            if (autoRegenerate)
+            {
+                _forceRegeneration = true;
+                Debug.Log("Settings changed, regenerating terrain...");
+                RegenerateTerrain();
+                _forceRegeneration = false;
+                
+            }
+        }
 
         #region Initialization
 
@@ -142,7 +205,7 @@ namespace WorldGenerator.Core
                 }
 
                 // 3. Проверяем необходимость регенерации
-                if (!_settingsManager.HasSettingsChanged() && _cachedNoiseMap != null)
+                if (!_settingsManager.HasSettingsChanged() && _cachedNoiseMap != null && !_forceRegeneration)
                 {
                     Debug.Log("Settings unchanged, using cached noise map");
                     return;

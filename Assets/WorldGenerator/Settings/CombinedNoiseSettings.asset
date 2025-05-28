@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: CombinedNoiseSettings
   m_EditorClassIdentifier: 
   seed: 12345
-  scale: 150
-  octaves: 5
+  scale: 110
+  octaves: 4
   persistence: 0.7
-  sharpness: 4.15
+  heightExponent: 3
+  frequency: 0.02
+  cutoffThreshold: -0.59
+  sharpness: 5
   quantizeSteps: 0.1
