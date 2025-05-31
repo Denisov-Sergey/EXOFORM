@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEditor;
 using WorldGenerator.Abstract;
@@ -37,6 +39,10 @@ namespace WorldGenerator.Core
         [SerializeField] private bool useDepressions = true;
         [SerializeField] private bool useDomainWarp = true;
         [SerializeField] private bool autoRegenerate = true;
+        
+        [Header("NavMesh Settings")]
+        [SerializeField] private bool generateNavMesh = true;
+        private NavMeshSurface navMeshSurface;
         
         [Header("Debug Options")]
         [SerializeField] private bool showGizmos = true;
@@ -154,6 +160,15 @@ namespace WorldGenerator.Core
             _noiseCompositor = new NoiseCompositor(_settingsManager, _generatorRegistry);
             _meshGenerator = new TerrainMeshGenerator();
             _terrainRenderer = new TerrainRenderer(gameObject);
+            
+            if (generateNavMesh)
+            {
+                navMeshSurface = GetComponent<NavMeshSurface>();
+                if (navMeshSurface == null)
+                {
+                    navMeshSurface = gameObject.AddComponent<NavMeshSurface>();
+                }
+            }
         }
 
         /// <summary>
@@ -225,6 +240,12 @@ namespace WorldGenerator.Core
 
                 // 7. Применяем меш к объекту
                 _terrainRenderer.ApplyMesh(mesh);
+                
+                // 8. Генерируем NavMesh после создания террейна
+                if (generateNavMesh && navMeshSurface != null)
+                {
+                    StartCoroutine(BuildNavMeshDelayed());
+                }
 
                 Debug.Log("Terrain regenerated successfully!");
             }
@@ -232,6 +253,15 @@ namespace WorldGenerator.Core
             {
                 Debug.LogError($"Failed to regenerate terrain: {e.Message}\n{e.StackTrace}");
             }
+        }
+        
+        private IEnumerator BuildNavMeshDelayed()
+        {
+            // Ждем один кадр, чтобы меш точно применился
+            yield return null;
+    
+            navMeshSurface.BuildNavMesh();
+            Debug.Log("NavMesh generated successfully!");
         }
 
         /// <summary>
@@ -311,6 +341,11 @@ namespace WorldGenerator.Core
             _generatorRegistry?.ClearGenerators();
             _cachedNoiseMap = null;
             _lastGeneratedVertices = null;
+            
+            if (navMeshSurface != null)
+            {
+                navMeshSurface.RemoveData();
+            }
         }
 
         #endregion
