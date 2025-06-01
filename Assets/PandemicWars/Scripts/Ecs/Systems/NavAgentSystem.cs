@@ -84,7 +84,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                 // Проверяем, нужно ли пересчитывать путь (каждую секунду)
                 if(navAgent.ValueRO.NextPathCalculatedTime < currentTime)
                 {
-                    navAgent.ValueRW.NextPathCalculatedTime += 2f;
+                    navAgent.ValueRW.NextPathCalculatedTime += 1f;
                     
                     // Сбрасываем состояние пути перед новым расчетом
                     navAgent.ValueRW.PathCalculated = false;
@@ -169,8 +169,12 @@ namespace PandemicWars.Scripts.Ecs.Systems
                 targetRotation,
                 SystemAPI.Time.DeltaTime * 5f); // Множитель для контроля скорости поворота
 
-            // Перемещение агента в направлении цели
-            transform.ValueRW.Position += normalizedDirection * SystemAPI.Time.DeltaTime * navAgent.ValueRO.MovementSpeed;
+            var newPosition = currentPosition + normalizedDirection * SystemAPI.Time.DeltaTime * navAgent.ValueRO.MovementSpeed;
+    
+            // Корректируем только Y-координату - надо будет сделать настраиваемым
+            // newPosition.y = targetWaypoint.y + 0.5f; //
+    
+            transform.ValueRW.Position = newPosition;
         }
 
         /// <summary>
@@ -224,7 +228,9 @@ namespace PandemicWars.Scripts.Ecs.Systems
                 if(status == PathQueryStatus.InProgress)
                 {
                     // Выполняем итерации поиска (максимум 100 за кадр для производительности)
-                    status = navMeshQuery.UpdateFindPath(100, out int iterationsPerformed);
+                    int maxIterations = navAgent.ValueRO.MaxPathIterations > 0 ? 
+                        navAgent.ValueRO.MaxPathIterations : 100;
+                    status = navMeshQuery.UpdateFindPath(maxIterations, out int iterationsPerformed);
                     
                     if (status == PathQueryStatus.Success)
                     {
@@ -239,7 +245,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                             var straightPathFlag = new NativeArray<StraightPathFlags>(maxPathSize, Allocator.Temp);
                             var vertexSide = new NativeArray<float>(maxPathSize, Allocator.Temp);
                             var polygonIds = new NativeArray<PolygonId>(pathSize + 1, Allocator.Temp);
-                            int straightPathCount = 0;
+                                int straightPathCount = 0;
 
                             // Получаем массив полигонов пути
                             navMeshQuery.GetPathResult(polygonIds);

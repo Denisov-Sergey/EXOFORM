@@ -3,6 +3,9 @@ using Unity.Mathematics;
 
 namespace PandemicWars.Scripts.Ecs.Components
 {
+    /// <summary>
+    /// Базовый компонент навигации для всех юнитов
+    /// </summary>
     public struct NavAgentComponent : IComponentData
     {
         public Entity TargetEntity;
@@ -10,5 +13,6 @@ namespace PandemicWars.Scripts.Ecs.Components
         public int CurrentWaypoint;
         public float MovementSpeed;
         public float NextPathCalculatedTime;
+        public int MaxPathIterations;
     }
 }
