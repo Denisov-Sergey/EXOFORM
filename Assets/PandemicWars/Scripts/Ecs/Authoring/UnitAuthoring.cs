@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using PandemicWars.Scripts.Ecs.Components;
+using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.AI;
@@ -7,6 +8,7 @@ namespace PandemicWars.Scripts.Ecs.Authoring
 {
     public class UnitAuthoring : MonoBehaviour
     {
+        [SerializeField] private Transform targetTransform;
         [SerializeField] private float moveSpeed = 5f;
 
         class Baker : Baker<UnitAuthoring>
@@ -17,8 +19,13 @@ namespace PandemicWars.Scripts.Ecs.Authoring
                 
                 var entity = GetEntity(TransformUsageFlags.Dynamic);
                 if (entity == Entity.Null) return;
-
                 
+                AddComponent(entity, new NavAgentComponent
+                {
+                    TargetEntity = GetEntity(authoring.targetTransform, TransformUsageFlags.Dynamic),
+                    MovementSpeed = authoring.moveSpeed
+                });
+                AddBuffer<WaypointBuffer>(entity);
             }
         }
     }
