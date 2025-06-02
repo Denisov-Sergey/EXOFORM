@@ -15,7 +15,7 @@ namespace WorldGenerator.Noise
         private readonly INoiseGenerator _baseGenerator;
         public DomainWarpNoiseGenerator(DomainWarpSettings settings)
         {
-            _settings = settings ?? _settings;
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));;
             // _baseGenerator = NoiseFactory.CreateGenerator(settings.ba); 
             if (_settings.baseNoise != null)
             {

@@ -139,7 +139,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &1042253641
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -244,6 +244,7 @@ MonoBehaviour:
   targetTransform: {fileID: 1092301717}
   moveSpeed: 5
   aggroRange: 10
+  maxPathIterations: 100
 --- !u!195 &1042253646
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -371,7 +372,7 @@ Transform:
   m_GameObject: {fileID: 1092301713}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 58.79, y: 0.5833333, z: 36.5}
+  m_LocalPosition: {x: 59.32, y: 0.5833333, z: 36.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -404,6 +405,7 @@ MonoBehaviour:
   moveSpeed: 5
   isSelectedByDefault: 0
   selectionRadius: 3
+  maxPathIterations: 1000
   selectionIndicator: {fileID: 0}
 --- !u!195 &1092301720
 NavMeshAgent:

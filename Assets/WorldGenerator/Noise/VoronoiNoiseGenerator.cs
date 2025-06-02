@@ -12,7 +12,7 @@ namespace WorldGenerator.Noise
 
         public VoronoiNoiseGenerator(VoronoiSettings settings)
         {
-            _settings = settings ?? _settings;
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));;
             ConfigureNoise();
         }
 
