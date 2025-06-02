@@ -13,9 +13,14 @@ MonoBehaviour:
   m_Name: DepressionSettings
   m_EditorClassIdentifier: 
   seed: 12345
-  scale: 250
-  strength: 0.5
-  depressionScale: 20
-  threshold: -0.3
-  octaves: 5
+  scale: 252.5
+  strength: 0.314
+  depressionScale: 17.7
+  threshold: 0.3
+  smoothness: 0.1
+  shapeType: 3
+  aspectRatio: 1.51
+  rotation: 219
+  octaves: 6
+  depthVariation: 0.27
   baseNoise: {fileID: 0}

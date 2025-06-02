@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: CrackSettings
   m_EditorClassIdentifier: 
   seed: 12345
-  enabled: 1
-  scale: 10
-  strength: 0.1
-  threshold: 0.5
-  sharpness: 5
+  scale: 250
+  crackScale: 10.27
+  crackStrength: 0.1
+  crackThreshold: 0.5
+  crackSharpness: 5
+  baseNoise: {fileID: 0}
