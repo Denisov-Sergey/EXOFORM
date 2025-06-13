@@ -39,6 +39,13 @@ namespace WorldGenerator.Core
         [SerializeField] private bool useDepressions = true;
         [SerializeField] private bool useDomainWarp = true;
         [SerializeField] private bool autoRegenerate = true;
+        [SerializeField] private bool autoUpdateTexturesOnly = true;
+        [SerializeField] private bool autoUpdateMeshOnNoiseChange = true; 
+        
+        [Header("Texture Settings")]
+        [SerializeField] private TerrainTextures terrainTextures;
+        [SerializeField] private Material heightBasedMaterial;
+        [SerializeField] private bool useHeightTextures = true;
         
         [Header("NavMesh Settings")]
         [SerializeField] private bool generateNavMesh = true;
@@ -48,6 +55,10 @@ namespace WorldGenerator.Core
         [SerializeField] private bool showGizmos = true;
         [SerializeField] private float gizmoSize = 0.1f;
         [SerializeField] private Color gizmoColor = Color.red;
+        
+        [Header("Debug UV Settings")]
+        [SerializeField] private Material uvCheckerMaterial;
+        [SerializeField] private bool useUVChecker = false;
 
         #endregion
 
@@ -119,6 +130,16 @@ namespace WorldGenerator.Core
                     _subscribedSettings.Add(settings);
                 }
             }
+            
+            // Специальная подписка на изменения текстур
+            if (terrainTextures != null)
+            {
+                terrainTextures.OnSettingsChanged += OnTextureSettingsChanged;
+                if (!_subscribedSettings.Contains(terrainTextures))
+                {
+                    _subscribedSettings.Add(terrainTextures);
+                }
+            }
         }
 
         private void UnsubscribeFromSettingsChanges()
@@ -135,7 +156,34 @@ namespace WorldGenerator.Core
 
         #endregion
         
+        /// <summary>
+        /// Обработчик изменений настроек текстур.
+        /// Обновляет только материалы без перегенерации меша.
+        /// </summary>
+        private void OnTextureSettingsChanged()
+        {
+            if (autoRegenerate && useHeightTextures)
+            {
+                Debug.Log("Texture settings changed, updating materials...");
+        
+                // Обновляем только материалы без перегенерации всего меша
+                if (heightBasedMaterial != null && terrainTextures != null)
+                {
+                    ApplyHeightBasedTextures();
+            
+#if UNITY_EDITOR
+                    // В редакторе принудительно обновляем сцену
+                    UnityEditor.SceneView.RepaintAll();
+#endif
+                }
+            }
+        }
 
+
+        /// <summary>
+        /// Обработчик изменений настроек шума.
+        /// Выполняет полную перегенерацию террейна.
+        /// </summary>
         private void OnAnySettingsChanged()
         {
             if (autoRegenerate)
@@ -195,6 +243,10 @@ namespace WorldGenerator.Core
             _settingsManager.UseCracks = useCracks;
             _settingsManager.UseDepressions = useDepressions;
             _settingsManager.UseDomainWarp = useDomainWarp;
+            _settingsManager.UseHeightTextures = useHeightTextures;
+            _settingsManager.UseUVChecker = useUVChecker;
+            _settingsManager.AutoUpdateTexturesOnly = autoUpdateTexturesOnly;
+            _settingsManager.AutoUpdateMeshOnNoiseChange = autoUpdateMeshOnNoiseChange;
         }
 
         #endregion
@@ -241,7 +293,19 @@ namespace WorldGenerator.Core
                 // 7. Применяем меш к объекту
                 _terrainRenderer.ApplyMesh(mesh);
                 
-                // 8. Генерируем NavMesh после создания террейна
+                // Применяем дебаг текстуру
+                // if (useUVChecker && uvCheckerMaterial != null)
+                // {
+                //     ApplyUVCheckerMaterial(mesh);
+                // }
+                
+                // 8. Применяем текстурированный материал
+                if (useHeightTextures && heightBasedMaterial != null && terrainTextures != null)
+                {
+                    ApplyHeightBasedTextures();
+                }
+                
+                // 9. Генерируем NavMesh после создания террейна
                 if (generateNavMesh && navMeshSurface != null)
                 {
                     StartCoroutine(BuildNavMeshDelayed());
@@ -262,6 +326,38 @@ namespace WorldGenerator.Core
     
             navMeshSurface.BuildNavMesh();
             Debug.Log("NavMesh generated successfully!");
+        }
+        
+        /// <summary>
+        /// Применяет height-based текстурирование к террейну.
+        /// </summary>
+        private void ApplyHeightBasedTextures()
+        {
+            if (heightBasedMaterial != null && terrainTextures != null)
+            {
+                // Устанавливаем текстуры в материал
+                heightBasedMaterial.SetTexture("_ValleyTexture", terrainTextures.valleyTexture);
+                heightBasedMaterial.SetTexture("_PlainTexture", terrainTextures.plainTexture);
+                heightBasedMaterial.SetTexture("_HillTexture", terrainTextures.hillTexture);
+                heightBasedMaterial.SetTexture("_PeakTexture", terrainTextures.peakTexture);
+        
+                // Устанавливаем пороги высот
+                heightBasedMaterial.SetFloat("_ValleyHeight", terrainTextures.valleyHeight);
+                heightBasedMaterial.SetFloat("_PlainHeight", terrainTextures.plainHeight);
+                heightBasedMaterial.SetFloat("_HillHeight", terrainTextures.hillHeight);
+                heightBasedMaterial.SetFloat("_TextureScale", terrainTextures.textureScale);
+                heightBasedMaterial.SetFloat("_BlendSmoothness", terrainTextures.blendSmoothness);
+        
+                
+                // Настройки пикселизации
+                heightBasedMaterial.SetFloat("_PixelationFactor", terrainTextures.pixelationFactor);
+                heightBasedMaterial.SetFloat("_PixelSnap", terrainTextures.pixelSnap);
+                
+                // Применяем материал
+                _terrainRenderer.SetMaterial(heightBasedMaterial);
+        
+                Debug.Log("Height-based textures applied successfully!");
+            }
         }
 
         /// <summary>
@@ -327,6 +423,64 @@ namespace WorldGenerator.Core
             {
                 Gizmos.DrawSphere(transformPosition + vertex, gizmoSize);
             }
+        }
+        
+        private void ApplyUVCheckerMaterial(Mesh mesh)
+        {
+            var meshRenderer = GetComponent<MeshRenderer>();
+            if (meshRenderer != null)
+            {
+                meshRenderer.material = uvCheckerMaterial;
+        
+                // Логирование информации об UV
+                LogUVDebugInfo(mesh);
+            }
+        }
+
+// Добавьте метод для отладочной информации:
+        private void LogUVDebugInfo(Mesh mesh)
+        {
+            if (mesh == null || mesh.uv == null) return;
+
+            Debug.Log($"=== UV DEBUG INFO ===");
+            Debug.Log($"Vertices count: {mesh.vertices.Length}");
+            Debug.Log($"UV coordinates count: {mesh.uv.Length}");
+            Debug.Log($"UV count matches vertices: {mesh.vertices.Length == mesh.uv.Length}");
+    
+            if (mesh.uv.Length > 0)
+            {
+                var minUV = GetMinUV(mesh.uv);
+                var maxUV = GetMaxUV(mesh.uv);
+                Debug.Log($"UV range: min({minUV.x:F3}, {minUV.y:F3}), max({maxUV.x:F3}, {maxUV.y:F3})");
+        
+                // Показываем несколько примеров UV координат
+                for (int i = 0; i < Mathf.Min(5, mesh.uv.Length); i++)
+                {
+                    Debug.Log($"UV[{i}]: ({mesh.uv[i].x:F3}, {mesh.uv[i].y:F3})");
+                }
+            }
+        }
+
+        private Vector2 GetMinUV(Vector2[] uvs)
+        {
+            Vector2 min = new Vector2(float.MaxValue, float.MaxValue);
+            foreach (var uv in uvs)
+            {
+                min.x = Mathf.Min(min.x, uv.x);
+                min.y = Mathf.Min(min.y, uv.y);
+            }
+            return min;
+        }
+
+        private Vector2 GetMaxUV(Vector2[] uvs)
+        {
+            Vector2 max = new Vector2(float.MinValue, float.MinValue);
+            foreach (var uv in uvs)
+            {
+                max.x = Mathf.Max(max.x, uv.x);
+                max.y = Mathf.Max(max.y, uv.y);
+            }
+            return max;
         }
 
         #endregion

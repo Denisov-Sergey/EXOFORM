@@ -19,6 +19,7 @@ namespace WorldGenerator.Core
             _gameObject = gameObject ?? throw new System.ArgumentNullException(nameof(gameObject));
             InitializeComponents();
         }
+        
 
         /// <summary>
         /// Инициализирует необходимые Unity компоненты для рендеринга.

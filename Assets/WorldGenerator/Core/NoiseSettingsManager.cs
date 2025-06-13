@@ -27,6 +27,10 @@ namespace WorldGenerator.Core
         public bool UseCracks { get; set; } = true;
         public bool UseDepressions { get; set; } = true;
         public bool UseDomainWarp { get; set; } = true;
+        public bool UseHeightTextures { get; set; } = true;
+        public bool UseUVChecker { get; set; } = true;
+        public bool AutoUpdateTexturesOnly { get; set; } = true;
+        public bool AutoUpdateMeshOnNoiseChange { get; set; } = true;
 
         private int _cachedSettingsHash;
 

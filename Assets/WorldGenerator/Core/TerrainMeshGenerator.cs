@@ -29,10 +29,14 @@ namespace WorldGenerator.Core
 
             var vertices = CreateVertices(heightMap, meshSettings);
             var triangles = CreateTriangles(meshSettings);
+            var uvs = CreateUVs(heightMap, meshSettings, vertices);
+            var colors = CreateVertexColors(heightMap, meshSettings);
 
             // Назначаем данные мешу
             mesh.vertices = vertices;
             mesh.triangles = triangles;
+            mesh.uv = uvs;
+            mesh.colors = colors;
 
             // Вычисляем дополнительные данные для корректного рендеринга
             mesh.RecalculateNormals();
@@ -69,6 +73,7 @@ namespace WorldGenerator.Core
             return vertices;
         }
 
+        
         /// <summary>
         /// Создает массив индексов треугольников для меша.
         /// Каждый квад сетки состоит из двух треугольников.
@@ -107,11 +112,133 @@ namespace WorldGenerator.Core
         }
 
         /// <summary>
+        /// Создает UV-координаты для террейна. Поддерживает несколько режимов.
+        /// </summary>
+        private Vector2[] CreateUVs(float[,] heightMap, MeshSettings meshSettings, Vector3[] vertices)
+        {
+            var width = meshSettings.width;
+            var height = meshSettings.height;
+            var uvs = new Vector2[width * height];
+
+            // Метод 1: Grid-based UV (равномерное распределение текстуры)[2][4]
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    var index = x * height + y;
+                    
+                    // Нормализуем координаты от 0 до 1[2][5]
+                    uvs[index] = new Vector2(
+                        (float)x / (width - 1),  // U координата
+                        (float)y / (height - 1)  // V координата
+                    );
+                }
+            }
+
+            return uvs;
+        }
+
+        /// <summary>
+        /// Альтернативный метод создания UV на основе world position (для triplanar mapping).
+        /// </summary>
+        private Vector2[] CreateWorldPositionUVs(Vector3[] vertices, float textureScale = 1f)
+        {
+            var uvs = new Vector2[vertices.Length];
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                // Используем world position для UV (подходит для triplanar mapping)[4][5]
+                uvs[i] = new Vector2(
+                    vertices[i].x * textureScale,
+                    vertices[i].z * textureScale
+                );
+            }
+
+            return uvs;
+        }
+        
+        /// <summary>
+        /// Создает vertex colors для передачи высотной информации в шейдер.
+        /// </summary>
+        private Color[] CreateVertexColors(float[,] heightMap, MeshSettings meshSettings)
+        {
+            var width = meshSettings.width;
+            var height = meshSettings.height;
+            var colors = new Color[width * height];
+
+            // Найдем минимальную и максимальную высоты для нормализации
+            float minHeight = float.MaxValue;
+            float maxHeight = float.MinValue;
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    float currentHeight = heightMap[x, y];
+                    minHeight = Mathf.Min(minHeight, currentHeight);
+                    maxHeight = Mathf.Max(maxHeight, currentHeight);
+                }
+            }
+
+            // Создаем цвета с нормализованной высотой в альфа канале
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    var index = x * height + y;
+                    float normalizedHeight = (heightMap[x, y] - minHeight) / (maxHeight - minHeight);
+                    
+                    // Красный канал = нормализованная высота (0-1)
+                    colors[index] = new Color(normalizedHeight, 0f, 0f, 1f);
+                }
+            }
+
+            return colors;
+        }
+
+        /// <summary>
         /// Получает вершины последнего сгенерированного меша для отладки.
         /// </summary>
         public Vector3[] GetLastGeneratedVertices(Mesh mesh)
         {
             return mesh?.vertices;
+        }
+        
+        /// <summary>
+        /// Отладочный метод для проверки корректности UV-координат.
+        /// </summary>
+        public void LogUVDebugInfo(Mesh mesh)
+        {
+            if (mesh == null || mesh.uv == null) return;
+
+            Debug.Log($"Mesh has {mesh.uv.Length} UV coordinates");
+            Debug.Log($"UV range: min({GetMinUV(mesh.uv)}), max({GetMaxUV(mesh.uv)})");
+            
+            // Проверяем, что количество UV совпадает с количеством вершин
+            bool uvCountMatches = mesh.vertices.Length == mesh.uv.Length;
+            Debug.Log($"UV count matches vertex count: {uvCountMatches}");
+        }
+
+        private Vector2 GetMinUV(Vector2[] uvs)
+        {
+            Vector2 min = new Vector2(float.MaxValue, float.MaxValue);
+            foreach (var uv in uvs)
+            {
+                min.x = Mathf.Min(min.x, uv.x);
+                min.y = Mathf.Min(min.y, uv.y);
+            }
+            return min;
+        }
+
+        private Vector2 GetMaxUV(Vector2[] uvs)
+        {
+            Vector2 max = new Vector2(float.MinValue, float.MinValue);
+            foreach (var uv in uvs)
+            {
+                max.x = Mathf.Max(max.x, uv.x);
+                max.y = Mathf.Max(max.y, uv.y);
+            }
+            return max;
         }
     }
 }

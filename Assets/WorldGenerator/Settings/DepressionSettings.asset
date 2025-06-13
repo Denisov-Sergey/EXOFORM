@@ -14,10 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   seed: 12345
   scale: 252.5
-  strength: 0.314
+  strength: 0.331
   depressionScale: 17.7
   threshold: 0.3
   smoothness: 0.1
+  fillWithWater: 1
+  waterFillLevel: 0.7
+  waterThreshold: 0.1
+  waterType: 0
+  waterTransparency: 0.696
+  waterWaveStrength: 0.22
+  waterAnimationSpeed: 1.37
   shapeType: 3
   aspectRatio: 1.51
   rotation: 219
