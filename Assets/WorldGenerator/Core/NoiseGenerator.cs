@@ -293,6 +293,7 @@ namespace WorldGenerator.Core
                 // 7. Применяем меш к объекту
                 _terrainRenderer.ApplyMesh(mesh);
                 
+              
                 // Применяем дебаг текстуру
                 // if (useUVChecker && uvCheckerMaterial != null)
                 // {

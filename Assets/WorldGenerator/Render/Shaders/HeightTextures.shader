@@ -5,30 +5,29 @@ Shader "Custom/HeightTextures"
         // === СЕКЦИЯ ТЕКСТУР ДЛЯ РАЗНЫХ ВЫСОТНЫХ ЗОН ===
         
         [Header(Valley Low Areas)]
-        _ValleyTexture ("Valley Texture", 2D) = "white" {}        // Текстура для низких областей (долины, овраги)
-        _ValleyHeight ("Valley Height Threshold", Range(0,1)) = 0.25  // Пороговая высота для долин (0-0.25)
+        _ValleyTexture ("Valley Texture", 2D) = "white" {}
+        _ValleyHeight ("Valley Height Threshold", Range(0,1)) = 0.25
         
         [Header(Plain Medium Areas)]
-        _PlainTexture ("Plain Texture", 2D) = "white" {}         // Текстура для средних областей (равнины, поля)
-        _PlainHeight ("Plain Height Threshold", Range(0,1)) = 0.5    // Пороговая высота для равнин (0.25-0.5)
+        _PlainTexture ("Plain Texture", 2D) = "white" {}
+        _PlainHeight ("Plain Height Threshold", Range(0,1)) = 0.5
         
         [Header(Hill High Areas)]
-        _HillTexture ("Hill Texture", 2D) = "white" {}           // Текстура для возвышенностей (холмы)
-        _HillHeight ("Hill Height Threshold", Range(0,1)) = 0.75     // Пороговая высота для холмов (0.5-0.75)
+        _HillTexture ("Hill Texture", 2D) = "white" {}
+        _HillHeight ("Hill Height Threshold", Range(0,1)) = 0.75
         
         [Header(Peak Highest Areas)]
-        _PeakTexture ("Peak Texture", 2D) = "white" {}           // Текстура для самых высоких областей (пики, вершины)
+        _PeakTexture ("Peak Texture", 2D) = "white" {}
         
         // === НАСТРОЙКИ РЕНДЕРИНГА ===
         
         [Header(Settings)]
-        _TextureScale ("Texture Scale", Float) = 1               // Масштаб текстур (больше = меньше повторений)
-        _BlendSmoothness ("Blend Smoothness", Range(0,0.3)) = 0.1 // Плавность перехода между текстурами
+        _TextureScale ("Texture Scale", Float) = 1
+        _BlendSmoothness ("Blend Smoothness", Range(0,0.3)) = 0.1
     }
     
     SubShader
     {
-        // Настройки для Universal Render Pipeline
         Tags { "RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" }
         
         Pass
@@ -37,88 +36,114 @@ Shader "Custom/HeightTextures"
             Tags { "LightMode"="UniversalForward" }
             
             HLSLPROGRAM
-            #pragma vertex vert     // Указываем функцию вершинного шейдера
-            #pragma fragment frag   // Указываем функцию фрагментного шейдера
+            #pragma target 4.5  // ДОБАВЛЕНО: обязательно для DOTS instancing
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing  // ДОБАВЛЕНО: поддержка standard instancing
+            #pragma multi_compile _ DOTS_INSTANCING_ON  // ДОБАВЛЕНО: поддержка DOTS instancing
             
-            // Подключаем библиотеки URP
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             
             // === СТРУКТУРЫ ДАННЫХ ===
             
-            // Входные данные от меша (приходят из C# кода генерации террейна)
             struct Attributes
             {
-                float4 positionOS : POSITION;  // Позиция вершины в object space
-                float3 normalOS : NORMAL;      // Нормаль вершины для освещения
-                float2 uv : TEXCOORD0;         // UV-координаты (не используются в triplanar)
-                float4 color : COLOR;          // ВАЖНО: высота террейна в красном канале (0-1)
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR;  // Высота террейна в красном канале
+                #if UNITY_ANY_INSTANCING_ENABLED  // ДОБАВЛЕНО: для instancing поддержки
+                uint instanceID : INSTANCEID_SEMANTIC;
+                #endif
             };
             
-            // Данные, передаваемые из vertex в fragment шейдер
             struct Varyings
             {
-                float4 positionHCS : SV_POSITION; // Позиция для растеризации
-                float3 positionWS : TEXCOORD0;    // Мировая позиция для triplanar mapping
-                float3 normalWS : TEXCOORD1;      // Мировая нормаль для освещения
-                float2 uv : TEXCOORD2;            // UV (резерв)
-                float height : TEXCOORD3;         // Нормализованная высота из vertex color
+                float4 positionHCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+                float3 normalWS : TEXCOORD1;
+                float2 uv : TEXCOORD2;
+                float height : TEXCOORD3;
+                #if UNITY_ANY_INSTANCING_ENABLED  // ДОБАВЛЕНО: для instancing поддержки
+                uint instanceID : CUSTOM_INSTANCE_ID;
+                #endif
             };
             
             // === ОБЪЯВЛЕНИЕ ТЕКСТУР И СЭМПЛЕРОВ ===
             
-            TEXTURE2D(_ValleyTexture); SAMPLER(sampler_ValleyTexture);  // Текстура долин
-            TEXTURE2D(_PlainTexture); SAMPLER(sampler_PlainTexture);    // Текстура равнин
-            TEXTURE2D(_HillTexture); SAMPLER(sampler_HillTexture);      // Текстура холмов
-            TEXTURE2D(_PeakTexture); SAMPLER(sampler_PeakTexture);      // Текстура пиков
+            TEXTURE2D(_ValleyTexture); SAMPLER(sampler_ValleyTexture);
+            TEXTURE2D(_PlainTexture); SAMPLER(sampler_PlainTexture);
+            TEXTURE2D(_HillTexture); SAMPLER(sampler_HillTexture);
+            TEXTURE2D(_PeakTexture); SAMPLER(sampler_PeakTexture);
             
-            // Константный буфер с параметрами материала
+            // ИСПРАВЛЕНО: SRP Batcher совместимый CBUFFER
             CBUFFER_START(UnityPerMaterial)
-                float _ValleyHeight;      // Пороговые высоты для каждой зоны
+                float _ValleyHeight;
                 float _PlainHeight;
                 float _HillHeight;
-                float _TextureScale;      // Масштаб текстур
-                float _BlendSmoothness;   // Плавность переходов
+                float _TextureScale;
+                float _BlendSmoothness;
             CBUFFER_END
             
+            // ДОБАВЛЕНО: DOTS Instanced Properties блок
+            #if defined(UNITY_DOTS_INSTANCING_ENABLED)
+                UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
+                    UNITY_DOTS_INSTANCED_PROP(float, _ValleyHeight)
+                    UNITY_DOTS_INSTANCED_PROP(float, _PlainHeight)
+                    UNITY_DOTS_INSTANCED_PROP(float, _HillHeight)
+                    UNITY_DOTS_INSTANCED_PROP(float, _TextureScale)
+                    UNITY_DOTS_INSTANCED_PROP(float, _BlendSmoothness)
+                UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
+                
+                // ДОБАВЛЕНО: макросы для доступа к DOTS instanced свойствам
+                #define _ValleyHeight UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _ValleyHeight)
+                #define _PlainHeight UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _PlainHeight)
+                #define _HillHeight UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _HillHeight)
+                #define _TextureScale UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _TextureScale)
+                #define _BlendSmoothness UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _BlendSmoothness)
+            #endif
+            
             // === TRIPLANAR MAPPING ФУНКЦИЯ ===
-            // Проецирует текстуру на объект с трех осей для избежания растягивания
             float4 SampleTriplanar(TEXTURE2D_PARAM(tex, samp), float3 worldPos, float3 normal)
             {
-                // Вычисляем веса проекций по трем осям на основе нормали
-                float3 blendWeights = abs(normal);           // Абсолютные значения нормали
-                blendWeights = pow(blendWeights, 4);         // Усиливаем контраст
-                blendWeights /= (blendWeights.x + blendWeights.y + blendWeights.z); // Нормализуем
+                float3 blendWeights = abs(normal);
+                blendWeights = pow(blendWeights, 4);
+                blendWeights /= (blendWeights.x + blendWeights.y + blendWeights.z);
                 
-                // UV-координаты для каждой проекции
-                float2 uvX = worldPos.zy * _TextureScale;    // Проекция на плоскость YZ (боковая)
-                float2 uvY = worldPos.xz * _TextureScale;    // Проекция на плоскость XZ (верхняя/нижняя)
-                float2 uvZ = worldPos.xy * _TextureScale;    // Проекция на плоскость XY (фронтальная)
+                float2 uvX = worldPos.zy * _TextureScale;
+                float2 uvY = worldPos.xz * _TextureScale;
+                float2 uvZ = worldPos.xy * _TextureScale;
                 
-                // Сэмплируем текстуру для каждой проекции
                 float4 texX = SAMPLE_TEXTURE2D(tex, samp, uvX);
                 float4 texY = SAMPLE_TEXTURE2D(tex, samp, uvY);
                 float4 texZ = SAMPLE_TEXTURE2D(tex, samp, uvZ);
                 
-                // Смешиваем результаты с учетом весов
                 return texX * blendWeights.x + texY * blendWeights.y + texZ * blendWeights.z;
             }
             
             // === ВЕРШИННЫЙ ШЕЙДЕР ===
             Varyings vert(Attributes input)
             {
-                Varyings output;
+                Varyings output = (Varyings)0;  // ИСПРАВЛЕНО: инициализация
                 
-                // Получаем позиции и нормали через URP helper функции
+                // ДОБАВЛЕНО: instancing setup
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                
                 VertexPositionInputs posInputs = GetVertexPositionInputs(input.positionOS.xyz);
                 VertexNormalInputs normInputs = GetVertexNormalInputs(input.normalOS);
                 
-                // Заполняем выходную структуру
-                output.positionHCS = posInputs.positionCS;  // Позиция для растеризации
-                output.positionWS = posInputs.positionWS;   // Мировая позиция для triplanar
-                output.normalWS = normInputs.normalWS;      // Мировая нормаль для освещения
-                output.uv = input.uv;                       // UV (не используется)
-                output.height = input.color.r;              // КЛЮЧЕВОЕ: извлекаем высоту из красного канала
+                output.positionHCS = posInputs.positionCS;
+                output.positionWS = posInputs.positionWS;
+                output.normalWS = normInputs.normalWS;
+                output.uv = input.uv;
+                output.height = input.color.r;
+                
+                // ДОБАВЛЕНО: сохранение instance ID
+                #if UNITY_ANY_INSTANCING_ENABLED
+                output.instanceID = input.instanceID;
+                #endif
                 
                 return output;
             }
@@ -126,14 +151,15 @@ Shader "Custom/HeightTextures"
             // === ФРАГМЕНТНЫЙ ШЕЙДЕР ===
             half4 frag(Varyings input) : SV_Target
             {
+                // ДОБАВЛЕНО: instancing setup в fragment
+                UNITY_SETUP_INSTANCE_ID(input);
+                
                 // === РАСЧЕТ ВЕСОВ ДЛЯ СМЕШИВАНИЯ ТЕКСТУР ===
                 
-                // Вес долин: максимален в низких областях, убывает к _ValleyHeight
                 float valleyWeight = 1.0 - smoothstep(_ValleyHeight - _BlendSmoothness, 
                                                      _ValleyHeight + _BlendSmoothness, 
                                                      input.height);
                 
-                // Вес равнин: активен между долинами и равнинной высотой
                 float plainWeight = (1.0 - smoothstep(_PlainHeight - _BlendSmoothness, 
                                                      _PlainHeight + _BlendSmoothness, 
                                                      input.height)) * 
@@ -141,7 +167,6 @@ Shader "Custom/HeightTextures"
                                             _ValleyHeight + _BlendSmoothness, 
                                             input.height);
                 
-                // Вес холмов: активен между равнинами и холмистой высотой
                 float hillWeight = (1.0 - smoothstep(_HillHeight - _BlendSmoothness, 
                                                     _HillHeight + _BlendSmoothness, 
                                                     input.height)) * 
@@ -149,13 +174,11 @@ Shader "Custom/HeightTextures"
                                            _PlainHeight + _BlendSmoothness, 
                                            input.height);
                                   
-                // Вес пиков: максимален в самых высоких областях
                 float peakWeight = smoothstep(_HillHeight - _BlendSmoothness, 
                                             _HillHeight + _BlendSmoothness, 
                                             input.height);
                 
                 // === НОРМАЛИЗАЦИЯ ВЕСОВ ===
-                // Гарантируем, что сумма весов = 1.0 для корректного смешивания
                 float totalWeight = valleyWeight + plainWeight + hillWeight + peakWeight;
                 if (totalWeight > 0)
                 {
@@ -182,11 +205,10 @@ Shader "Custom/HeightTextures"
                                   peakColor * peakWeight;
                 
                 // === ПРОСТОЕ ОСВЕЩЕНИЕ ===
-                Light mainLight = GetMainLight();                              // Получаем основной источник света
-                float NdotL = saturate(dot(input.normalWS, mainLight.direction)); // Скалярное произведение нормали и света
-                half3 lighting = mainLight.color * NdotL + unity_AmbientSky.rgb;   // Диффузное + окружающее освещение
+                Light mainLight = GetMainLight();
+                float NdotL = saturate(dot(input.normalWS, mainLight.direction));
+                half3 lighting = mainLight.color * NdotL + unity_AmbientSky.rgb;
                 
-                // Возвращаем финальный цвет с применением освещения
                 return half4(finalColor.rgb * lighting, 1);
             }
             ENDHLSL
