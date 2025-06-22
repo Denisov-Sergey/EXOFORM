@@ -107,7 +107,7 @@ namespace PandemicWars.Scripts.Map
 
             if (basePrefab != null)
             {
-                GameObject baseTile = Object.Instantiate(basePrefab, position, Quaternion.identity);
+                GameObject baseTile = Object.Instantiate(basePrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
                 baseTile.name = $"Base_{x}_{y}_{baseTileType}";
                 baseTile.transform.SetParent(parent);
                 cityGrid.SpawnedTiles[x][y] = baseTile;
