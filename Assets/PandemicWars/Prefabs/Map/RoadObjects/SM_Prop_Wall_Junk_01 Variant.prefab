@@ -126,12 +126,15 @@ MonoBehaviour:
   objectName: SM_Prop_Wall_Junk_01 Variant
   tileType: 18
   gridSize: {x: 1, y: 1}
+  useVisualOffset: 0
+  visualOffset: 0
   maxCount: 10
   spawnWeight: 1
   canBeAtEdge: 1
   minDistanceFromRoad: 0
   minDistanceFromSameType: 1
   rotateTowardsRoad: 1
+  useRandomRotation: 1
   allowedRotations:
   - 0
   - 90

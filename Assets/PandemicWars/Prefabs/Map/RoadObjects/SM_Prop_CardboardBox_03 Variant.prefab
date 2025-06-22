@@ -125,12 +125,15 @@ MonoBehaviour:
   objectName: SM_Prop_CardboardBox_03 Variant
   tileType: 19
   gridSize: {x: 1, y: 1}
+  useVisualOffset: 1
+  visualOffset: 0.45
   maxCount: 15
   spawnWeight: 1
   canBeAtEdge: 1
   minDistanceFromRoad: 0
   minDistanceFromSameType: 1
   rotateTowardsRoad: 1
+  useRandomRotation: 1
   allowedRotations:
   - 0
   - 90

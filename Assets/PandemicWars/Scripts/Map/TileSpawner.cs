@@ -239,8 +239,22 @@ namespace PandemicWars.Scripts.Map
                 centerY * cityGrid.TileSize
             );
 
+            // Добавляем визуальное смещение для мелких объектов
+            if (settings != null && settings.useVisualOffset)
+            {
+                centerPosition += settings.GetVisualOffset() * cityGrid.TileSize;
+            }
+
+            // Определяем поворот
             Quaternion rotation = Quaternion.identity;
-            if (settings != null && settings.rotateTowardsRoad)
+            
+            // Проверяем случайный поворот
+            if (settings != null && settings.useRandomRotation)
+            {
+                rotation = settings.GetRandomRotation();
+            }
+            // Или поворот к дороге
+            else if (settings != null && settings.rotateTowardsRoad)
             {
                 Vector2Int centerCell = new Vector2Int(Mathf.RoundToInt(centerX), Mathf.RoundToInt(centerY));
                 rotation = CalculateBuildingRotation(centerCell, buildingCells, settings);
@@ -258,7 +272,7 @@ namespace PandemicWars.Scripts.Map
                 spawnedPrefabCounts[prefabKey] = 0;
             spawnedPrefabCounts[prefabKey]++;
 
-            Debug.Log($"    ✅ Создан {settings.objectName} в позиции {centerPosition}");
+            Debug.Log($"    ✅ Создан {settings.objectName} в позиции {centerPosition}, поворот: {rotation.eulerAngles.y}°");
         }
 
         string GetObjectCategory(TileType type)
@@ -281,6 +295,11 @@ namespace PandemicWars.Scripts.Map
         {
             return type == TileType.BrokenCar || type == TileType.Roadblock || 
                    type == TileType.Debris;
+        }
+
+        bool IsDecorationType(TileType type)
+        {
+            return type == TileType.Decoration;
         }
 
         Quaternion CalculateBuildingRotation(Vector2Int centerCell, List<Vector2Int> buildingCells,

@@ -19,6 +19,13 @@ namespace PandemicWars.Scripts.Map
         [Tooltip("Размер объекта в клетках (ширина x высота)")]
         public Vector2Int gridSize = Vector2Int.one;
 
+        [Tooltip("Визуальный размер меньше клетки (для мелких объектов)")]
+        public bool useVisualOffset = false;
+        
+        [Range(0f, 0.5f)]
+        [Tooltip("Смещение от центра клетки")]
+        public float visualOffset = 0f;
+        
         [Header("Spawn Settings")]
         [Range(-1, 50)]
         [Tooltip("Максимальное количество на карте (-1 = без ограничений)")]
@@ -36,13 +43,16 @@ namespace PandemicWars.Scripts.Map
         [Tooltip("Минимальное расстояние до дорог (0 = не требуется)")]
         public int minDistanceFromRoad = 1;
         
-        [Range(1, 3)]
+        [Range(0, 3)]
         [Tooltip("Минимальное расстояние до других объектов того же типа (в клетках)")]
         public int minDistanceFromSameType = 2;
 
         [Header("Rotation Settings")]
         [Tooltip("Поворачивать здание в сторону ближайшей дороги")]
         public bool rotateTowardsRoad = true;
+        
+        [Tooltip("Использовать случайный поворот при спауне")]
+        public bool useRandomRotation = false;
         
         [Tooltip("Список разрешенных углов поворота (0, 90, 180, 270)")]
         public List<float> allowedRotations = new List<float> { 0f, 90f, 180f, 270f };
@@ -80,6 +90,31 @@ namespace PandemicWars.Scripts.Map
             }
             
             return cells;
+        }
+        
+        /// <summary>
+        /// Получить случайное смещение для визуального размещения
+        /// </summary>
+        public Vector3 GetVisualOffset()
+        {
+            if (!useVisualOffset) return Vector3.zero;
+            
+            float x = Random.Range(-visualOffset, visualOffset);
+            float z = Random.Range(-visualOffset, visualOffset);
+            
+            return new Vector3(x, 0, z);
+        }
+        
+        /// <summary>
+        /// Получить случайный угол поворота
+        /// </summary>
+        public Quaternion GetRandomRotation()
+        {
+            if (!useRandomRotation || allowedRotations.Count == 0)
+                return Quaternion.identity;
+                
+            float angle = allowedRotations[Random.Range(0, allowedRotations.Count)];
+            return Quaternion.Euler(0, angle, 0);
         }
         
         /// <summary>
@@ -155,6 +190,7 @@ namespace PandemicWars.Scripts.Map
             gridSize.y = Mathf.Max(1, gridSize.y);
             spawnWeight = Mathf.Max(0.1f, spawnWeight);
             objectName = string.IsNullOrEmpty(objectName) ? gameObject.name : objectName;
+            visualOffset = Mathf.Clamp(visualOffset, 0f, 0.5f);
         }
         
         void OnDrawGizmosSelected()
@@ -164,14 +200,23 @@ namespace PandemicWars.Scripts.Map
             Vector3 size = new Vector3(gridSize.x * 5, 0.2f, gridSize.y * 5);
             Gizmos.DrawWireCube(transform.position + new Vector3(gridSize.x * 0.5f - 0.5f, 0, gridSize.y * 0.5f - 0.5f), size);
             
+            // Рисуем визуальное смещение
+            if (useVisualOffset)
+            {
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(transform.position, visualOffset * 5);
+            }
+            
             // Рисуем центр
             Gizmos.color = Color.red;
             Gizmos.DrawSphere(transform.position, 0.3f);
             
             // Показываем текст с размером
-            #if UNITY_EDITOR
-            UnityEditor.Handles.Label(transform.position + Vector3.up, $"{gridSize.x}x{gridSize.y}");
-            #endif
+#if UNITY_EDITOR
+            string info = $"{gridSize.x}x{gridSize.y}";
+            if (useVisualOffset) info += $"\nOffset: {visualOffset}";
+            UnityEditor.Handles.Label(transform.position + Vector3.up, info);
+#endif
         }
     }
 }
