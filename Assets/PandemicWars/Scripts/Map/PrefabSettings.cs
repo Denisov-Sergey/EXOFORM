@@ -20,7 +20,7 @@ namespace PandemicWars.Scripts.Map
         public Vector2Int gridSize = Vector2Int.one;
 
         [Header("Spawn Settings")]
-        [Range(0, 50)]
+        [Range(-1, 50)]
         [Tooltip("Максимальное количество на карте (-1 = без ограничений)")]
         public int maxCount = -1;
         

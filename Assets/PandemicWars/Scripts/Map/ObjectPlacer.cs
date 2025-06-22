@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 namespace PandemicWars.Scripts.Map
 {
@@ -25,24 +26,71 @@ namespace PandemicWars.Scripts.Map
         void LoadPrefabSettings(List<GameObject> prefabs)
         {
             prefabSettings = new List<PrefabSettings>();
+            int totalPrefabs = 0;
+            int vegetationCount = 0;
+            int roadObjectCount = 0;
+            int lootCount = 0;
 
             foreach (var prefab in prefabs)
             {
                 if (prefab != null)
                 {
+                    totalPrefabs++;
                     var settings = prefab.GetComponent<PrefabSettings>();
                     if (settings != null)
                     {
-                        prefabSettings.Add(settings);
+                        if (IsVegetationType(settings.tileType))
+                        {
+                            vegetationCount++;
+                        }
+                        else if (IsRoadObjectType(settings.tileType))
+                        {
+                            roadObjectCount++;
+                        }
+                        else if (IsLootType(settings.tileType))
+                        {
+                            lootCount++;
+                        }
+                        else
+                        {
+                            // Это здание
+                            prefabSettings.Add(settings);
+                            Debug.Log($"  ✅ Добавлен префаб здания: {settings.objectName} ({settings.tileType}), размер: {settings.gridSize.x}x{settings.gridSize.y}");
+                        }
                     }
                     else
                     {
-                        Debug.LogWarning($"Префаб {prefab.name} не имеет компонента PrefabSettings!");
+                        Debug.LogWarning($"  ⚠️ Префаб {prefab.name} не имеет компонента PrefabSettings!");
                     }
                 }
             }
 
-            Debug.Log($"Загружено {prefabSettings.Count} префабов с настройками");
+            Debug.Log($"📊 Загружено префабов:");
+            Debug.Log($"  • Всего: {totalPrefabs}");
+            Debug.Log($"  • Зданий: {prefabSettings.Count}");
+            Debug.Log($"  • Растительности: {vegetationCount}");
+            Debug.Log($"  • Дорожных объектов: {roadObjectCount}");
+            Debug.Log($"  • Лута: {lootCount}");
+        }
+
+        bool IsVegetationType(TileType type)
+        {
+            return type == TileType.Tree || type == TileType.TreeCluster || 
+                   type == TileType.Bush || type == TileType.Flower || 
+                   type == TileType.SmallPlant || type == TileType.Forest || 
+                   type == TileType.Garden;
+        }
+
+        bool IsRoadObjectType(TileType type)
+        {
+            return type == TileType.BrokenCar || type == TileType.Roadblock || 
+                   type == TileType.Debris;
+        }
+
+        // Добавим метод для проверки типа лута
+        bool IsLootType(TileType type)
+        {
+            return type == TileType.Loot;
         }
 
         public IEnumerator PlaceObjects(float baseDensity, float animationSpeed)
@@ -55,13 +103,67 @@ namespace PandemicWars.Scripts.Map
 
             spawnedCounts.Clear();
 
-            foreach (var settings in prefabSettings)
+            // Предварительный расчет ожидаемых количеств
+            LogExpectedPlacements(baseDensity);
+
+            // Группируем префабы по типу для лучшего понимания
+            var prefabsByType = prefabSettings.GroupBy(s => s.tileType);
+            
+            foreach (var typeGroup in prefabsByType)
             {
-                Debug.Log($"  🏗️ Размещение: {settings.objectName} (размер {settings.gridSize})");
+                Debug.Log($"\n  🏗️ === Размещение типа {typeGroup.Key} ===");
+                Debug.Log($"  📊 Префабов этого типа: {typeGroup.Count()}");
                 
-                yield return coroutineRunner.StartCoroutine(PlaceObjectTypeCoroutine(settings, baseDensity, animationSpeed));
-                yield return new WaitForSeconds(animationSpeed * 0.5f);
+                foreach (var settings in typeGroup)
+                {
+                    Debug.Log($"\n  🎯 Размещение: {settings.objectName} (размер {settings.gridSize.x}x{settings.gridSize.y})");
+                    
+                    yield return coroutineRunner.StartCoroutine(PlaceObjectTypeCoroutine(settings, baseDensity, animationSpeed));
+                    yield return new WaitForSeconds(animationSpeed * 0.5f);
+                }
             }
+
+            // Финальная статистика
+            LogFinalStatistics(baseDensity);
+        }
+
+        void LogExpectedPlacements(float baseDensity)
+        {
+            Debug.Log("\n📊 === ОЖИДАЕМОЕ РАЗМЕЩЕНИЕ ОБЪЕКТОВ ===");
+            
+            int totalMapCells = cityGrid.Width * cityGrid.Height;
+            int estimatedFreeCells = Mathf.RoundToInt(totalMapCells * 0.7f); // ~70% карты доступно
+            
+            Debug.Log($"📏 Размер карты: {cityGrid.Width}x{cityGrid.Height} = {totalMapCells} клеток");
+            Debug.Log($"🟩 Примерно свободных клеток: ~{estimatedFreeCells}");
+            
+            var prefabsByType = prefabSettings.GroupBy(s => s.tileType);
+            
+            foreach (var typeGroup in prefabsByType)
+            {
+                Debug.Log($"\n🏢 Тип: {typeGroup.Key}");
+                
+                foreach (var settings in typeGroup)
+                {
+                    float density = baseDensity * settings.spawnWeight;
+                    int expectedCount = Mathf.RoundToInt(estimatedFreeCells * density / settings.Area);
+                    
+                    string limitInfo = settings.maxCount > 0 ? 
+                        $" (лимит: {settings.maxCount})" : 
+                        " (без лимита)";
+                    
+                    int finalExpected = settings.maxCount > 0 ? 
+                        Mathf.Min(expectedCount, settings.maxCount) : 
+                        expectedCount;
+                    
+                    Debug.Log($"  • {settings.objectName}:");
+                    Debug.Log($"    - Вес: {settings.spawnWeight:F2}, Плотность: {density:F3}");
+                    Debug.Log($"    - Размер: {settings.gridSize.x}x{settings.gridSize.y} ({settings.Area} клеток)");
+                    Debug.Log($"    - Ожидается: ~{expectedCount} → {finalExpected}{limitInfo}");
+                }
+            }
+            
+            Debug.Log("========================================\n");
         }
 
         IEnumerator PlaceObjectTypeCoroutine(PrefabSettings settings, float baseDensity, float animationSpeed)
@@ -76,13 +178,18 @@ namespace PandemicWars.Scripts.Map
 
             float density = baseDensity * settings.spawnWeight;
             int objectsToPlace = Mathf.RoundToInt(validPositions.Count * density);
+            int originalTarget = objectsToPlace;
 
             if (settings.maxCount > 0)
             {
                 objectsToPlace = Mathf.Min(objectsToPlace, settings.maxCount);
             }
 
-            Debug.Log($"    📍 Найдено {validPositions.Count} позиций, размещаем {objectsToPlace}");
+            Debug.Log($"    📍 Найдено позиций: {validPositions.Count}");
+            Debug.Log($"    🎯 Целевое количество: {originalTarget} → {objectsToPlace} (с учетом лимита)");
+
+            int placedCount = 0;
+            int failedAttempts = 0;
 
             for (int i = 0; i < objectsToPlace && validPositions.Count > 0; i++)
             {
@@ -91,16 +198,76 @@ namespace PandemicWars.Scripts.Map
 
                 if (TryPlaceObject(settings, position))
                 {
+                    placedCount++;
                     RemoveOccupiedPositions(validPositions, settings, position);
+                    
+                    // Логирование прогресса каждые 5 объектов
+                    if (placedCount % 5 == 0 || placedCount == objectsToPlace)
+                    {
+                        Debug.Log($"    📈 Прогресс: {placedCount}/{objectsToPlace}");
+                    }
+                    
                     yield return new WaitForSeconds(animationSpeed * 0.8f);
                 }
                 else
                 {
                     validPositions.RemoveAt(randomIndex);
+                    failedAttempts++;
                 }
+            }
+
+            // Итоговая статистика для этого префаба
+            Debug.Log($"    ✅ Размещено: {placedCount}/{objectsToPlace} ({(float)placedCount/objectsToPlace*100:F1}%)");
+            
+            if (failedAttempts > 0)
+            {
+                Debug.Log($"    ⚠️ Неудачных попыток: {failedAttempts}");
+            }
+            
+            if (placedCount < objectsToPlace)
+            {
+                Debug.Log($"    ⚠️ Не удалось разместить {objectsToPlace - placedCount} объектов (кончились позиции)");
+            }
+            
+            if (settings.maxCount > 0 && placedCount >= settings.maxCount)
+            {
+                Debug.Log($"    🚫 Достигнут лимит: {settings.maxCount}");
             }
         }
 
+        void LogFinalStatistics(float baseDensity)
+        {
+            Debug.Log("\n📊 === ФИНАЛЬНАЯ СТАТИСТИКА РАЗМЕЩЕНИЯ ===");
+            
+            var prefabsByType = spawnedCounts.Keys.GroupBy(s => s.tileType);
+            
+            foreach (var typeGroup in prefabsByType)
+            {
+                Debug.Log($"\n🏢 {typeGroup.Key}:");
+                
+                int totalForType = 0;
+                foreach (var settings in typeGroup)
+                {
+                    if (spawnedCounts.ContainsKey(settings))
+                    {
+                        int count = spawnedCounts[settings];
+                        totalForType += count;
+                        string limitText = settings.maxCount > 0 ? $"/{settings.maxCount}" : "/∞";
+                        string percentage = settings.maxCount > 0 ? 
+                            $" ({(float)count/settings.maxCount*100:F1}% от лимита)" : "";
+                        
+                        Debug.Log($"  • {settings.objectName}: {count}{limitText}{percentage}");
+                    }
+                }
+                Debug.Log($"  📊 Всего типа {typeGroup.Key}: {totalForType}");
+            }
+            
+            int totalPlaced = spawnedCounts.Values.Sum();
+            Debug.Log($"\n🏗️ ВСЕГО РАЗМЕЩЕНО ОБЪЕКТОВ: {totalPlaced}");
+            Debug.Log("==========================================\n");
+        }
+
+        // Остальные методы остаются без изменений...
         List<Vector2Int> FindValidPositions(PrefabSettings settings)
         {
             List<Vector2Int> positions = new List<Vector2Int>();
@@ -129,14 +296,12 @@ namespace PandemicWars.Scripts.Map
             if (!settings.CanPlaceAtWithBuildingCheck(position, cityGrid.Grid, cityGrid.Width, cityGrid.Height, 
                 cityGrid.IsCellOccupiedByBuilding))
             {
-                Debug.Log($"    ❌ Не удается разместить {settings.objectName} в {position} - место занято");
                 return false;
             }
 
             int currentCount = GetSpawnedCount(settings);
             if (settings.maxCount > 0 && currentCount >= settings.maxCount)
             {
-                Debug.Log($"    ❌ Достигнут лимит для {settings.objectName}: {currentCount}/{settings.maxCount}");
                 return false;
             }
 
@@ -154,30 +319,12 @@ namespace PandemicWars.Scripts.Map
                 spawnedCounts[settings] = 0;
             spawnedCounts[settings]++;
 
-            Debug.Log($"    ✅ Размещен {settings.objectName} в {position}, размер {settings.gridSize}, занимает клетки: {string.Join(", ", occupiedCells)}");
             return true;
         }
         
-        // Получение счетчика по настройкам
         int GetSpawnedCount(PrefabSettings settings)
         {
             return spawnedCounts.ContainsKey(settings) ? spawnedCounts[settings] : 0;
-        }
-        
-        // Удаляем старый метод GetSpawnedCount(TileType tileType)
-        // так как он больше не нужен
-        
-        public void LogSpawnedCounts()
-        {
-            Debug.Log("📊 === СТАТИСТИКА РАЗМЕЩЕННЫХ ОБЪЕКТОВ ===");
-            foreach (var kvp in spawnedCounts)
-            {
-                var settings = kvp.Key;
-                int count = kvp.Value;
-                string limitText = settings.maxCount > 0 ? $"/{settings.maxCount}" : "/∞";
-                Debug.Log($"🏗️ {settings.objectName}: {count}{limitText}");
-            }
-            Debug.Log("===========================================");
         }
 
         void RemoveOccupiedPositions(List<Vector2Int> positions, PrefabSettings settings, Vector2Int placedPosition)
@@ -215,8 +362,6 @@ namespace PandemicWars.Scripts.Map
                 
                 return false;
             });
-            
-            Debug.Log($"    🚫 После размещения {settings.objectName} в {placedPosition} (отступ {minDistance}) осталось {positions.Count} валидных позиций");
         }
 
         bool HasRoadNearby(Vector2Int position, int distance)

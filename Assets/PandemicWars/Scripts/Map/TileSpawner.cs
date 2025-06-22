@@ -11,17 +11,20 @@ namespace PandemicWars.Scripts.Map
     {
         private CityGrid cityGrid;
         private Transform parent;
+        private Dictionary<string, int> spawnedPrefabCounts; // Счетчик по именам префабов
 
         public TileSpawner(CityGrid grid, Transform parentTransform)
         {
             cityGrid = grid;
             parent = parentTransform;
+            spawnedPrefabCounts = new Dictionary<string, int>();
         }
 
         public IEnumerator SpawnAllTiles(GameObject grassPrefab, GameObject roadPrefab,
             List<GameObject> prefabsWithSettings, float animationSpeed)
         {
             Debug.Log("  🎯 Создание базовых тайлов...");
+            spawnedPrefabCounts.Clear();
 
             for (int x = 0; x < cityGrid.Width; x++)
             {
@@ -38,11 +41,15 @@ namespace PandemicWars.Scripts.Map
 
             Debug.Log("  🏢 Создание зданий поверх базы...");
             CreateBuildingsLayer(prefabsWithSettings);
+            LogSpawnedCounts();
         }
 
         public IEnumerator UpdateChangedTiles(GameObject grassPrefab, GameObject roadPrefab,
             List<GameObject> prefabsWithSettings, float animationSpeed)
         {
+            // Очищаем старые объекты
+            ClearExistingBuildings();
+            
             for (int x = 0; x < cityGrid.Width; x++)
             {
                 for (int y = 0; y < cityGrid.Height; y++)
@@ -62,6 +69,31 @@ namespace PandemicWars.Scripts.Map
 
             Debug.Log("  🏢 Обновление зданий...");
             CreateBuildingsLayer(prefabsWithSettings);
+            LogSpawnedCounts();
+        }
+
+        void ClearExistingBuildings()
+        {
+            // Удаляем все объекты кроме базовых тайлов
+            List<GameObject> toDestroy = new List<GameObject>();
+            
+            foreach (Transform child in parent)
+            {
+                if (child.name.StartsWith("Building_") || 
+                    child.name.StartsWith("Vegetation_") || 
+                    child.name.StartsWith("RoadObject_") ||
+                    child.name.StartsWith("Loot_"))
+                {
+                    toDestroy.Add(child.gameObject);
+                }
+            }
+            
+            foreach (var obj in toDestroy)
+            {
+                Object.DestroyImmediate(obj);
+            }
+            
+            spawnedPrefabCounts.Clear();
         }
 
         void CreateTileAt(int x, int y, GameObject grassPrefab, GameObject roadPrefab)
@@ -84,12 +116,38 @@ namespace PandemicWars.Scripts.Map
 
         void CreateBuildingsLayer(List<GameObject> prefabsWithSettings)
         {
+            Debug.Log("  📊 Начинаем создание объектов на карте...");
             HashSet<Vector2Int> processedBuildings = new HashSet<Vector2Int>();
+
+            // Создаем словарь префабов по типам для быстрого доступа
+            Dictionary<TileType, List<GameObject>> prefabsByType = new Dictionary<TileType, List<GameObject>>();
+            
+            foreach (var prefab in prefabsWithSettings)
+            {
+                if (prefab != null)
+                {
+                    var settings = prefab.GetComponent<PrefabSettings>();
+                    if (settings != null)
+                    {
+                        if (!prefabsByType.ContainsKey(settings.tileType))
+                            prefabsByType[settings.tileType] = new List<GameObject>();
+                        prefabsByType[settings.tileType].Add(prefab);
+                    }
+                }
+            }
 
             foreach (var kvp in cityGrid.BuildingOccupancy)
             {
                 TileType buildingType = kvp.Key;
                 List<Vector2Int> buildingCells = kvp.Value;
+
+                if (!prefabsByType.ContainsKey(buildingType))
+                {
+                    Debug.LogWarning($"  ⚠️ Нет префабов для типа {buildingType}");
+                    continue;
+                }
+
+                Debug.Log($"  🏗️ Создание объектов типа {buildingType}: {buildingCells.Count} клеток");
 
                 var buildingGroups = GroupConnectedCells(buildingCells);
 
@@ -106,7 +164,7 @@ namespace PandemicWars.Scripts.Map
                         continue;
 
                     processedBuildings.Add(baseCell);
-                    CreateSingleBuilding(buildingType, buildingGroup, prefabsWithSettings);
+                    CreateSingleBuilding(buildingType, buildingGroup, prefabsByType[buildingType]);
                 }
             }
         }
@@ -150,9 +208,9 @@ namespace PandemicWars.Scripts.Map
         }
 
         void CreateSingleBuilding(TileType buildingType, List<Vector2Int> buildingCells,
-            List<GameObject> prefabsWithSettings)
+            List<GameObject> availablePrefabs)
         {
-            GameObject buildingPrefab = GetBuildingPrefab(buildingType, prefabsWithSettings);
+            GameObject buildingPrefab = GetBuildingPrefab(buildingType, availablePrefabs);
             if (buildingPrefab == null)
             {
                 Debug.LogWarning($"Не найден префаб для здания типа {buildingType}");
@@ -160,6 +218,7 @@ namespace PandemicWars.Scripts.Map
             }
 
             var settings = buildingPrefab.GetComponent<PrefabSettings>();
+            string prefabKey = GetPrefabKey(buildingPrefab);
 
             Vector2Int minCell = buildingCells[0];
             Vector2Int maxCell = buildingCells[0];
@@ -188,11 +247,40 @@ namespace PandemicWars.Scripts.Map
             }
 
             GameObject building = Object.Instantiate(buildingPrefab, centerPosition, rotation);
-            building.name = $"Building_{buildingType}_{minCell.x}_{minCell.y}";
+            
+            // Определяем категорию для имени
+            string category = GetObjectCategory(buildingType);
+            building.name = $"{category}_{buildingType}_{minCell.x}_{minCell.y}_{prefabKey}";
             building.transform.SetParent(parent);
 
-            Debug.Log(
-                $"Создано обьект {building.name} - {buildingType} в позиции {centerPosition}, поворот {rotation.eulerAngles.y}°");
+            // Увеличиваем счетчик для конкретного префаба
+            if (!spawnedPrefabCounts.ContainsKey(prefabKey))
+                spawnedPrefabCounts[prefabKey] = 0;
+            spawnedPrefabCounts[prefabKey]++;
+
+            Debug.Log($"    ✅ Создан {settings.objectName} в позиции {centerPosition}");
+        }
+
+        string GetObjectCategory(TileType type)
+        {
+            if (IsVegetationType(type)) return "Vegetation";
+            if (IsRoadObjectType(type)) return "RoadObject";
+            if (type == TileType.Loot) return "Loot";
+            return "Building";
+        }
+
+        bool IsVegetationType(TileType type)
+        {
+            return type == TileType.Tree || type == TileType.TreeCluster || 
+                   type == TileType.Bush || type == TileType.Flower || 
+                   type == TileType.SmallPlant || type == TileType.Forest || 
+                   type == TileType.Garden;
+        }
+
+        bool IsRoadObjectType(TileType type)
+        {
+            return type == TileType.BrokenCar || type == TileType.Roadblock || 
+                   type == TileType.Debris;
         }
 
         Quaternion CalculateBuildingRotation(Vector2Int centerCell, List<Vector2Int> buildingCells,
@@ -275,53 +363,50 @@ namespace PandemicWars.Scripts.Map
         }
 
         /// <summary>
-        /// Получить случайный префаб с учетом весов и лимитов
+        /// Получить случайный префаб с учетом весов и текущих лимитов
         /// </summary>
-        GameObject GetBuildingPrefab(TileType buildingType, List<GameObject> prefabsWithSettings)
+        GameObject GetBuildingPrefab(TileType buildingType, List<GameObject> availablePrefabs)
         {
-            List<PrefabSettings> availableSettings = new List<PrefabSettings>();
+            List<GameObject> validPrefabs = new List<GameObject>();
             List<float> weights = new List<float>();
 
-            foreach (var prefab in prefabsWithSettings)
+            foreach (var prefab in availablePrefabs)
             {
                 if (prefab != null)
                 {
                     var settings = prefab.GetComponent<PrefabSettings>();
                     if (settings != null && settings.tileType == buildingType)
                     {
-                        // ✅ Проверяем, не достигнут ли лимит этого конкретного префаба
-                        int currentCount = GetCurrentSpawnCount(settings);
+                        string prefabKey = GetPrefabKey(prefab);
+                        int currentCount = GetCurrentSpawnCount(prefabKey);
                         bool hasLimit = settings.maxCount > 0;
                         bool underLimit = !hasLimit || currentCount < settings.maxCount;
 
                         if (underLimit)
                         {
-                            availableSettings.Add(settings);
+                            validPrefabs.Add(prefab);
                             weights.Add(settings.spawnWeight);
+                            Debug.Log($"      • {settings.objectName}: {currentCount}/{(hasLimit ? settings.maxCount.ToString() : "∞")} - доступен");
                         }
                         else
                         {
-                            Debug.Log(
-                                $"⚠️ Префаб {settings.objectName} достиг лимита: {currentCount}/{settings.maxCount}");
+                            Debug.Log($"      ⚠️ {settings.objectName}: {currentCount}/{settings.maxCount} - ЛИМИТ ДОСТИГНУТ");
                         }
                     }
                 }
             }
 
-            if (availableSettings.Count == 0)
+            if (validPrefabs.Count == 0)
             {
-                Debug.LogWarning($"❌ Нет доступных префабов для типа {buildingType} (все достигли лимита)");
+                Debug.LogWarning($"    ❌ Все префабы типа {buildingType} достигли лимита!");
                 return null;
             }
 
-            // ✅ Взвешенный случайный выбор
-            return GetWeightedRandomPrefab(availableSettings, weights);
+            // Взвешенный случайный выбор
+            return GetWeightedRandomPrefab(validPrefabs, weights);
         }
 
-        /// <summary>
-        /// Взвешенный случайный выбор префаба
-        /// </summary>
-        GameObject GetWeightedRandomPrefab(List<PrefabSettings> settings, List<float> weights)
+        GameObject GetWeightedRandomPrefab(List<GameObject> prefabs, List<float> weights)
         {
             float totalWeight = 0f;
             for (int i = 0; i < weights.Count; i++)
@@ -330,47 +415,37 @@ namespace PandemicWars.Scripts.Map
             float randomValue = Random.Range(0f, totalWeight);
             float currentWeight = 0f;
 
-            for (int i = 0; i < settings.Count; i++)
+            for (int i = 0; i < prefabs.Count; i++)
             {
                 currentWeight += weights[i];
                 if (randomValue <= currentWeight)
                 {
-                    return settings[i].gameObject;
+                    return prefabs[i];
                 }
             }
 
-            return settings[0].gameObject; // Fallback
+            return prefabs[0]; // Fallback
         }
 
-        /// <summary>
-        /// Получить текущее количество размещенных объектов этого типа
-        /// </summary>
-        int GetCurrentSpawnCount(PrefabSettings settings)
+        string GetPrefabKey(GameObject prefab)
         {
-            if (cityGrid.BuildingOccupancy.ContainsKey(settings.tileType))
+            // Используем имя префаба как уникальный ключ
+            return prefab.name;
+        }
+
+        int GetCurrentSpawnCount(string prefabKey)
+        {
+            return spawnedPrefabCounts.ContainsKey(prefabKey) ? spawnedPrefabCounts[prefabKey] : 0;
+        }
+
+        void LogSpawnedCounts()
+        {
+            Debug.Log("  📊 === СОЗДАННЫЕ ОБЪЕКТЫ НА КАРТЕ ===");
+            foreach (var kvp in spawnedPrefabCounts)
             {
-                // Подсчитываем только объекты этого конкретного префаба
-                int count = 0;
-
-                // Ищем объекты по имени (так как имя содержит тип здания)
-                Transform[] children = new Transform[parent.childCount];
-                for (int i = 0; i < parent.childCount; i++)
-                {
-                    children[i] = parent.GetChild(i);
-                }
-
-                foreach (Transform child in children)
-                {
-                    if (child != null && child.name.Contains($"Building_{settings.tileType}_"))
-                    {
-                        count++;
-                    }
-                }
-
-                return count;
+                Debug.Log($"    • {kvp.Key}: {kvp.Value} штук");
             }
-
-            return 0;
+            Debug.Log("  =====================================");
         }
     }
 }

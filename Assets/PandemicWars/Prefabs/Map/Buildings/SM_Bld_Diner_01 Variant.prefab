@@ -319,11 +319,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07dcd5caa3994e0e937a1acc99b834fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  objectName: Building
+  objectName: SM_Bld_Diner_01 Variant
   tileType: 3
   gridSize: {x: 3, y: 3}
-  maxCount: 1
-  spawnWeight: 1
+  maxCount: 2
+  spawnWeight: 0.5
   canBeAtEdge: 1
   minDistanceFromRoad: 0
   minDistanceFromSameType: 2

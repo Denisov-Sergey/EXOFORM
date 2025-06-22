@@ -21,17 +21,52 @@ namespace PandemicWars.Scripts.Map
 
         [Tooltip("Размер одной клетки")] public float tileSize = 5f;
 
-        [Header("Generation Settings")] [Range(0.05f, 0.5f)] [Tooltip("Плотность дорог")]
-        public float roadDensity = 0.05f;
-
+        [Header("Generation Settings - Percentages")]
+        [Range(0.05f, 0.5f)]
+        [Tooltip("Процент карты под дорогами (5-50%)")]
+        public float roadDensity = 0.15f;  // 15% карты
+        
         [Range(3, 30)] [Tooltip("Длина дорожного сегмента")]
         public int roadLength = 15;
 
-        [Range(0.05f, 0.3f)] [Tooltip("Плотность зданий")]
-        public float buildingDensity = 0.15f;
+        [Range(0.05f, 0.4f)]
+        [Tooltip("Процент свободной площади под зданиями (5-40%)")]
+        public float buildingDensity = 0.20f;  // 20% свободной площади
 
-        [Range(0.1f, 0.8f)] [Tooltip("Плотность растительности")]
-        public float vegetationDensity = 0.4f;
+        [Range(0.1f, 0.6f)]
+        [Tooltip("Процент свободной площади под растительностью (10-60%)")]
+        public float vegetationDensity = 0.40f;  // 40% свободной площади
+
+        [Header("Special Objects Settings")]
+        [Range(0.0f, 0.2f)]
+        [Tooltip("Процент дорог с декоративными объектами (0-20%)")]
+        public float roadObjectDensity = 0.10f;  // 10% дорог
+
+        [Range(0.0f, 0.1f)]
+        [Tooltip("Процент дорог с лутом (0-10%)")]
+        public float lootDensity = 0.05f;  // 5% дорог
+
+        [Header("Loot Settings")]
+        [Tooltip("Минимальное количество лута на карте")]
+        public int minLootCount = 5;
+
+        [Tooltip("Максимальное количество лута на карте")]
+        public int maxLootCount = 30;
+
+        [Tooltip("Группировать лут (несколько ящиков рядом)")]
+        public bool clusterLoot = true;
+
+        [Range(1, 5)]
+        [Tooltip("Размер группы лута")]
+        public int lootClusterSize = 3;
+        
+
+        [Header("Advanced Road Settings")]
+        [Tooltip("Использовать улучшенный генератор дорог")]
+        public bool useImprovedRoadGenerator = true;
+
+        [Tooltip("Настройки для улучшенного генератора дорог")]
+        public ImprovedRoadGenerator.RoadSettings advancedRoadSettings = new ImprovedRoadGenerator.RoadSettings();
 
         [Header("Animation")] [Range(0.01f, 1f)] [Tooltip("Скорость анимации")]
         public float animationSpeed = 0.1f;
@@ -44,6 +79,7 @@ namespace PandemicWars.Scripts.Map
         [Tooltip("Префабы с компонентом PrefabSettings")]
         public List<GameObject> prefabsWithSettings = new List<GameObject>();
 
+        
         [Header("Controls")] [Tooltip("Генерировать город")] [SerializeField]
         private bool _generateCity;
 
@@ -56,12 +92,49 @@ namespace PandemicWars.Scripts.Map
         // Компоненты системы
         private CityGrid cityGrid;
         private RoadGenerator roadGenerator;
+        private ImprovedRoadGenerator improvedRoadGenerator;
         private ObjectPlacer objectPlacer;
         private VegetationPlacer vegetationPlacer;
         private TileSpawner tileSpawner;
+        private RoadObjectsPlacer roadObjectsPlacer;
 
         private bool isGenerating = false;
 
+        public void CalculateExpectedCounts()
+        {
+            int totalCells = gridWidth * gridHeight;
+            int roadCells = Mathf.RoundToInt(totalCells * roadDensity);
+            int freeCells = totalCells - roadCells;
+    
+            int buildingCells = Mathf.RoundToInt(freeCells * buildingDensity);
+            int vegetationCells = Mathf.RoundToInt(freeCells * vegetationDensity);
+            int roadObjectCells = Mathf.RoundToInt(roadCells * roadObjectDensity);
+            int lootCells = Mathf.RoundToInt(roadCells * lootDensity);
+    
+            Debug.Log($"📊 === РАСЧЕТ РАСПРЕДЕЛЕНИЯ КАРТЫ {gridWidth}x{gridHeight} ===");
+            Debug.Log($"📏 Общая площадь: {totalCells} клеток (100%)");
+            Debug.Log($"🛣️ Дороги: ~{roadCells} клеток ({roadDensity * 100:F1}%)");
+            Debug.Log($"🟩 Свободно: ~{freeCells} клеток ({(float)freeCells/totalCells * 100:F1}%)");
+            Debug.Log($"");
+            Debug.Log($"🏢 Здания: ~{buildingCells} клеток ({buildingDensity * 100:F1}% от свободных)");
+            Debug.Log($"🌳 Растительность: ~{vegetationCells} клеток ({vegetationDensity * 100:F1}% от свободных)");
+            Debug.Log($"🚗 Объекты на дорогах: ~{roadObjectCells} клеток ({roadObjectDensity * 100:F1}% от дорог)");
+            Debug.Log($"📦 Лут: ~{lootCells} клеток ({lootDensity * 100:F1}% от дорог)");
+            Debug.Log($"");
+    
+            // Предупреждения
+            float totalUsage = buildingDensity + vegetationDensity;
+            if (totalUsage > 0.9f)
+            {
+                Debug.LogWarning($"⚠️ Высокая плотность застройки: {totalUsage * 100:F1}% - может не хватить места!");
+            }
+    
+            if (lootCells < minLootCount)
+            {
+                Debug.LogWarning($"⚠️ При текущих настройках лута будет мало: {lootCells} < {minLootCount}");
+            }
+        }
+        
         void Start()
         {
             try
@@ -83,8 +156,16 @@ namespace PandemicWars.Scripts.Map
             if (cityGrid == null)
                 cityGrid = new CityGrid(gridWidth, gridHeight, tileSize);
 
-            if (roadGenerator == null)
-                roadGenerator = new RoadGenerator(cityGrid);
+            if (useImprovedRoadGenerator)
+            {
+                if (improvedRoadGenerator == null)
+                    improvedRoadGenerator = new ImprovedRoadGenerator(cityGrid, advancedRoadSettings);
+            }
+            else
+            {
+                if (roadGenerator == null)
+                    roadGenerator = new RoadGenerator(cityGrid);
+            }
 
             if (objectPlacer == null)
                 objectPlacer = new ObjectPlacer(cityGrid, prefabsWithSettings, this);
@@ -94,6 +175,9 @@ namespace PandemicWars.Scripts.Map
 
             if (tileSpawner == null)
                 tileSpawner = new TileSpawner(cityGrid, transform);
+            
+            if (roadObjectsPlacer == null)
+                roadObjectsPlacer = new RoadObjectsPlacer(cityGrid, prefabsWithSettings, this);
         }
 
         /// <summary>
@@ -115,7 +199,14 @@ namespace PandemicWars.Scripts.Map
 
             // Этап 2: Дороги
             Debug.Log("🛣️ Этап 2: Генерация дорог");
-            yield return StartCoroutine(roadGenerator.GenerateRoads(roadDensity, roadLength, animationSpeed));
+            if (useImprovedRoadGenerator)
+            {
+                yield return StartCoroutine(improvedRoadGenerator.GenerateRoads(roadDensity, roadLength, animationSpeed));
+            }
+            else
+            {
+                yield return StartCoroutine(roadGenerator.GenerateRoads(roadDensity, roadLength, animationSpeed));
+            }
             yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
                 animationSpeed));
             yield return new WaitForSeconds(animationSpeed * 2);
@@ -130,6 +221,13 @@ namespace PandemicWars.Scripts.Map
             // Этап 4: Растительность
             Debug.Log("🌳 Этап 4: Размещение растительности");
             yield return StartCoroutine(vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed));
+            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
+                animationSpeed));
+            yield return new WaitForSeconds(animationSpeed * 2);
+
+            // Этап 5: Объекты на дорогах
+            Debug.Log("🚗 Этап 5: Размещение объектов на дорогах");
+            yield return StartCoroutine(roadObjectsPlacer.PlaceRoadObjects(roadObjectDensity, animationSpeed));
             yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
                 animationSpeed));
 
@@ -163,8 +261,10 @@ namespace PandemicWars.Scripts.Map
             // Подсчитываем здания и растительность
             int totalBuildingCells = 0;
             int totalVegetationCells = 0;
+            int totalRoadbuildingCells = 0;
             var buildingStats = new Dictionary<TileType, int>();
             var vegetationStats = new Dictionary<TileType, int>();
+            var roadObjectsStats = new Dictionary<TileType, int>();
 
             foreach (var kvp in cityGrid.BuildingOccupancy)
             {
@@ -176,6 +276,11 @@ namespace PandemicWars.Scripts.Map
                 {
                     totalVegetationCells += cellCount;
                     vegetationStats[buildingType] = cellCount;
+                }
+                else if (IsRoadObjectType(buildingType))
+                {
+                    totalRoadbuildingCells += cellCount;
+                    roadObjectsStats[buildingType] = cellCount;
                 }
                 else
                 {
@@ -230,7 +335,22 @@ namespace PandemicWars.Scripts.Map
                     Debug.Log($"  {emoji} {kvp.Key}: {kvp.Value} клеток ({percentage:F2}%)");
                 }
             }
+            
+            // Объекты на дорогах
+            if (totalRoadbuildingCells > 0)
+            {
+                float roadBuildingsPercentage = (float)totalRoadbuildingCells / totalCells * 100f;
+                Debug.Log($"🌳 Растительность: {totalRoadbuildingCells} клеток ({roadBuildingsPercentage:F2}%)");
 
+                // Детализация по типам растительности
+                foreach (var kvp in roadObjectsStats)
+                {
+                    float percentage = (float)kvp.Value / totalCells * 100f;
+                    string emoji = GetBuildingEmoji(kvp.Key);
+                    Debug.Log($"  {emoji} {kvp.Key}: {kvp.Value} клеток ({percentage:F2}%)");
+                }
+            }
+            
             Debug.Log("========================");
         }
 
@@ -251,6 +371,21 @@ namespace PandemicWars.Scripts.Map
                 _ => false
             };
         }
+        
+        /// <summary>
+        /// Проверяет, является ли тип дорожным обьектом
+        /// </summary>
+        private bool IsRoadObjectType(TileType tileType)
+        {
+            return tileType switch
+            {
+                TileType.BrokenCar => true,
+                TileType.Loot => true,
+                TileType.Roadblock => true,
+                TileType.Debris => true,
+                _ => false
+            };
+        }
 
         /// <summary>
         /// Получает эмодзи для типа здания
@@ -265,6 +400,12 @@ namespace PandemicWars.Scripts.Map
                 TileType.Factory => "🏭",
                 TileType.Park => "🏞️",
                 TileType.Special => "🏛️",
+                
+                // Дорожные объекты
+                TileType.BrokenCar => "🚗",
+                TileType.Loot => "📦",
+                TileType.Roadblock => "🚧",
+                TileType.Debris => "🗑️",
                 _ => "🏗️"
             };
         }
@@ -387,7 +528,25 @@ namespace PandemicWars.Scripts.Map
                 vegetationDensity = Mathf.Clamp01(vegetationDensity);
                 roadLength = Mathf.Max(1, roadLength);
                 animationSpeed = Mathf.Max(0.01f, animationSpeed);
-
+                
+                // Ограничения для процентов
+                roadDensity = Mathf.Clamp(roadDensity, 0.05f, 0.5f);
+                buildingDensity = Mathf.Clamp(buildingDensity, 0.05f, 0.4f);
+                vegetationDensity = Mathf.Clamp(vegetationDensity, 0.1f, 0.6f);
+                roadObjectDensity = Mathf.Clamp(roadObjectDensity, 0f, 0.2f);
+                lootDensity = Mathf.Clamp(lootDensity, 0f, 0.1f);
+        
+                // Лимиты лута
+                minLootCount = Mathf.Max(0, minLootCount);
+                maxLootCount = Mathf.Max(minLootCount, maxLootCount);
+                lootClusterSize = Mathf.Clamp(lootClusterSize, 1, 5);
+                
+                // Автоматический расчет при изменении в инспекторе
+                if (!Application.isPlaying)
+                {
+                    CalculateExpectedCounts();
+                }
+                
                 if (!Application.isPlaying) return;
 
                 if (_generateCity)
@@ -588,6 +747,13 @@ namespace PandemicWars.Scripts.Map
                 TileType.Forest => new Color(0f, 0.5f, 0f),
                 TileType.Garden => new Color(0.3f, 1f, 0.3f),
 
+                // Объекты на дорогах
+                TileType.BrokenCar => new Color(0.6f, 0.4f, 0.2f),            // Коричневый
+                TileType.Roadblock => Color.red,                               // Красный
+                TileType.Debris => new Color(0.7f, 0.7f, 0.7f),               // Светло-серый
+                
+                TileType.Loot => new Color(1f, 0.85f, 0f),                    // Золотой
+                
                 _ => Color.blue
             };
         }

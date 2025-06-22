@@ -122,7 +122,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07dcd5caa3994e0e937a1acc99b834fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  objectName: Tree
+  objectName: SM_Env_Tree_Cluster_03 Variant
   tileType: 10
   gridSize: {x: 5, y: 4}
   maxCount: 3

@@ -123,10 +123,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07dcd5caa3994e0e937a1acc99b834fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  objectName: Building
+  objectName: SM_Bld_Shop_Medium_01 Variant
   tileType: 2
   gridSize: {x: 3, y: 2}
-  maxCount: 5
+  maxCount: 10
   spawnWeight: 1
   canBeAtEdge: 1
   minDistanceFromRoad: 1
