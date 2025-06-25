@@ -35,6 +35,12 @@
         // Декорации
         Decoration,         // Декоративные объекты
         
+        // НОВОЕ: Ресурсы
+        WoodResource,       // Древесина
+        StoneResource,      // Камень
+        FoodResource,       // Еда/сельхоз
+        MetalResource,      // Металл/руда
+        
         Reserved            // Зарезервировано
     }
 }

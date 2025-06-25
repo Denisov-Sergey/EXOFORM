@@ -320,16 +320,13 @@ MonoBehaviour:
   gridHeight: 50
   tileSize: 5
   roadDensity: 0.15
-  roadLength: 10
-  buildingDensity: 0.3
+  buildingDensity: 0.2
   vegetationDensity: 0.4
-  roadObjectDensity: 0.2
+  resourceDensity: 0.08
   decorationDensity: 0.1
+  roadObjectDensity: 0.2
   lootDensity: 0.05
-  minLootCount: 5
-  maxLootCount: 30
-  clusterLoot: 1
-  lootClusterSize: 3
+  roadLength: 10
   useImprovedRoadGenerator: 1
   advancedRoadSettings:
     branchProbability: 0.3
@@ -337,37 +334,51 @@ MonoBehaviour:
     maxSegmentLength: 10
     createIntersections: 1
     connectRoads: 1
+  minLootCount: 5
+  maxLootCount: 30
+  clusterLoot: 1
+  lootClusterSize: 3
   animationSpeed: 0.01
+  useBatchedVisualUpdates: 1
   grassPrefab: {fileID: 5159765022371997677, guid: ee6e2f957bd2098468e6b29ff520c16d, type: 3}
   roadPrefab: {fileID: 2414715958074511866, guid: a4ac5238d7ac79d4aabb7a40a024217c, type: 3}
-  prefabsWithSettings:
-  - {fileID: 1414225879844765459, guid: 703875f15d2d10e4587b5dcee1d68435, type: 3}
-  - {fileID: 2658916930446788536, guid: 9d43eaa4e533ca2469f34727725865fd, type: 3}
-  - {fileID: 2713945261262177663, guid: bdc92652769926e45b151b83f85d032a, type: 3}
-  - {fileID: 3146956483968285317, guid: 14cf2996da978a34f9628cf430666c0c, type: 3}
-  - {fileID: 8824379890177478086, guid: 3d08de70e85ff3248a90d2f83d90a9bb, type: 3}
-  - {fileID: 5708452895586946116, guid: e7e84bb6fe947d74784fd336755c862a, type: 3}
-  - {fileID: 4340134859831048788, guid: bc4a5474696ef6145bd1daeac1577226, type: 3}
-  - {fileID: 3335529854848673376, guid: 80135bec437752d409276196bbf81c98, type: 3}
-  - {fileID: 91167570090118248, guid: 3dc7e2a3eb7fe874d9bba796393e99e9, type: 3}
-  - {fileID: 4990863146935836068, guid: ea17b0dcb99bed043bd4728ad82f56e2, type: 3}
-  - {fileID: 801246614765738448, guid: 1b973b8ffa20e354fb3d33f597125e9a, type: 3}
-  - {fileID: 3858940814731624613, guid: aea7411af1c31cf42a1467fe2139d9db, type: 3}
-  - {fileID: 6942239102670043805, guid: 589efa2150dc0bf498ed63e5f3b6ecf5, type: 3}
-  - {fileID: 7475528576451498805, guid: d9bf70094b0b7d4459d53ce8f46e32dc, type: 3}
-  - {fileID: 8054597013276002824, guid: 811fa1912e20d55479b6972a326d1727, type: 3}
-  - {fileID: 5580933254639931361, guid: 51426363469d5084a9e4c60b0bbfd09a, type: 3}
-  - {fileID: 2039882259049883747, guid: 08784789a16738d4c82ec10f28cc988e, type: 3}
-  - {fileID: 4330859674213704205, guid: af31fa210201123438866e8028499f89, type: 3}
-  - {fileID: 1531409987571375915, guid: aed8b6f2ca743764185f96a938080b98, type: 3}
-  - {fileID: 8156729533835338831, guid: bb65bb1a753ff6a4289eef5b328b3418, type: 3}
-  - {fileID: 254014609845952804, guid: 3ed6a4b34a5393745ac02bba7c5c102d, type: 3}
-  - {fileID: 8858340961365002764, guid: 3164230fc9e47484995e247061bc5f33, type: 3}
-  - {fileID: 8142569719131466517, guid: e631203bcf202a044a95583c5efc8ffb, type: 3}
-  - {fileID: 9064277123855591757, guid: be665ff1935b1b642b0dcc45540ff950, type: 3}
+  prefabConfig:
+    buildingPrefabs:
+    - {fileID: 1414225879844765459, guid: 703875f15d2d10e4587b5dcee1d68435, type: 3}
+    - {fileID: 2658916930446788536, guid: 9d43eaa4e533ca2469f34727725865fd, type: 3}
+    - {fileID: 2713945261262177663, guid: bdc92652769926e45b151b83f85d032a, type: 3}
+    - {fileID: 3146956483968285317, guid: 14cf2996da978a34f9628cf430666c0c, type: 3}
+    - {fileID: 8824379890177478086, guid: 3d08de70e85ff3248a90d2f83d90a9bb, type: 3}
+    - {fileID: 8824379890177478086, guid: 3d08de70e85ff3248a90d2f83d90a9bb, type: 3}
+    vegetationPrefabs:
+    - {fileID: 4340134859831048788, guid: bc4a5474696ef6145bd1daeac1577226, type: 3}
+    - {fileID: 3335529854848673376, guid: 80135bec437752d409276196bbf81c98, type: 3}
+    - {fileID: 91167570090118248, guid: 3dc7e2a3eb7fe874d9bba796393e99e9, type: 3}
+    - {fileID: 4990863146935836068, guid: ea17b0dcb99bed043bd4728ad82f56e2, type: 3}
+    - {fileID: 801246614765738448, guid: 1b973b8ffa20e354fb3d33f597125e9a, type: 3}
+    - {fileID: 3858940814731624613, guid: aea7411af1c31cf42a1467fe2139d9db, type: 3}
+    - {fileID: 6942239102670043805, guid: 589efa2150dc0bf498ed63e5f3b6ecf5, type: 3}
+    - {fileID: 7475528576451498805, guid: d9bf70094b0b7d4459d53ce8f46e32dc, type: 3}
+    resourcePrefabs: []
+    roadObjectPrefabs:
+    - {fileID: 1531409987571375915, guid: aed8b6f2ca743764185f96a938080b98, type: 3}
+    - {fileID: 8054597013276002824, guid: 811fa1912e20d55479b6972a326d1727, type: 3}
+    - {fileID: 4330859674213704205, guid: af31fa210201123438866e8028499f89, type: 3}
+    - {fileID: 5580933254639931361, guid: 51426363469d5084a9e4c60b0bbfd09a, type: 3}
+    - {fileID: 2039882259049883747, guid: 08784789a16738d4c82ec10f28cc988e, type: 3}
+    lootPrefabs: []
+    decorationPrefabs:
+    - {fileID: 8156729533835338831, guid: bb65bb1a753ff6a4289eef5b328b3418, type: 3}
+    - {fileID: 254014609845952804, guid: 3ed6a4b34a5393745ac02bba7c5c102d, type: 3}
+    - {fileID: 8858340961365002764, guid: 3164230fc9e47484995e247061bc5f33, type: 3}
+    - {fileID: 8142569719131466517, guid: e631203bcf202a044a95583c5efc8ffb, type: 3}
+  legacyPrefabsWithSettings: []
   _generateCity: 0
   _clearCity: 0
+  _validatePrefabs: 0
+  _migrateLegacyPrefabs: 0
   showGizmos: 1
+  verboseLogging: 0
 --- !u!1 &1996543179
 GameObject:
   m_ObjectHideFlags: 0

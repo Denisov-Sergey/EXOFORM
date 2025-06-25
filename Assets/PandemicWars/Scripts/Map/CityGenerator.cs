@@ -1,8 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using Random = UnityEngine.Random;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -10,83 +8,96 @@ using UnityEditor;
 namespace PandemicWars.Scripts.Map
 {
     /// <summary>
-    /// Простой генератор города только с корутинами
+    /// Главный генератор города с улучшенной архитектурой и разделением префабов
     /// </summary>
     public class CityGenerator : MonoBehaviour
     {
-        [Header("Grid Settings")] [Tooltip("Ширина сетки города")]
+        #region Inspector Fields
+        
+        [Header("🗺️ Grid Settings")]
+        [Tooltip("Ширина сетки города")]
         public int gridWidth = 50;
+        [Tooltip("Высота сетки города")]
+        public int gridHeight = 50;
+        [Tooltip("Размер одной клетки")]
+        public float tileSize = 5f;
 
-        [Tooltip("Высота сетки города")] public int gridHeight = 50;
+        [Header("📊 Density Settings")]
+        [Range(0.05f, 0.5f)] [Tooltip("Процент карты под дорогами (5-50%)")]
+        public float roadDensity = 0.15f;
+        
+        [Range(0.05f, 0.4f)] [Tooltip("Процент свободной площади под зданиями (5-40%)")]
+        public float buildingDensity = 0.20f;
+        
+        [Range(0.1f, 0.6f)] [Tooltip("Процент свободной площади под растительностью (10-60%)")]
+        public float vegetationDensity = 0.40f;
+        
+        [Range(0.02f, 0.30f)] [Tooltip("Процент свободной площади под ресурсами (2-30%)")]
+        public float resourceDensity = 0.08f;
+        
+        [Range(0.0f, 0.4f)] [Tooltip("Процент свободной площади под декорациями (0-40%)")]
+        public float decorationDensity = 0.1f;
 
-        [Tooltip("Размер одной клетки")] public float tileSize = 5f;
+        [Header("🛣️ Road Objects Settings")]
+        [Range(0.0f, 0.2f)] [Tooltip("Процент дорог с декоративными объектами (0-20%)")]
+        public float roadObjectDensity = 0.10f;
+        
+        [Range(0.0f, 0.1f)] [Tooltip("Процент дорог с лутом (0-10%)")]
+        public float lootDensity = 0.05f;
 
-        [Header("Generation Settings - Percentages")]
-        [Range(0.05f, 0.5f)]
-        [Tooltip("Процент карты под дорогами (5-50%)")]
-        public float roadDensity = 0.15f; // 15% карты
-
+        [Header("🛤️ Road Generation")]
         [Range(3, 30)] [Tooltip("Длина дорожного сегмента")]
         public int roadLength = 15;
-
-        [Range(0.05f, 0.4f)] [Tooltip("Процент свободной площади под зданиями (5-40%)")]
-        public float buildingDensity = 0.20f; // 20% свободной площади
-
-        [Range(0.1f, 0.6f)] [Tooltip("Процент свободной площади под растительностью (10-60%)")]
-        public float vegetationDensity = 0.40f; // 40% свободной площади
-
-        [Header("Special Objects Settings")]
-        [Range(0.0f, 0.2f)]
-        [Tooltip("Процент дорог с декоративными объектами (0-20%)")]
-        public float roadObjectDensity = 0.10f; // 10% дорог
-
-        [Header("Decoration Settings")]
-        [Range(0.0f, 0.4f)]
-        [Tooltip("Процент свободной площади под декорациями (0-40%)")]
-        public float decorationDensity = 0.1f; // 10% свободной площади
-
-        [Range(0.0f, 0.1f)] [Tooltip("Процент дорог с лутом (0-10%)")]
-        public float lootDensity = 0.05f; // 5% дорог
-
-        [Header("Loot Settings")] [Tooltip("Минимальное количество лута на карте")]
-        public int minLootCount = 5;
-
-        [Tooltip("Максимальное количество лута на карте")]
-        public int maxLootCount = 30;
-
-        [Tooltip("Группировать лут (несколько ящиков рядом)")]
-        public bool clusterLoot = true;
-
-        [Range(1, 5)] [Tooltip("Размер группы лута")]
-        public int lootClusterSize = 3;
-
-
-        [Header("Advanced Road Settings")] [Tooltip("Использовать улучшенный генератор дорог")]
+        [Tooltip("Использовать улучшенный генератор дорог")]
         public bool useImprovedRoadGenerator = true;
-
         [Tooltip("Настройки для улучшенного генератора дорог")]
         public ImprovedRoadGenerator.RoadSettings advancedRoadSettings = new ImprovedRoadGenerator.RoadSettings();
 
-        [Header("Animation")] [Range(0.01f, 1f)] [Tooltip("Скорость анимации")]
+        [Header("📦 Loot Settings")]
+        [Tooltip("Минимальное количество лута на карте")]
+        public int minLootCount = 5;
+        [Tooltip("Максимальное количество лута на карте")]
+        public int maxLootCount = 30;
+        [Tooltip("Группировать лут (несколько ящиков рядом)")]
+        public bool clusterLoot = true;
+        [Range(1, 5)] [Tooltip("Размер группы лута")]
+        public int lootClusterSize = 3;
+
+        [Header("⚡ Performance")]
+        [Range(0.01f, 1f)] [Tooltip("Скорость анимации")]
         public float animationSpeed = 0.1f;
+        [Tooltip("Пакетное обновление визуала (улучшает производительность)")]
+        public bool useBatchedVisualUpdates = true;
 
-        [Header("Prefabs")] [Tooltip("Префаб травы")]
+        [Header("🎯 Base Prefabs")]
+        [Tooltip("Префаб травы")]
         public GameObject grassPrefab;
+        [Tooltip("Префаб дороги")]
+        public GameObject roadPrefab;
 
-        [Tooltip("Префаб дороги")] public GameObject roadPrefab;
+        [Header("🏗️ Prefab Configuration")]
+        [Tooltip("Конфигурация префабов по категориям")]
+        public PrefabConfiguration prefabConfig = new PrefabConfiguration();
 
-        [Tooltip("Префабы с компонентом PrefabSettings")]
-        public List<GameObject> prefabsWithSettings = new List<GameObject>();
+        [Header("🔧 Legacy Support")]
+        [Tooltip("Старый список префабов (для миграции)")]
+        public List<GameObject> legacyPrefabsWithSettings = new List<GameObject>();
 
+        [Header("🎮 Controls")]
+        [SerializeField] private bool _generateCity;
+        [SerializeField] private bool _clearCity;
+        [SerializeField] private bool _validatePrefabs;
+        [SerializeField] private bool _migrateLegacyPrefabs;
 
-        [Header("Controls")] [Tooltip("Генерировать город")] [SerializeField]
-        private bool _generateCity;
-
-        [Tooltip("Очистить город")] [SerializeField]
-        private bool _clearCity;
-
-        [Header("Debug")] [Tooltip("Показывать Gizmos")]
+        [Header("🐛 Debug")]
+        [Tooltip("Показывать Gizmos")]
         public bool showGizmos = true;
+        [Tooltip("Подробные логи генерации")]
+        public bool verboseLogging = false;
+
+        #endregion
+
+        #region Private Fields
 
         // Компоненты системы
         private CityGrid cityGrid;
@@ -98,45 +109,21 @@ namespace PandemicWars.Scripts.Map
         private RoadObjectsPlacer roadObjectsPlacer;
         private DecorationPlacer decorationPlacer;
         private LootPlacer lootPlacer;
+        private ResourcePlacer resourcePlacer;
 
+        // Состояние
         private bool isGenerating = false;
+        private GenerationStage currentStage = GenerationStage.None;
 
-        public void CalculateExpectedCounts()
+        private enum GenerationStage
         {
-            int totalCells = gridWidth * gridHeight;
-            int roadCells = Mathf.RoundToInt(totalCells * roadDensity);
-            int freeCells = totalCells - roadCells;
-    
-            int buildingCells = Mathf.RoundToInt(freeCells * buildingDensity);
-            int vegetationCells = Mathf.RoundToInt(freeCells * vegetationDensity);
-            int decorationCells = Mathf.RoundToInt(freeCells * decorationDensity);
-            int roadObjectCells = Mathf.RoundToInt(roadCells * roadObjectDensity);
-            int lootCells = Mathf.RoundToInt(roadCells * lootDensity);
-    
-            Debug.Log($"📊 === РАСЧЕТ РАСПРЕДЕЛЕНИЯ КАРТЫ {gridWidth}x{gridHeight} ===");
-            Debug.Log($"📏 Общая площадь: {totalCells} клеток (100%)");
-            Debug.Log($"🛣️ Дороги: ~{roadCells} клеток ({roadDensity * 100:F1}%)");
-            Debug.Log($"🟩 Свободно: ~{freeCells} клеток ({(float)freeCells/totalCells * 100:F1}%)");
-            Debug.Log($"");
-            Debug.Log($"🏢 Здания: ~{buildingCells} клеток ({buildingDensity * 100:F1}% от свободных)");
-            Debug.Log($"🌳 Растительность: ~{vegetationCells} клеток ({vegetationDensity * 100:F1}% от свободных)");
-            Debug.Log($"🎨 Декорации: ~{decorationCells} клеток ({decorationDensity * 100:F1}% от свободных)");
-            Debug.Log($"🚗 Объекты на дорогах: ~{roadObjectCells} клеток ({roadObjectDensity * 100:F1}% от дорог)");
-            Debug.Log($"📦 Лут: ~{lootCells} клеток ({lootDensity * 100:F1}% от дорог)");
-            Debug.Log($"");
-    
-            // Предупреждения
-            float totalUsage = buildingDensity + vegetationDensity + decorationDensity;
-            if (totalUsage > 0.95f)
-            {
-                Debug.LogWarning($"⚠️ Высокая плотность застройки: {totalUsage * 100:F1}% - может не хватить места!");
-            }
-    
-            if (lootCells < minLootCount)
-            {
-                Debug.LogWarning($"⚠️ При текущих настройках лута будет мало: {lootCells} < {minLootCount}");
-            }
+            None, Initialization, Roads, Buildings, Vegetation, 
+            Resources, Loot, RoadObjects, Decorations, Completed
         }
+
+        #endregion
+
+        #region Unity Lifecycle
 
         void Start()
         {
@@ -150,67 +137,207 @@ namespace PandemicWars.Scripts.Map
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"Ошибка при инициализации: {e.Message}");
+                Debug.LogError($"Ошибка при инициализации CityGenerator: {e.Message}\n{e.StackTrace}");
             }
         }
+
+        void OnValidate()
+        {
+            try
+            {
+                ValidateAndClampValues();
+                
+                if (!Application.isPlaying) 
+                {
+                    CalculateExpectedCounts();
+                    return;
+                }
+
+                HandleEditorControls();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Ошибка в OnValidate: {e.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Initialization
 
         void InitializeComponents()
         {
-            if (cityGrid == null)
-                cityGrid = new CityGrid(gridWidth, gridHeight, tileSize);
+            // Инициализация основной сетки
+            cityGrid ??= new CityGrid(gridWidth, gridHeight, tileSize);
 
+            // Получаем актуальный список префабов
+            var allPrefabs = GetAllPrefabs();
+
+            // Инициализация генераторов дорог
             if (useImprovedRoadGenerator)
             {
-                if (improvedRoadGenerator == null)
-                    improvedRoadGenerator = new ImprovedRoadGenerator(cityGrid, advancedRoadSettings);
+                improvedRoadGenerator ??= new ImprovedRoadGenerator(cityGrid, advancedRoadSettings);
             }
             else
             {
-                if (roadGenerator == null)
-                    roadGenerator = new RoadGenerator(cityGrid);
+                roadGenerator ??= new RoadGenerator(cityGrid);
             }
 
-            if (objectPlacer == null)
-                objectPlacer = new ObjectPlacer(cityGrid, prefabsWithSettings, this);
+            // Инициализация всех плейсеров
+            objectPlacer ??= new ObjectPlacer(cityGrid, allPrefabs, this);
+            vegetationPlacer ??= new VegetationPlacer(cityGrid, allPrefabs, this);
+            resourcePlacer ??= new ResourcePlacer(cityGrid, allPrefabs, this, this);
+            decorationPlacer ??= new DecorationPlacer(cityGrid, allPrefabs, this);
+            roadObjectsPlacer ??= new RoadObjectsPlacer(cityGrid, allPrefabs, this);
+            lootPlacer ??= new LootPlacer(cityGrid, allPrefabs, this, this);
+            
+            // Инициализация спавнера тайлов
+            tileSpawner ??= new TileSpawner(cityGrid, transform);
 
-            if (vegetationPlacer == null)
-                vegetationPlacer = new VegetationPlacer(cityGrid, prefabsWithSettings, this);
-
-            if (tileSpawner == null)
-                tileSpawner = new TileSpawner(cityGrid, transform);
-
-            if (roadObjectsPlacer == null)
-                roadObjectsPlacer = new RoadObjectsPlacer(cityGrid, prefabsWithSettings, this);
-
-            if (lootPlacer == null)
-                lootPlacer = new LootPlacer(cityGrid, prefabsWithSettings, this, this);
-
-            if (decorationPlacer == null)
-                decorationPlacer = new DecorationPlacer(cityGrid, prefabsWithSettings, this);
+            LogDebug("Все компоненты инициализированы");
         }
 
         /// <summary>
-        /// Основной метод генерации города
+        /// Получить все префабы из конфигурации (с поддержкой legacy)
         /// </summary>
+        private List<GameObject> GetAllPrefabs()
+        {
+            var allPrefabs = prefabConfig.GetAllPrefabs();
+            
+            // Добавляем legacy префабы если они есть
+            if (legacyPrefabsWithSettings.Count > 0)
+            {
+                foreach (var legacyPrefab in legacyPrefabsWithSettings)
+                {
+                    if (legacyPrefab != null && !allPrefabs.Contains(legacyPrefab))
+                    {
+                        allPrefabs.Add(legacyPrefab);
+                    }
+                }
+            }
+
+            return allPrefabs;
+        }
+
+        void ValidateAndClampValues()
+        {
+            gridWidth = Mathf.Max(5, gridWidth);
+            gridHeight = Mathf.Max(5, gridHeight);
+            tileSize = Mathf.Max(0.1f, tileSize);
+            roadLength = Mathf.Max(1, roadLength);
+            animationSpeed = Mathf.Max(0.01f, animationSpeed);
+
+            // Ограничения для процентов
+            roadDensity = Mathf.Clamp(roadDensity, 0.05f, 0.5f);
+            buildingDensity = Mathf.Clamp(buildingDensity, 0.05f, 0.4f);
+            vegetationDensity = Mathf.Clamp(vegetationDensity, 0.1f, 0.6f);
+            resourceDensity = Mathf.Clamp(resourceDensity, 0.02f, 0.30f);
+            decorationDensity = Mathf.Clamp(decorationDensity, 0f, 0.4f);
+            roadObjectDensity = Mathf.Clamp(roadObjectDensity, 0f, 0.2f);
+            lootDensity = Mathf.Clamp(lootDensity, 0f, 0.1f);
+
+            // Лимиты лута
+            minLootCount = Mathf.Max(0, minLootCount);
+            maxLootCount = Mathf.Max(minLootCount, maxLootCount);
+            lootClusterSize = Mathf.Clamp(lootClusterSize, 1, 5);
+        }
+
+        void HandleEditorControls()
+        {
+            if (_generateCity)
+            {
+                _generateCity = false;
+                if (!isGenerating)
+                {
+                    StartCoroutine(GenerateCity());
+                }
+            }
+
+            if (_clearCity)
+            {
+                _clearCity = false;
+                ClearCity();
+            }
+
+            if (_validatePrefabs)
+            {
+                _validatePrefabs = false;
+                ValidatePrefabConfiguration();
+            }
+
+            if (_migrateLegacyPrefabs)
+            {
+                _migrateLegacyPrefabs = false;
+                MigrateLegacyPrefabs();
+            }
+        }
+
+        #endregion
+
+        #region Generation Pipeline
+
         private IEnumerator GenerateCity()
         {
             if (isGenerating) yield break;
+            
             isGenerating = true;
+            var startTime = Time.time;
 
             Debug.Log("🌱 Начинаем генерацию города...");
-
-            // Показываем расчеты
             CalculateExpectedCounts();
 
-            // Этап 1: Инициализация
-            Debug.Log("\n🟩 Этап 1: Создание базы (трава)");
-            cityGrid.Initialize();
-            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-            yield return new WaitForSeconds(animationSpeed * 2);
+            // Выполняем все этапы генерации
+            yield return StartCoroutine(ExecuteGenerationPipeline());
 
-            // Этап 2: Дороги
-            Debug.Log("\n🛣️ Этап 2: Генерация дорог");
+            // Завершение
+            currentStage = GenerationStage.Completed;
+            var generationTime = Time.time - startTime;
+            
+            Debug.Log($"\n✅ Генерация завершена за {generationTime:F2} секунд!");
+            LogMapStatistics();
+            
+            isGenerating = false;
+        }
+
+        private IEnumerator ExecuteGenerationPipeline()
+        {
+            var steps = new[]
+            {
+                ("Создание базы (трава)", "🟩", (System.Func<IEnumerator>)(() => InitializeBaseLayer())),
+                ("Генерация дорог", "🛣️", (System.Func<IEnumerator>)(() => GenerateRoads())),
+                ("Размещение зданий", "🏢", (System.Func<IEnumerator>)(() => PlaceBuildings())),
+                ("Размещение растительности", "🌳", (System.Func<IEnumerator>)(() => PlaceVegetation())),
+                ("Размещение ресурсов", "⛏️", (System.Func<IEnumerator>)(() => PlaceResources())),
+                ("Размещение лута", "📦", (System.Func<IEnumerator>)(() => PlaceLoot())),
+                ("Объекты на дорогах", "🚗", (System.Func<IEnumerator>)(() => PlaceRoadObjects())),
+                ("Размещение декораций", "🎨", (System.Func<IEnumerator>)(() => PlaceDecorations()))
+            };
+
+            for (int i = 0; i < steps.Length; i++)
+            {
+                var (name, emoji, action) = steps[i];
+                
+                Debug.Log($"\n{emoji} Этап {i + 1}/{steps.Length}: {name}");
+                currentStage = (GenerationStage)(i + 1);
+
+                yield return StartCoroutine(action());
+                yield return StartCoroutine(UpdateVisuals());
+                yield return new WaitForSeconds(animationSpeed * 2);
+            }
+        }
+
+        #endregion
+
+        #region Generation Steps
+
+        private IEnumerator InitializeBaseLayer()
+        {
+            cityGrid.Initialize();
+            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefab, roadPrefab, GetAllPrefabs(), animationSpeed));
+        }
+
+        private IEnumerator GenerateRoads()
+        {
             if (useImprovedRoadGenerator)
             {
                 yield return StartCoroutine(improvedRoadGenerator.GenerateRoads(roadDensity, roadLength, animationSpeed));
@@ -219,597 +346,321 @@ namespace PandemicWars.Scripts.Map
             {
                 yield return StartCoroutine(roadGenerator.GenerateRoads(roadDensity, roadLength, animationSpeed));
             }
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-            yield return new WaitForSeconds(animationSpeed * 2);
-
-            // Этап 3: Объекты с настройками (здания)
-            Debug.Log("\n🏢 Этап 3: Размещение зданий");
-            yield return StartCoroutine(objectPlacer.PlaceObjects(buildingDensity, animationSpeed));
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-            yield return new WaitForSeconds(animationSpeed * 2);
-
-            // Этап 4: Растительность
-            Debug.Log("\n🌳 Этап 4: Размещение растительности");
-            yield return StartCoroutine(vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed));
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-            yield return new WaitForSeconds(animationSpeed * 2);
-
-            // Этап 5: Лут
-            Debug.Log("\n📦 Этап 5: Размещение лута");
-            yield return StartCoroutine(lootPlacer.PlaceLoot(animationSpeed));
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-            yield return new WaitForSeconds(animationSpeed * 2);
-
-            // Этап 6: Декоративные объекты на дорогах
-            Debug.Log("\n🚗 Этап 6: Размещение декоративных объектов на дорогах");
-            yield return StartCoroutine(roadObjectsPlacer.PlaceRoadObjects(roadObjectDensity, animationSpeed));
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-            yield return new WaitForSeconds(animationSpeed * 2);
-
-            // Этап 7: Декорации (НОВЫЙ)
-            Debug.Log("\n🎨 Этап 7: Размещение декораций");
-            yield return StartCoroutine(decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed));
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, prefabsWithSettings,
-                animationSpeed));
-
-            Debug.Log("\n✅ Генерация завершена!");
-            LogMapStatistics();
-            isGenerating = false;
         }
 
-        /// <summary>
-        /// Выводит статистику по всей карте
-        /// </summary>
+        private IEnumerator PlaceBuildings()
+        {
+            yield return StartCoroutine(objectPlacer.PlaceObjects(buildingDensity, animationSpeed));
+        }
+
+        private IEnumerator PlaceVegetation()
+        {
+            yield return StartCoroutine(vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed));
+        }
+
+        private IEnumerator PlaceResources()
+        {
+            yield return StartCoroutine(resourcePlacer.PlaceResources(resourceDensity, animationSpeed));
+        }
+
+        private IEnumerator PlaceLoot()
+        {
+            yield return StartCoroutine(lootPlacer.PlaceLoot(animationSpeed));
+        }
+
+        private IEnumerator PlaceRoadObjects()
+        {
+            yield return StartCoroutine(roadObjectsPlacer.PlaceRoadObjects(roadObjectDensity, animationSpeed));
+        }
+
+        private IEnumerator PlaceDecorations()
+        {
+            yield return StartCoroutine(decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed));
+        }
+
+        private IEnumerator UpdateVisuals()
+        {
+            var allPrefabs = GetAllPrefabs();
+            float updateSpeed = useBatchedVisualUpdates ? animationSpeed * 0.5f : animationSpeed;
+            
+            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, roadPrefab, allPrefabs, updateSpeed));
+        }
+
+        #endregion
+
+        #region Statistics and Calculations
+
+        public void CalculateExpectedCounts()
+        {
+            int totalCells = gridWidth * gridHeight;
+            int roadCells = Mathf.RoundToInt(totalCells * roadDensity);
+            int freeCells = totalCells - roadCells;
+
+            var expectedCounts = new Dictionary<string, int>
+            {
+                ["buildings"] = Mathf.RoundToInt(freeCells * buildingDensity),
+                ["vegetation"] = Mathf.RoundToInt(freeCells * vegetationDensity),
+                ["resources"] = Mathf.RoundToInt(freeCells * resourceDensity),
+                ["decorations"] = Mathf.RoundToInt(freeCells * decorationDensity),
+                ["roadObjects"] = Mathf.RoundToInt(roadCells * roadObjectDensity),
+                ["loot"] = Mathf.RoundToInt(roadCells * lootDensity)
+            };
+
+            LogCalculationResults(totalCells, roadCells, freeCells, expectedCounts);
+        }
+
+        private void LogCalculationResults(int totalCells, int roadCells, int freeCells, Dictionary<string, int> expectedCounts)
+        {
+            Debug.Log($"📊 === РАСЧЕТ РАСПРЕДЕЛЕНИЯ КАРТЫ {gridWidth}x{gridHeight} ===");
+            Debug.Log($"📏 Общая площадь: {totalCells} клеток (100%)");
+            Debug.Log($"🛣️ Дороги: ~{roadCells} клеток ({roadDensity * 100:F1}%)");
+            Debug.Log($"🟩 Свободно: ~{freeCells} клеток ({(float)freeCells / totalCells * 100:F1}%)");
+            Debug.Log("");
+            
+            Debug.Log($"🏢 Здания: ~{expectedCounts["buildings"]} клеток ({buildingDensity * 100:F1}% от свободных)");
+            Debug.Log($"🌳 Растительность: ~{expectedCounts["vegetation"]} клеток ({vegetationDensity * 100:F1}% от свободных)");
+            Debug.Log($"⛏️ Ресурсы: ~{expectedCounts["resources"]} клеток ({resourceDensity * 100:F1}% от свободных)");
+            Debug.Log($"🎨 Декорации: ~{expectedCounts["decorations"]} клеток ({decorationDensity * 100:F1}% от свободных)");
+            Debug.Log($"🚗 Объекты на дорогах: ~{expectedCounts["roadObjects"]} клеток ({roadObjectDensity * 100:F1}% от дорог)");
+            Debug.Log($"📦 Лут: ~{expectedCounts["loot"]} клеток ({lootDensity * 100:F1}% от дорог)");
+        }
+
         public void LogMapStatistics()
         {
             if (cityGrid?.Grid == null) return;
 
-            int totalCells = cityGrid.Width * cityGrid.Height;
-            var statistics = new Dictionary<TileType, int>();
-
-            // Подсчитываем базовые тайлы
-            for (int x = 0; x < cityGrid.Width; x++)
+            var statisticsCalculator = new MapStatisticsCalculator(cityGrid);
+            var stats = statisticsCalculator.CalculateStatistics();
+            
+            Debug.Log(stats.GetStatisticsSummary());
+            
+            // Выводим предупреждения если есть
+            var warnings = stats.GetDistributionWarnings();
+            foreach (var warning in warnings)
             {
-                for (int y = 0; y < cityGrid.Height; y++)
-                {
-                    TileType tileType = cityGrid.Grid[x][y];
-                    if (!statistics.ContainsKey(tileType))
-                        statistics[tileType] = 0;
-                    statistics[tileType]++;
-                }
+                Debug.LogWarning(warning);
             }
-
-            // Подсчитываем здания и растительность
-            int totalBuildingCells = 0;
-            int totalVegetationCells = 0;
-            int totalRoadbuildingCells = 0;
-            var buildingStats = new Dictionary<TileType, int>();
-            var vegetationStats = new Dictionary<TileType, int>();
-            var roadObjectsStats = new Dictionary<TileType, int>();
-
-            foreach (var kvp in cityGrid.BuildingOccupancy)
-            {
-                TileType buildingType = kvp.Key;
-                int cellCount = kvp.Value.Count;
-
-                // Определяем, является ли тип растительностью
-                if (IsVegetationType(buildingType))
-                {
-                    totalVegetationCells += cellCount;
-                    vegetationStats[buildingType] = cellCount;
-                }
-                else if (IsRoadObjectType(buildingType))
-                {
-                    totalRoadbuildingCells += cellCount;
-                    roadObjectsStats[buildingType] = cellCount;
-                }
-                else
-                {
-                    totalBuildingCells += cellCount;
-                    buildingStats[buildingType] = cellCount;
-                }
-            }
-
-            // Выводим статистику
-            Debug.Log("📊 === СТАТИСТИКА КАРТЫ ===");
-            Debug.Log($"📏 Размер карты: {cityGrid.Width}x{cityGrid.Height} = {totalCells} клеток");
-
-            // Базовые тайлы
-            foreach (var kvp in statistics)
-            {
-                float percentage = (float)kvp.Value / totalCells * 100f;
-                string emoji = kvp.Key switch
-                {
-                    TileType.Grass => "🟩",
-                    TileType.RoadStraight => "🛤️",
-                    _ => "⬜"
-                };
-                Debug.Log($"{emoji} {kvp.Key}: {kvp.Value} клеток ({percentage:F2}%)");
-            }
-
-            // Здания
-            if (totalBuildingCells > 0)
-            {
-                float buildingPercentage = (float)totalBuildingCells / totalCells * 100f;
-                Debug.Log($"🏢 Здания: {totalBuildingCells} клеток ({buildingPercentage:F2}%)");
-
-                // Детализация по типам зданий
-                foreach (var kvp in buildingStats)
-                {
-                    float percentage = (float)kvp.Value / totalCells * 100f;
-                    string emoji = GetBuildingEmoji(kvp.Key);
-                    Debug.Log($"  {emoji} {kvp.Key}: {kvp.Value} клеток ({percentage:F2}%)");
-                }
-            }
-
-            // Растительность
-            if (totalVegetationCells > 0)
-            {
-                float vegetationPercentage = (float)totalVegetationCells / totalCells * 100f;
-                Debug.Log($"🌳 Растительность: {totalVegetationCells} клеток ({vegetationPercentage:F2}%)");
-
-                // Детализация по типам растительности
-                foreach (var kvp in vegetationStats)
-                {
-                    float percentage = (float)kvp.Value / totalCells * 100f;
-                    string emoji = GetVegetationEmoji(kvp.Key);
-                    Debug.Log($"  {emoji} {kvp.Key}: {kvp.Value} клеток ({percentage:F2}%)");
-                }
-            }
-
-            // Объекты на дорогах
-            if (totalRoadbuildingCells > 0)
-            {
-                float roadBuildingsPercentage = (float)totalRoadbuildingCells / totalCells * 100f;
-                Debug.Log($"🌳 Растительность: {totalRoadbuildingCells} клеток ({roadBuildingsPercentage:F2}%)");
-
-                // Детализация по типам растительности
-                foreach (var kvp in roadObjectsStats)
-                {
-                    float percentage = (float)kvp.Value / totalCells * 100f;
-                    string emoji = GetBuildingEmoji(kvp.Key);
-                    Debug.Log($"  {emoji} {kvp.Key}: {kvp.Value} клеток ({percentage:F2}%)");
-                }
-            }
-
-            Debug.Log("========================");
         }
 
+        #endregion
+
+        #region Prefab Management
+
         /// <summary>
-        /// Проверяет, является ли тип растительностью
+        /// Валидация конфигурации префабов
         /// </summary>
-        private bool IsVegetationType(TileType tileType)
+        [ContextMenu("Validate Prefab Configuration")]
+        public void ValidatePrefabConfiguration()
         {
-            return tileType switch
+            var result = prefabConfig.ValidatePrefabs();
+            Debug.Log(result.GetReport());
+            
+            if (!result.IsValid)
             {
-                TileType.Tree => true,
-                TileType.TreeCluster => true,
-                TileType.Bush => true,
-                TileType.Flower => true,
-                TileType.SmallPlant => true,
-                TileType.Forest => true,
-                TileType.Garden => true,
-                _ => false
-            };
+                Debug.LogError("Найдены ошибки в конфигурации префабов! Проверьте консоль.");
+            }
         }
 
         /// <summary>
-        /// Проверяет, является ли тип дорожным обьектом
+        /// Миграция старых префабов в новую систему
         /// </summary>
-        private bool IsRoadObjectType(TileType tileType)
+        [ContextMenu("Migrate Legacy Prefabs")]
+        public void MigrateLegacyPrefabs()
         {
-            return tileType switch
+            if (legacyPrefabsWithSettings.Count == 0)
             {
-                TileType.BrokenCar => true,
-                TileType.Loot => true,
-                TileType.Roadblock => true,
-                TileType.Debris => true,
-                _ => false
-            };
+                Debug.Log("Нет legacy префабов для миграции");
+                return;
+            }
+
+            Debug.Log($"Начинаем миграцию {legacyPrefabsWithSettings.Count} префабов...");
+            
+            prefabConfig.AutoSortPrefabs(legacyPrefabsWithSettings);
+            
+            Debug.Log("Миграция завершена! Проверьте новую конфигурацию префабов.");
+            Debug.Log(prefabConfig.GetPrefabStatistics());
+            
+            // Можно очистить legacy список после успешной миграции
+            // legacyPrefabsWithSettings.Clear();
         }
 
         /// <summary>
-        /// Получает эмодзи для типа здания
+        /// Получить статистику префабов
         /// </summary>
-        private string GetBuildingEmoji(TileType buildingType)
+        [ContextMenu("Show Prefab Statistics")]
+        public void ShowPrefabStatistics()
         {
-            return buildingType switch
-            {
-                TileType.Building => "🏠",
-                TileType.LargeBuilding => "🏢",
-                TileType.Mall => "🏬",
-                TileType.Factory => "🏭",
-                TileType.Park => "🏞️",
-                TileType.Special => "🏛️",
-
-                // Дорожные объекты
-                TileType.BrokenCar => "🚗",
-                TileType.Loot => "📦",
-                TileType.Roadblock => "🚧",
-                TileType.Debris => "🗑️",
-                
-                // Декорации
-                TileType.Decoration => "🎨",
-                
-                _ => "🏗️"
-            };
+            Debug.Log(prefabConfig.GetPrefabStatistics());
         }
 
-        /// <summary>
-        /// Получает эмодзи для типа растительности
-        /// </summary>
-        private string GetVegetationEmoji(TileType vegetationType)
-        {
-            return vegetationType switch
-            {
-                TileType.Tree => "🌲",
-                TileType.TreeCluster => "🌳",
-                TileType.Bush => "🌿",
-                TileType.Flower => "🌸",
-                TileType.SmallPlant => "🌱",
-                TileType.Forest => "🌲🌲",
-                TileType.Garden => "🌺",
-                _ => "🌿"
-            };
-        }
+        #endregion
 
+        #region City Management
 
-        /// <summary>
-        /// Очистка города
-        /// </summary>
         public void ClearCity()
         {
             StopAllCoroutines();
             SafeClearAllTiles();
+            ResetState();
+            
+            Debug.Log("🧹 Город полностью очищен!");
+        }
+
+        private void ResetState()
+        {
             isGenerating = false;
+            currentStage = GenerationStage.None;
 
             if (cityGrid != null)
             {
                 cityGrid.Initialize();
-
-                // Очищаем все типы занятости
                 cityGrid.BuildingOccupancy.Clear();
             }
 
-            // Очищаем счетчики в компонентах
-            if (objectPlacer != null)
-            {
-                // Пересоздаем компоненты для сброса счетчиков
-                objectPlacer = null;
-                vegetationPlacer = null;
-                roadObjectsPlacer = null;
-                lootPlacer = null;
-                decorationPlacer = null;
-            }
-
-            Debug.Log("🧹 Город полностью очищен!");
+            // Сброс всех компонентов
+            objectPlacer = null;
+            vegetationPlacer = null;
+            roadObjectsPlacer = null;
+            lootPlacer = null;
+            decorationPlacer = null;
+            resourcePlacer = null;
         }
 
         void SafeClearAllTiles()
         {
             if (cityGrid?.SpawnedTiles == null) return;
 
-            // 1. Удаляем базовые тайлы из массива
+            // Удаляем базовые тайлы
             for (int x = 0; x < cityGrid.Width; x++)
             {
                 if (cityGrid.SpawnedTiles[x] != null)
                 {
                     for (int y = 0; y < cityGrid.Height; y++)
                     {
-                        if (cityGrid.SpawnedTiles[x][y] != null)
-                        {
-                            try
-                            {
-                                if (Application.isPlaying)
-                                    Destroy(cityGrid.SpawnedTiles[x][y]);
-                                else
-                                    DestroyImmediate(cityGrid.SpawnedTiles[x][y]);
-
-                                cityGrid.SpawnedTiles[x][y] = null;
-                            }
-                            catch (System.Exception e)
-                            {
-                                Debug.LogWarning($"Ошибка при удалении объекта в ({x},{y}): {e.Message}");
-                                cityGrid.SpawnedTiles[x][y] = null;
-                            }
-                        }
+                        SafeDestroyTile(x, y);
                     }
                 }
             }
 
-            // 2. Удаляем все дочерние объекты (здания, растительность и прочее)
-            if (transform.childCount > 0)
-            {
-                // Собираем всех детей в массив, чтобы избежать проблем с изменением коллекции во время итерации
-                Transform[] children = new Transform[transform.childCount];
-                for (int i = 0; i < transform.childCount; i++)
-                {
-                    children[i] = transform.GetChild(i);
-                }
-
-                // Удаляем всех детей
-                foreach (Transform child in children)
-                {
-                    if (child != null)
-                    {
-                        try
-                        {
-                            if (Application.isPlaying)
-                                Destroy(child.gameObject);
-                            else
-                                DestroyImmediate(child.gameObject);
-                        }
-                        catch (System.Exception e)
-                        {
-                            Debug.LogWarning($"Ошибка при удалении дочернего объекта {child.name}: {e.Message}");
-                        }
-                    }
-                }
-            }
-
-            // 3. Очищаем данные о занятости зданиями
-            if (cityGrid?.BuildingOccupancy != null)
-            {
-                cityGrid.BuildingOccupancy.Clear();
-            }
+            // Удаляем все дочерние объекты
+            SafeDestroyAllChildren();
+            cityGrid?.BuildingOccupancy.Clear();
         }
 
-        void OnValidate()
+        private void SafeDestroyTile(int x, int y)
         {
-            try
+            if (cityGrid.SpawnedTiles[x][y] != null)
             {
-                gridWidth = Mathf.Max(5, gridWidth);
-                gridHeight = Mathf.Max(5, gridHeight);
-                tileSize = Mathf.Max(0.1f, tileSize);
-                roadDensity = Mathf.Clamp01(roadDensity);
-                buildingDensity = Mathf.Clamp01(buildingDensity);
-                vegetationDensity = Mathf.Clamp01(vegetationDensity);
-                roadLength = Mathf.Max(1, roadLength);
-                animationSpeed = Mathf.Max(0.01f, animationSpeed);
-
-                // Ограничения для процентов
-                roadDensity = Mathf.Clamp(roadDensity, 0.05f, 0.5f);
-                buildingDensity = Mathf.Clamp(buildingDensity, 0.05f, 0.4f);
-                vegetationDensity = Mathf.Clamp(vegetationDensity, 0.1f, 0.6f);
-                roadObjectDensity = Mathf.Clamp(roadObjectDensity, 0f, 0.2f);
-                lootDensity = Mathf.Clamp(lootDensity, 0f, 0.1f);
-
-                // Лимиты лута
-                minLootCount = Mathf.Max(0, minLootCount);
-                maxLootCount = Mathf.Max(minLootCount, maxLootCount);
-                lootClusterSize = Mathf.Clamp(lootClusterSize, 1, 5);
-
-                // Автоматический расчет при изменении в инспекторе
-                if (!Application.isPlaying)
+                try
                 {
-                    CalculateExpectedCounts();
+                    if (Application.isPlaying)
+                        Destroy(cityGrid.SpawnedTiles[x][y]);
+                    else
+                        DestroyImmediate(cityGrid.SpawnedTiles[x][y]);
+
+                    cityGrid.SpawnedTiles[x][y] = null;
                 }
-
-                if (!Application.isPlaying) return;
-
-                if (_generateCity)
+                catch (System.Exception e)
                 {
-                    _generateCity = false;
-                    if (!isGenerating)
-                    {
-                        StartCoroutine(GenerateCity());
-                    }
+                    Debug.LogWarning($"Ошибка при удалении тайла в ({x},{y}): {e.Message}");
+                    cityGrid.SpawnedTiles[x][y] = null;
                 }
-
-                if (_clearCity)
-                {
-                    _clearCity = false;
-                    ClearCity();
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"Ошибка в OnValidate: {e.Message}");
             }
         }
+
+        private void SafeDestroyAllChildren()
+        {
+            if (transform.childCount == 0) return;
+
+            var children = new Transform[transform.childCount];
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                children[i] = transform.GetChild(i);
+            }
+
+            foreach (Transform child in children)
+            {
+                if (child != null)
+                {
+                    try
+                    {
+                        if (Application.isPlaying)
+                            Destroy(child.gameObject);
+                        else
+                            DestroyImmediate(child.gameObject);
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogWarning($"Ошибка при удалении дочернего объекта {child.name}: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region Utility Methods
+
+        private void LogDebug(string message)
+        {
+            if (verboseLogging)
+                Debug.Log($"[CityGenerator] {message}");
+        }
+
+        #endregion
+
+        #region Gizmos
 
         void OnDrawGizmos()
         {
             if (!showGizmos || cityGrid?.Grid == null) return;
 
+            DrawGridGizmos();
+            DrawGenerationProgress();
+        }
+
+        private void DrawGridGizmos()
+        {
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int y = 0; y < gridHeight; y++)
                 {
                     Vector3 pos = new Vector3(x * tileSize, 0.1f, y * tileSize);
+                    Vector2Int gridPos = new Vector2Int(x, y);
 
-                    TileType? buildingType = cityGrid.GetBuildingTypeAt(new Vector2Int(x, y));
-
+                    TileType? buildingType = cityGrid.GetBuildingTypeAt(gridPos);
+                    
                     if (buildingType.HasValue)
                     {
-                        Gizmos.color = GetBuildingColor(buildingType.Value);
+                        Gizmos.color = TileTypeHelper.GetObjectColor(buildingType.Value);
                     }
                     else
                     {
-                        Gizmos.color = cityGrid.Grid[x][y] switch
-                        {
-                            TileType.Grass => new Color(0.2f, 0.8f, 0.2f, 0.7f),
-                            TileType.RoadStraight => new Color(0.5f, 0.5f, 0.5f, 0.8f),
-                            _ => new Color(1f, 1f, 1f, 0.3f)
-                        };
+                        Gizmos.color = GetBaseTileColor(cityGrid.Grid[x][y]);
                     }
 
                     Gizmos.DrawCube(pos, Vector3.one * tileSize * 0.8f);
                 }
             }
-
-            DrawBuildingOutlines();
         }
 
-        void DrawBuildingOutlines()
+        private void DrawGenerationProgress()
         {
-            if (cityGrid?.BuildingOccupancy == null) return;
-
-            foreach (var kvp in cityGrid.BuildingOccupancy)
-            {
-                TileType buildingType = kvp.Key;
-                List<Vector2Int> buildingCells = kvp.Value;
-
-                if (buildingCells.Count == 0) continue;
-
-                var buildingGroups = GroupConnectedCells(buildingCells);
-
-                foreach (var buildingGroup in buildingGroups)
-                {
-                    DrawSingleBuildingOutline(buildingGroup, buildingType);
-                }
-            }
-        }
-
-        public List<List<Vector2Int>> GroupConnectedCells(List<Vector2Int> allCells)
-        {
-            List<List<Vector2Int>> groups = new List<List<Vector2Int>>();
-            HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-
-            foreach (var cell in allCells)
-            {
-                if (visited.Contains(cell))
-                    continue;
-
-                List<Vector2Int> group = new List<Vector2Int>();
-                Queue<Vector2Int> toCheck = new Queue<Vector2Int>();
-                toCheck.Enqueue(cell);
-                visited.Add(cell);
-
-                while (toCheck.Count > 0)
-                {
-                    Vector2Int current = toCheck.Dequeue();
-                    group.Add(current);
-
-                    Vector2Int[] directions = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
-                    foreach (var dir in directions)
-                    {
-                        Vector2Int neighbor = current + dir;
-                        if (allCells.Contains(neighbor) && !visited.Contains(neighbor))
-                        {
-                            visited.Add(neighbor);
-                            toCheck.Enqueue(neighbor);
-                        }
-                    }
-                }
-
-                groups.Add(group);
-            }
-
-            return groups;
-        }
-
-        void DrawSingleBuildingOutline(List<Vector2Int> buildingCells, TileType buildingType)
-        {
-            if (buildingCells.Count == 0) return;
-
-            Vector2Int minCell = buildingCells[0];
-            Vector2Int maxCell = buildingCells[0];
-
-            foreach (var cell in buildingCells)
-            {
-                if (cell.x < minCell.x) minCell.x = cell.x;
-                if (cell.y < minCell.y) minCell.y = cell.y;
-                if (cell.x > maxCell.x) maxCell.x = cell.x;
-                if (cell.y > maxCell.y) maxCell.y = cell.y;
-            }
-
-            Gizmos.color = GetBuildingOutlineColor(buildingType);
-
-            Vector3 center = new Vector3(
-                (minCell.x + maxCell.x + 1) * tileSize * 0.5f,
-                0.2f,
-                (minCell.y + maxCell.y + 1) * tileSize * 0.5f
-            );
-
-            Vector3 size = new Vector3(
-                (maxCell.x - minCell.x + 1) * tileSize,
-                0.1f,
-                (maxCell.y - minCell.y + 1) * tileSize
-            );
-
-            Gizmos.DrawWireCube(center, size);
+            if (!isGenerating) return;
 
 #if UNITY_EDITOR
-            if (Selection.activeGameObject == gameObject)
-            {
-                UnityEditor.Handles.Label(
-                    center + Vector3.up * 0.5f,
-                    $"{buildingType}\n{maxCell.x - minCell.x + 1}x{maxCell.y - minCell.y + 1}"
-                );
-            }
+            Vector3 labelPosition = new Vector3(gridWidth * tileSize / 2, 5f, gridHeight * tileSize / 2);
+            Handles.Label(labelPosition, $"Генерация: {currentStage}");
 #endif
         }
 
-        Color GetBuildingColor(TileType buildingType)
+        private Color GetBaseTileColor(TileType tileType) => tileType switch
         {
-            return buildingType switch
-            {
-                TileType.Building => new Color(0.3f, 0.3f, 0.8f, 0.8f),
-                TileType.LargeBuilding => new Color(0.5f, 0.2f, 0.8f, 0.8f),
-                TileType.Mall => new Color(0.8f, 0.2f, 0.5f, 0.8f),
-                TileType.Factory => new Color(0.8f, 0.5f, 0.2f, 0.8f),
-                TileType.Park => new Color(0.2f, 0.8f, 0.4f, 0.8f),
-                TileType.Special => new Color(0.8f, 0.8f, 0.2f, 0.8f),
+            TileType.Grass => new Color(0.2f, 0.8f, 0.2f, 0.7f),
+            TileType.RoadStraight => new Color(0.5f, 0.5f, 0.5f, 0.8f),
+            _ => new Color(1f, 1f, 1f, 0.3f)
+        };
 
-                // Растительность
-                TileType.Tree => new Color(0.1f, 0.6f, 0.1f, 0.9f), // Темно-зеленый
-                TileType.TreeCluster => new Color(0.0f, 0.5f, 0.0f, 0.9f), // Еще темнее
-                TileType.Bush => new Color(0.3f, 0.7f, 0.3f, 0.8f), // Светло-зеленый
-                TileType.Flower => new Color(0.9f, 0.4f, 0.7f, 0.8f), // Розовый
-                TileType.SmallPlant => new Color(0.4f, 0.8f, 0.2f, 0.7f), // Салатовый
-                TileType.Forest => new Color(0.0f, 0.4f, 0.0f, 0.9f), // Очень темно-зеленый
-                TileType.Garden => new Color(0.5f, 0.9f, 0.5f, 0.8f), // Яркий зеленый
-                
-                // Декорации
-                TileType.Decoration => new Color(0.7f, 0.5f, 0.8f, 0.7f), // Сиреневый
-                
-                _ => new Color(0.3f, 0.3f, 0.8f, 0.8f)
-            };
-        }
-
-        Color GetBuildingOutlineColor(TileType buildingType)
-        {
-            return buildingType switch
-            {
-                TileType.Building => Color.blue,
-                TileType.LargeBuilding => Color.magenta,
-                TileType.Mall => Color.red,
-                TileType.Factory => new Color(1f, 0.5f, 0f),
-                TileType.Park => Color.green,
-                TileType.Special => Color.yellow,
-
-                // Растительность
-                TileType.Tree => new Color(0f, 0.8f, 0f),
-                TileType.TreeCluster => new Color(0f, 0.6f, 0f),
-                TileType.Bush => new Color(0.5f, 1f, 0.5f),
-                TileType.Flower => new Color(1f, 0.5f, 0.8f),
-                TileType.SmallPlant => new Color(0.7f, 1f, 0.3f),
-                TileType.Forest => new Color(0f, 0.5f, 0f),
-                TileType.Garden => new Color(0.3f, 1f, 0.3f),
-
-                // Объекты на дорогах
-                TileType.BrokenCar => new Color(0.6f, 0.4f, 0.2f), // Коричневый
-                TileType.Roadblock => Color.red, // Красный
-                TileType.Debris => new Color(0.7f, 0.7f, 0.7f), // Светло-серый
-
-                TileType.Loot => new Color(1f, 0.85f, 0f), // Золотой
-                
-                // Декорации
-                TileType.Decoration => new Color(0.8f, 0.6f, 0.9f), // Светло-сиреневый
-
-                _ => Color.blue
-            };
-        }
-
-        bool IsValidPosition(Vector2Int pos)
-        {
-            return pos.x >= 0 && pos.x < gridWidth && pos.y >= 0 && pos.y < gridHeight;
-        }
+        #endregion
     }
 }
