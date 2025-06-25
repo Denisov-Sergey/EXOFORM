@@ -1,6 +1,6 @@
 ﻿using Unity.Entities;
 
-namespace PandemicWars.Scripts.Ecs.Components
+namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
 {
     /// <summary>
     /// Компонент для вражеских юнитов

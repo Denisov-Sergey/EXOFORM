@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
 
-namespace PandemicWars.Scripts.Ecs.Components
+namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
 {
     /// <summary>
     /// Базовый компонент навигации для всех юнитов

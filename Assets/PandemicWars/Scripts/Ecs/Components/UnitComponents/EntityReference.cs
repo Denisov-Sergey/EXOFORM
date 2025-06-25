@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
 using UnityEngine;
 
-namespace PandemicWars.Scripts.Ecs.Components
+namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
 {
     /// <summary>
     /// Компонент для связи GameObject с Entity

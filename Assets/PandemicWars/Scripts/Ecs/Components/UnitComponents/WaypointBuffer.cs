@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
 
-namespace PandemicWars.Scripts.Ecs.Components
+namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
 {
     /// <summary>
     /// Буфер waypoint'ов для навигации

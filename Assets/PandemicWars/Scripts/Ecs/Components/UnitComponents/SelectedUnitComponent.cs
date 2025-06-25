@@ -1,6 +1,6 @@
 ﻿using Unity.Entities;
 
-namespace PandemicWars.Scripts.Ecs.Components
+namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
 {
     /// <summary>
     /// Компонент для отметки выбранных юнитов, которые будут реагировать на команды движения

@@ -5,6 +5,7 @@ using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using PandemicWars.Scripts.Ecs.Components;
+using PandemicWars.Scripts.Ecs.Components.UnitComponents;
 using UnityEngine.AI;
 using Object = UnityEngine.Object;
 
@@ -18,32 +19,43 @@ namespace PandemicWars.Scripts.Ecs.Systems
     public partial class InputSystem : SystemBase
     {
         private Camera _mainCamera;
+        private EntityQuery _selectedUnitsQuery;
+        private EntityQuery _movementTargetsQuery;
 
         protected override void OnCreate()
         {
             RequireForUpdate<PlayerUnitComponent>();
+            
+            // Создаем queries для оптимизации
+            _selectedUnitsQuery = GetEntityQuery(
+                ComponentType.ReadWrite<PlayerUnitComponent>(),
+                ComponentType.ReadWrite<NavAgentComponent>(),
+                ComponentType.ReadOnly<LocalTransform>()
+            );
+            
+            _movementTargetsQuery = GetEntityQuery(ComponentType.ReadOnly<MovementTargetTag>());
         }
 
         protected override void OnStartRunning()
         {
-            _mainCamera = Camera.main;
+            _mainCamera = Camera.main ?? Object.FindObjectOfType<Camera>();
+            
             if (_mainCamera == null)
-                _mainCamera = Object.FindObjectOfType<Camera>();
-                
-            if (_mainCamera == null)
-                Debug.LogError("Камера не найдена в OnStartRunning!");
+                Debug.LogError("Камера не найдена! Система ввода не будет работать.");
         }
 
         protected override void OnUpdate()
         {
+            if (_mainCamera == null) return;
+
             // Обрабатываем клик правой кнопкой мыши для движения
-            if (Mouse.current.rightButton.wasPressedThisFrame)
+            if (Mouse.current?.rightButton.wasPressedThisFrame == true)
             {
                 HandleMovementInput();
             }
             
             // Обрабатываем клик левой кнопкой мыши для выбора юнитов
-            if (Mouse.current.leftButton.wasPressedThisFrame)
+            if (Mouse.current?.leftButton.wasPressedThisFrame == true)
             {
                 HandleUnitSelection();
             }
@@ -54,27 +66,26 @@ namespace PandemicWars.Scripts.Ecs.Systems
         /// </summary>
         private void HandleMovementInput()
         {
-            if (_mainCamera == null || Mouse.current == null) return;
+            if (!TryGetWorldPosition(out float3 targetPosition))
+                return;
+
+            Debug.Log($"Команда движения в позицию: {targetPosition}");
             
-            var mousePosition = Mouse.current.position.ReadValue();
-            var ray = _mainCamera.ScreenPointToRay(mousePosition);
-            
-            Debug.DrawRay(ray.origin, ray.direction * 1000, Color.red, 10f);
-            
-            if (Physics.Raycast(ray, out var hit))
+            // Проверяем, есть ли выбранные юниты
+            if (_selectedUnitsQuery.IsEmpty)
             {
-                float3 targetPosition = hit.point;
-                Debug.Log($"Команда движения в позицию: {targetPosition}");
-                
-                // Создаем целевую сущность-маркер
-                Entity targetEntity = CreateMovementTarget(targetPosition);
-                
-                // Назначаем цель всем выбранным юнитам
-                AssignTargetToSelectedUnits(targetEntity);
-                
-                // Визуальная индикация
-                CreateMovementIndicator(targetPosition);
+                Debug.LogWarning("Нет выбранных юнитов для движения!");
+                return;
             }
+
+            // Создаем целевую сущность-маркер
+            Entity targetEntity = CreateMovementTarget(targetPosition);
+            
+            // Назначаем цель всем выбранным юнитам
+            AssignTargetToSelectedUnits(targetEntity, targetPosition);
+            
+            // Визуальная индикация
+            CreateMovementIndicator(targetPosition);
         }
 
         /// <summary>
@@ -82,37 +93,93 @@ namespace PandemicWars.Scripts.Ecs.Systems
         /// </summary>
         private void HandleUnitSelection()
         {
-            if (_mainCamera == null || Mouse.current == null) return;
+            if (!TryGetWorldPosition(out float3 clickPosition))
+                return;
+
+            bool isShiftPressed = Keyboard.current?.leftShiftKey.isPressed == true;
+            Entity targetEntity = Entity.Null;
+
+            // Сначала пытаемся найти через EntityReference
+            if (TryGetEntityFromRaycast(out Entity entityFromRaycast))
+            {
+                targetEntity = entityFromRaycast;
+            }
+            // Если не найден через raycast, ищем по позиции
+            else
+            {
+                targetEntity = FindEntityByPosition(clickPosition);
+            }
+
+            if (targetEntity != Entity.Null && 
+                EntityManager.Exists(targetEntity) && 
+                EntityManager.HasComponent<PlayerUnitComponent>(targetEntity))
+            {
+                SelectUnit(targetEntity, !isShiftPressed);
+            }
+            else if (!isShiftPressed)
+            {
+                // Снимаем выбор со всех юнитов если кликнули в пустоту
+                ClearAllSelection();
+            }
+        }
+
+        /// <summary>
+        /// Пытается получить мировую позицию из клика мышью
+        /// </summary>
+        private bool TryGetWorldPosition(out float3 worldPosition)
+        {
+            worldPosition = float3.zero;
+            
+            if (Mouse.current == null) return false;
+            
+            var mousePosition = Mouse.current.position.ReadValue();
+            var ray = _mainCamera.ScreenPointToRay(mousePosition);
+            
+            Debug.DrawRay(ray.origin, ray.direction * 1000, Color.red, 1f);
+            
+            if (Physics.Raycast(ray, out var hit))
+            {
+                worldPosition = hit.point;
+                
+                // ИСПРАВЛЕНИЕ: Корректируем позицию относительно NavMesh
+                UnityEngine.AI.NavMeshHit navHit;
+                if (UnityEngine.AI.NavMesh.SamplePosition(worldPosition, out navHit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+                {
+                    worldPosition = navHit.position;
+                    Debug.Log($"Цель скорректирована на NavMesh: {worldPosition}");
+                }
+                else
+                {
+                    Debug.LogWarning($"Цель {worldPosition} не на NavMesh!");
+                }
+                
+                return true;
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Пытается получить Entity через raycast и EntityReference
+        /// </summary>
+        private bool TryGetEntityFromRaycast(out Entity entity)
+        {
+            entity = Entity.Null;
             
             var mousePosition = Mouse.current.position.ReadValue();
             var ray = _mainCamera.ScreenPointToRay(mousePosition);
             
             if (Physics.Raycast(ray, out var hit))
             {
-                // Используем компонент EntityReference
                 var entityReference = hit.collider.GetComponent<EntityReference>();
-                bool isShiftPressed = Keyboard.current?.leftShiftKey.isPressed == true;
-                
                 if (entityReference != null && entityReference.Entity != Entity.Null)
                 {
-                    Entity entity = entityReference.Entity;
-                    
-                    if (EntityManager.Exists(entity) && 
-                        EntityManager.HasComponent<PlayerUnitComponent>(entity))
-                    {
-                        SelectUnit(entity, !isShiftPressed);
-                    }
-                }
-                else
-                {
-                    //  Поиск по позиции
-                    Entity foundEntity = FindEntityByPosition(hit.point);
-                    if (foundEntity != Entity.Null)
-                    {
-                        SelectUnit(foundEntity, !isShiftPressed);
-                    }
+                    entity = entityReference.Entity;
+                    return true;
                 }
             }
+            
+            return false;
         }
 
         /// <summary>
@@ -122,14 +189,15 @@ namespace PandemicWars.Scripts.Ecs.Systems
         {
             Entity closestEntity = Entity.Null;
             float closestDistance = float.MaxValue;
+            const float maxSelectionDistance = 2f;
             
             // Ищем ближайшую сущность к точке клика
             Entities
                 .WithAll<PlayerUnitComponent>()
-                .ForEach((Entity entity, in LocalTransform transform) =>
+                .ForEach((Entity entity, in LocalTransform transform, in PlayerUnitComponent playerUnit) =>
                 {
                     float distance = math.distance(transform.Position, clickPosition);
-                    if (distance < 2f && distance < closestDistance) // Радиус выбора 2 единицы
+                    if (distance < maxSelectionDistance && distance < closestDistance)
                     {
                         closestDistance = distance;
                         closestEntity = entity;
@@ -145,13 +213,22 @@ namespace PandemicWars.Scripts.Ecs.Systems
         private Entity CreateMovementTarget(float3 position)
         {
             // Удаляем старые цели
-            var oldTargets = EntityManager.CreateEntityQuery(typeof(MovementTargetTag));
-            EntityManager.DestroyEntity(oldTargets);
+            EntityManager.DestroyEntity(_movementTargetsQuery);
             
-            // Создаем новую цель
-            Entity targetEntity = EntityManager.CreateEntity();
-            EntityManager.AddComponent<MovementTargetTag>(targetEntity);
-            EntityManager.AddComponent<LocalTransform>(targetEntity);
+            // Создаем архетип для новой цели
+            var archetype = EntityManager.CreateArchetype(
+                typeof(MovementTargetTag),
+                typeof(LocalTransform)
+            );
+            
+            // Создаем новую цель с заданным архетипом
+            Entity targetEntity = EntityManager.CreateEntity(archetype);
+            
+            // Устанавливаем данные компонентов
+            EntityManager.SetComponentData(targetEntity, new MovementTargetTag 
+            { 
+                CreationTime = (float)SystemAPI.Time.ElapsedTime 
+            });
             EntityManager.SetComponentData(targetEntity, LocalTransform.FromPosition(position));
             
             return targetEntity;
@@ -160,40 +237,34 @@ namespace PandemicWars.Scripts.Ecs.Systems
         /// <summary>
         /// Назначает цель всем выбранным юнитам.
         /// </summary>
-        private void AssignTargetToSelectedUnits(Entity targetEntity)
+        private void AssignTargetToSelectedUnits(Entity targetEntity, float3 targetPosition)
         {
             int assignedCount = 0;
             
-            var targetPosition = EntityManager.GetComponentData<LocalTransform>(targetEntity).Position;
-            
             Entities
                 .WithAll<PlayerUnitComponent>()
-                .ForEach((Entity entity, ref NavAgentComponent navAgent, in PlayerUnitComponent selected, in LocalTransform localTransform) =>
+                .ForEach((Entity entity, ref NavAgentComponent navAgent, in PlayerUnitComponent playerUnit) =>
                 {
-                    if (selected.IsSelected)
+                    if (!playerUnit.IsSelected) return;
+
+                    // Устанавливаем цель и сбрасываем состояние пути
+                    navAgent.TargetEntity = targetEntity;
+                    navAgent.PathCalculated = false;
+                    navAgent.NextPathCalculatedTime = 0f; // Пересчитываем путь немедленно
+                    navAgent.CurrentWaypoint = 0;
+                    
+                    // Работаем с буфером waypoints
+                    if (EntityManager.HasBuffer<WaypointBuffer>(entity))
                     {
-                        navAgent.TargetEntity = targetEntity;
-                        navAgent.PathCalculated = false;
-                        navAgent.NextPathCalculatedTime = 0f;
+                        var waypointBuffer = EntityManager.GetBuffer<WaypointBuffer>(entity);
+                        waypointBuffer.Clear();
                         
-                        if (EntityManager.HasBuffer<WaypointBuffer>(entity))
-                        {
-                            var waypointBuffer = EntityManager.GetBuffer<WaypointBuffer>(entity);
-                            waypointBuffer.Clear();
-                    
-                            waypointBuffer.Add(new WaypointBuffer { waypoint = targetPosition });
-                    
-                            // Устанавливаем путь как готовый
-                            navAgent.CurrentWaypoint = 0;
-                            navAgent.PathCalculated = true;
-                    
-                            Debug.Log($"Создано {waypointBuffer.Length} waypoint'ов для юнита {entity.Index}");
-                        }
-                        else
-                        {
-                            Debug.LogError($"У юнита {entity.Index} нет WaypointBuffer!");
-                        }
+                        Debug.Log($"Цель назначена юниту {entity.Index}: {targetPosition}");
                         assignedCount++;
+                    }
+                    else
+                    {
+                        Debug.LogError($"У юнита {entity.Index} нет WaypointBuffer!");
                     }
                 }).WithoutBurst().Run();
             
@@ -207,21 +278,29 @@ namespace PandemicWars.Scripts.Ecs.Systems
         {
             if (clearOtherSelection)
             {
-                Entities
-                    .ForEach((ref PlayerUnitComponent selected) =>
-                    {
-                        selected.IsSelected = false;
-                    }).Run();
+                ClearAllSelection();
             }
             
             if (EntityManager.HasComponent<PlayerUnitComponent>(entity))
             {
-                var selected = EntityManager.GetComponentData<PlayerUnitComponent>(entity);
-                selected.IsSelected = !selected.IsSelected;
-                EntityManager.SetComponentData(entity, selected);
+                var playerUnit = EntityManager.GetComponentData<PlayerUnitComponent>(entity);
+                playerUnit.IsSelected = !playerUnit.IsSelected;
+                EntityManager.SetComponentData(entity, playerUnit);
                 
-                Debug.Log($"Юнит {entity.Index} " + (selected.IsSelected ? "выбран" : "снят с выбора"));
+                Debug.Log($"Юнит {entity.Index} " + (playerUnit.IsSelected ? "выбран" : "снят с выбора"));
             }
+        }
+
+        /// <summary>
+        /// Снимает выбор со всех юнитов
+        /// </summary>
+        private void ClearAllSelection()
+        {
+            Entities
+                .ForEach((ref PlayerUnitComponent playerUnit) =>
+                {
+                    playerUnit.IsSelected = false;
+                }).Run();
         }
 
         /// <summary>
@@ -233,6 +312,11 @@ namespace PandemicWars.Scripts.Ecs.Systems
             indicator.transform.position = position;
             indicator.transform.localScale = Vector3.one * 0.5f;
             indicator.name = "MovementIndicator";
+            
+            // Убираем коллайдер чтобы не мешал raycast'ам
+            var collider = indicator.GetComponent<Collider>();
+            if (collider != null)
+                Object.DestroyImmediate(collider);
             
             var renderer = indicator.GetComponent<Renderer>();
             if (renderer != null)

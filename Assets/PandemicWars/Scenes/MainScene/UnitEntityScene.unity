@@ -194,16 +194,28 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 82.82
+      value: -1.5000019
       objectReference: {fileID: 0}
     - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.5833333
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 36.5
+      value: -35.5
       objectReference: {fileID: 0}
     - target: {fileID: 6889529829820877336, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
       propertyPath: m_LocalRotation.w
@@ -236,6 +248,18 @@ PrefabInstance:
     - target: {fileID: 7173171300442168728, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
       propertyPath: m_Name
       value: PlayerCube
+      objectReference: {fileID: 0}
+    - target: {fileID: 8821000245685379754, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
+      propertyPath: showDebugInfo
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8821000245685379754, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
+      propertyPath: selectionRadius
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8821000245685379754, guid: 0f36d02776b85784aab366d8567ce7b2, type: 3}
+      propertyPath: isSelectedByDefault
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
