@@ -92,25 +92,45 @@ namespace PandemicWars.Scripts.Ecs.Systems
 
                 DynamicBuffer<WaypointBuffer> waypointBuffer = state.EntityManager.GetBuffer<WaypointBuffer>(entity);
 
-                // ВОЗВРАЩАЕМ ВАШУ ОРИГИНАЛЬНУЮ ЛОГИКУ
-                // Проверяем, нужно ли пересчитывать путь (каждые 2 секунды)
-                if(navAgent.ValueRO.NextPathCalculatedTime < currentTime)
+                // : Проверяем, есть ли цель и нужно ли пересчитывать путь
+                bool hasValidTarget = navAgent.ValueRO.TargetEntity != Entity.Null && 
+                                    state.EntityManager.Exists(navAgent.ValueRO.TargetEntity) &&
+                                    state.EntityManager.HasComponent<LocalTransform>(navAgent.ValueRO.TargetEntity);
+
+                // Если нет валидной цели, очищаем состояние
+                if (!hasValidTarget)
                 {
-                    navAgent.ValueRW.NextPathCalculatedTime += 2f;
+                    navAgent.ValueRW.PathCalculated = false;
+                    navAgent.ValueRW.TargetEntity = Entity.Null;
+                    waypointBuffer.Clear();
+                    continue;
+                }
+
+                //  Принудительный пересчет пути если он был сброшен в InputSystem
+                bool shouldRecalculatePath = !navAgent.ValueRO.PathCalculated || 
+                                           navAgent.ValueRO.NextPathCalculatedTime <= currentTime;
+
+                if (shouldRecalculatePath)
+                {
+                    // Устанавливаем следующее время пересчета (через 2 секунды)
+                    navAgent.ValueRW.NextPathCalculatedTime = (float)currentTime + 2f;
                     
                     // Сбрасываем состояние пути перед новым расчетом
                     navAgent.ValueRW.PathCalculated = false;
                     navAgent.ValueRW.CurrentWaypoint = 0;
                     
+                    #if UNITY_EDITOR && !BURST_COMPILE
+                    Debug.Log($"Начинаем расчет пути для Entity {entity.Index}");
+                    #endif
+                    
                     // Запускаем расчет нового пути
                     CalculatePath(navAgent, transform, waypointBuffer, ref state);
                 }
                 // Движение только если путь успешно рассчитан
-                else if (navAgent.ValueRO.PathCalculated)
+                else if (navAgent.ValueRO.PathCalculated && waypointBuffer.Length > 0)
                 {
                     Move(navAgent, transform, waypointBuffer, ref state);
                 }
-                // Если путь не рассчитан и время еще не пришло - агент ждет
             }
         }
 
@@ -136,15 +156,17 @@ namespace PandemicWars.Scripts.Ecs.Systems
             var currentPosition = transform.ValueRO.Position;
             var targetWaypoint = waypointBuffer[navAgent.ValueRO.CurrentWaypoint].waypoint;
 
-            // ИСПРАВЛЕНИЕ: Уменьшаем порог достижения waypoint'а для точности
-            float distanceToWaypoint = math.distance(currentPosition, targetWaypoint);
-            const float waypointReachThreshold = 0.2f; // Было 0.5f, стало 0.2f
+            // Динамический порог достижения waypoint'а в зависимости от скорости
+            float baseThreshold = 0.3f;
+            float speedFactor = navAgent.ValueRO.MovementSpeed * SystemAPI.Time.DeltaTime;
+            float waypointReachThreshold = math.max(baseThreshold, speedFactor * 2f);
 
-            // ИСПРАВЛЕНИЕ: Простое логирование без форматирования (Burst-совместимое)
+            float distanceToWaypoint = math.distance(currentPosition, targetWaypoint);
+
             #if UNITY_EDITOR && !BURST_COMPILE
             if (navAgent.ValueRO.CurrentWaypoint == 0) // Логируем только первый waypoint
             {
-                Debug.Log($"Движение: дистанция до цели {distanceToWaypoint}, порог {waypointReachThreshold}");
+                Debug.Log($"Движение: дистанция до цели {distanceToWaypoint:F3}, порог {waypointReachThreshold:F3}");
             }
             #endif
 
@@ -161,7 +183,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                 }
                 else
                 {
-                    // ИСПРАВЛЕНИЕ: Дополнительная проверка - действительно ли юнит у цели?
+                    //  Улучшенная проверка достижения финальной цели
                     if (navAgent.ValueRO.TargetEntity != Entity.Null && 
                         state.EntityManager.Exists(navAgent.ValueRO.TargetEntity) &&
                         state.EntityManager.HasComponent<LocalTransform>(navAgent.ValueRO.TargetEntity))
@@ -170,7 +192,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                         float distanceToFinalTarget = math.distance(currentPosition, targetTransform.Position);
                         
                         #if UNITY_EDITOR && !BURST_COMPILE
-                        Debug.Log($"Проверка финальной цели: дистанция {distanceToFinalTarget}");
+                        Debug.Log($"Проверка финальной цели: дистанция {distanceToFinalTarget:F3}");
                         #endif
                         
                         // Если юнит действительно близко к финальной цели
@@ -178,6 +200,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                         {
                             navAgent.ValueRW.PathCalculated = false;
                             navAgent.ValueRW.TargetEntity = Entity.Null;
+                            waypointBuffer.Clear();
                             #if UNITY_EDITOR && !BURST_COMPILE
                             Debug.Log("Юнит ДЕЙСТВИТЕЛЬНО достиг финальной цели!");
                             #endif
@@ -187,10 +210,11 @@ namespace PandemicWars.Scripts.Ecs.Systems
                         {
                             // Юнит не у цели - пересчитываем путь
                             #if UNITY_EDITOR && !BURST_COMPILE
-                            Debug.LogWarning($"Юнит НЕ у цели (дистанция {distanceToFinalTarget}), пересчитываем путь");
+                            Debug.LogWarning($"Юнит НЕ у цели (дистанция {distanceToFinalTarget:F3}), пересчитываем путь");
                             #endif
                             navAgent.ValueRW.PathCalculated = false;
-                            // НЕ сбрасываем NextPathCalculatedTime на 0 - пусть ждет обычный интервал
+                            // Сбрасываем время для немедленного пересчета
+                            navAgent.ValueRW.NextPathCalculatedTime = 0f;
                             return;
                         }
                     }
@@ -199,6 +223,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                         // Нет валидной цели
                         navAgent.ValueRW.PathCalculated = false;
                         navAgent.ValueRW.TargetEntity = Entity.Null;
+                        waypointBuffer.Clear();
                         #if UNITY_EDITOR && !BURST_COMPILE
                         Debug.Log("Нет валидной цели, останавливаем движение");
                         #endif
@@ -224,7 +249,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
             float moveDistance = navAgent.ValueRO.MovementSpeed * deltaTime;
             var newPosition = currentPosition + normalizedDirection * moveDistance;
 
-            // ИСПРАВЛЕНИЕ: Корректируем Y координату относительно NavMesh (только если не в Burst)
+            //  Корректируем Y координату относительно NavMesh (только если не в Burst)
             #if !BURST_COMPILE
             UnityEngine.AI.NavMeshHit hit;
             if (UnityEngine.AI.NavMesh.SamplePosition(newPosition, out hit, 2f, UnityEngine.AI.NavMesh.AllAreas))
@@ -275,7 +300,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                 !state.EntityManager.HasComponent<LocalTransform>(navAgent.ValueRO.TargetEntity))
             {
                 #if UNITY_EDITOR && !BURST_COMPILE
-                Debug.Log("Цель не существует или не имеет позиции");
+                Debug.LogWarning("Цель не существует или не имеет позиции");
                 #endif
                 return; // Цель не существует или не имеет позиции
             }
@@ -284,27 +309,29 @@ namespace PandemicWars.Scripts.Ecs.Systems
             float3 fromPosition = transform.ValueRO.Position;
             float3 toPosition = state.EntityManager.GetComponentData<LocalTransform>(navAgent.ValueRO.TargetEntity).Position;
             
-            // ИСПРАВЛЕНИЕ: Проверяем минимальную дистанцию
+            // Уменьшаем минимальную дистанцию для коротких перемещений
             float totalDistance = math.distance(fromPosition, toPosition);
-            const float minPathDistance = 1.0f;
+            const float minPathDistance = 0.5f; // Было 1.0f, стало 0.5f
             
             if (totalDistance < minPathDistance)
             {
                 #if UNITY_EDITOR && !BURST_COMPILE
-                Debug.Log($"Дистанция слишком мала ({totalDistance}), путь не нужен");
+                Debug.Log($"Дистанция слишком мала ({totalDistance:F3}), создаем прямой путь");
                 #endif
-                // Юнит уже достаточно близко к цели
-                navAgent.ValueRW.PathCalculated = false;
-                navAgent.ValueRW.TargetEntity = Entity.Null; // Очищаем цель
+                
+                // Создаем простой путь для коротких дистанций
+                waypointBuffer.Add(new WaypointBuffer { waypoint = toPosition });
+                navAgent.ValueRW.PathCalculated = true;
+                navAgent.ValueRW.CurrentWaypoint = 0;
                 return;
             }
             
             #if UNITY_EDITOR && !BURST_COMPILE
-            Debug.Log($"Расчет пути от {fromPosition} до {toPosition}, дистанция: {totalDistance}");
+            Debug.Log($"Расчет пути от {fromPosition} до {toPosition}, дистанция: {totalDistance:F3}");
             #endif
 
-            // Размер области поиска на NavMesh (увеличиваем для лучшего поиска)
-            float3 extents = new float3(5, 5, 5);
+            // Увеличиваем размер области поиска для лучшего поиска
+            float3 extents = new float3(10, 10, 10); 
 
             // Проецируем мировые позиции на ближайшие точки NavMesh
             NavMeshLocation fromLocation = navMeshQuery.MapLocation(fromPosition, extents, 0);
@@ -314,17 +341,35 @@ namespace PandemicWars.Scripts.Ecs.Systems
             if (!navMeshQuery.IsValid(fromLocation))
             {
                 #if UNITY_EDITOR && !BURST_COMPILE
-                Debug.LogWarning($"Стартовая позиция {fromPosition} не на NavMesh!");
+                Debug.LogWarning($"Стартовая позиция {fromPosition} не на NavMesh! Пытаемся найти ближайшую точку.");
                 #endif
-                return;
+                
+                //  Пытаемся найти ближайшую валидную точку
+                fromLocation = navMeshQuery.MapLocation(fromPosition, new float3(20, 20, 20), 0);
+                if (!navMeshQuery.IsValid(fromLocation))
+                {
+                    #if UNITY_EDITOR && !BURST_COMPILE
+                    Debug.LogError($"Не удалось найти валидную стартовую позицию для {fromPosition}");
+                    #endif
+                    return;
+                }
             }
 
             if (!navMeshQuery.IsValid(toLocation))
             {
                 #if UNITY_EDITOR && !BURST_COMPILE
-                Debug.LogWarning($"Целевая позиция {toPosition} не на NavMesh!");
+                Debug.LogWarning($"Целевая позиция {toPosition} не на NavMesh! Пытаемся найти ближайшую точку.");
                 #endif
-                return;
+                
+                //  Пытаемся найти ближайшую валидную точку
+                toLocation = navMeshQuery.MapLocation(toPosition, new float3(20, 20, 20), 0);
+                if (!navMeshQuery.IsValid(toLocation))
+                {
+                    #if UNITY_EDITOR && !BURST_COMPILE
+                    Debug.LogError($"Не удалось найти валидную целевую позицию для {toPosition}");
+                    #endif
+                    return;
+                }
             }
 
             // Переменные для отслеживания статуса операций
@@ -377,8 +422,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
                             // Проверяем успешность создания прямого пути
                             if (straightPathStatus == PathQueryStatus.Success && straightPathCount > 0)
                             {
-                                // ВОЗВРАЩАЕМ ВАШУ ОРИГИНАЛЬНУЮ ЛОГИКУ
-                                // Используем for вместо foreach для Burst оптимизации
+                                // Добавляем waypoint'ы в буфер
                                 for (int i = 0; i < straightPathCount; i++)
                                 {
                                     // Используем float3.zero вместо Vector3.zero для Burst
@@ -403,13 +447,23 @@ namespace PandemicWars.Scripts.Ecs.Systems
                                     #if UNITY_EDITOR && !BURST_COMPILE
                                     Debug.LogWarning("Путь рассчитан, но waypoint'ы не добавлены!");
                                     #endif
+                                    
+                                    //  Fallback - создаем простой путь к цели
+                                    waypointBuffer.Add(new WaypointBuffer { waypoint = toPosition });
+                                    navAgent.ValueRW.CurrentWaypoint = 0;
+                                    navAgent.ValueRW.PathCalculated = true;
                                 }
                             }
                             else
                             {
                                 #if UNITY_EDITOR && !BURST_COMPILE
-                                Debug.LogWarning($"Не удалось создать прямой путь. Статус: {straightPathStatus}, Count: {straightPathCount}");
+                                Debug.LogWarning($"Не удалось создать прямой путь. Статус: {straightPathStatus}, Count: {straightPathCount}. Создаем простой путь.");
                                 #endif
+                                
+                                //  Fallback - создаем простой путь к цели
+                                waypointBuffer.Add(new WaypointBuffer { waypoint = toPosition });
+                                navAgent.ValueRW.CurrentWaypoint = 0;
+                                navAgent.ValueRW.PathCalculated = true;
                             }
                         }
                         finally
@@ -424,22 +478,37 @@ namespace PandemicWars.Scripts.Ecs.Systems
                     else
                     {
                         #if UNITY_EDITOR && !BURST_COMPILE
-                        Debug.LogWarning("Путь не найден - pathSize = 0");
+                        Debug.LogWarning("Путь не найден - pathSize = 0. Создаем прямой путь.");
                         #endif
+                        
+                        //  Fallback - создаем простой путь к цели
+                        waypointBuffer.Add(new WaypointBuffer { waypoint = toPosition });
+                        navAgent.ValueRW.CurrentWaypoint = 0;
+                        navAgent.ValueRW.PathCalculated = true;
                     }
                 }
                 else
                 {
                     #if UNITY_EDITOR && !BURST_COMPILE
-                    Debug.LogWarning($"Поиск пути не завершен успешно. Статус: {status}");
+                    Debug.LogWarning($"Поиск пути не завершен успешно. Статус: {status}. Создаем прямой путь.");
                     #endif
+                    
+                    //  Fallback - создаем простой путь к цели
+                    waypointBuffer.Add(new WaypointBuffer { waypoint = toPosition });
+                    navAgent.ValueRW.CurrentWaypoint = 0;
+                    navAgent.ValueRW.PathCalculated = true;
                 }
             }
             else
             {
                 #if UNITY_EDITOR && !BURST_COMPILE
-                Debug.LogWarning($"Не удалось начать поиск пути. Статус: {status}");
+                Debug.LogWarning($"Не удалось начать поиск пути. Статус: {status}. Создаем прямой путь.");
                 #endif
+                
+                // Fallback - создаем простой путь к цели
+                waypointBuffer.Add(new WaypointBuffer { waypoint = toPosition });
+                navAgent.ValueRW.CurrentWaypoint = 0;
+                navAgent.ValueRW.PathCalculated = true;
             }
         }
     }
