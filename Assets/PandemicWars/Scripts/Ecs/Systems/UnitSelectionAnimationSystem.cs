@@ -13,39 +13,72 @@ namespace PandemicWars.Scripts.Ecs.Systems
     {
         protected override void OnUpdate()
         {
-            Entities
-                .WithAll<PlayerUnitComponent>()
-                .ForEach((Entity entity, UnitAnimationComponent animComp, in PlayerUnitComponent playerUnit) =>
-                {
-                    UpdateSelectionAnimation(animComp, playerUnit, entity);
-                })
-                .WithoutBurst()
-                .Run();
+            // Новый синтаксис DOTS 1.0+
+            foreach (var (animState, animatorComp, playerUnit, entity) in
+                SystemAPI.Query<RefRW<UnitAnimationComponent>, UnitAnimatorComponent, RefRO<PlayerUnitComponent>>()
+                    .WithEntityAccess())
+            {
+                if (animatorComp?.Animator == null) continue;
+
+                UpdateSelectionAnimation(ref animState.ValueRW, animatorComp, playerUnit.ValueRO, entity);
+            }
         }
 
-        private void UpdateSelectionAnimation(UnitAnimationComponent animComp, PlayerUnitComponent playerUnit, Entity entity)
+        private void UpdateSelectionAnimation(ref UnitAnimationComponent animState, 
+                                            UnitAnimatorComponent animatorComp, 
+                                            PlayerUnitComponent playerUnit, 
+                                            Entity entity)
         {
-            if (animComp?.Animator == null) return;
+            if (animatorComp?.Animator == null) return;
 
             // Устанавливаем параметр выбора в аниматоре
-            if (!string.IsNullOrEmpty(animComp.IsSelectedParameterName))
+            if (!string.IsNullOrEmpty(animatorComp.IsSelectedParameterName))
             {
-                animComp.Animator.SetBool(animComp.IsSelectedParameterName, playerUnit.IsSelected);
+                try
+                {
+                    if (HasParameter(animatorComp.Animator, animatorComp.IsSelectedParameterName))
+                    {
+                        animatorComp.Animator.SetBool(animatorComp.IsSelectedParameterName, playerUnit.IsSelected);
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"Failed to set selection parameter: {e.Message}");
+                }
             }
 
             // Можно добавить специальные эффекты для выбранных юнитов
-            if (playerUnit.IsSelected && !animComp.WasSelected)
+            if (playerUnit.IsSelected && !animState.WasSelected)
             {
                 // Юнит только что выбран - можно проиграть анимацию выбора
-                if (!string.IsNullOrEmpty(animComp.SelectionAnimationName))
+                if (!string.IsNullOrEmpty(animatorComp.SelectionAnimationName))
                 {
-                    animComp.Animator.Play(animComp.SelectionAnimationName);
+                    try
+                    {
+                        animatorComp.Animator.Play(animatorComp.SelectionAnimationName);
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogWarning($"Failed to play selection animation: {e.Message}");
+                    }
                 }
                 
                 Debug.Log($"Entity {entity.Index}: Selection animation triggered");
             }
 
-            animComp.WasSelected = playerUnit.IsSelected;
+            animState.WasSelected = playerUnit.IsSelected;
+        }
+
+        private bool HasParameter(Animator animator, string parameterName)
+        {
+            if (animator == null || string.IsNullOrEmpty(parameterName)) return false;
+            
+            foreach (var param in animator.parameters)
+            {
+                if (param.name == parameterName)
+                    return true;
+            }
+            return false;
         }
     }
 }

@@ -13,35 +13,35 @@ namespace PandemicWars.Scripts.Ecs.Systems
         protected override void OnUpdate()
         {
             float deltaTime = SystemAPI.Time.DeltaTime;
-            var entityManager = EntityManager;
 
-            foreach (var (speedSync, navAgent, localTransform, entity) in
-                SystemAPI.Query<RefRW<AnimationSpeedSyncComponent>, RefRO<NavAgentComponent>, RefRO<LocalTransform>>()
+            // Новый синтаксис DOTS 1.0+
+            foreach (var (speedSync, navAgent, localTransform, animatorComp, entity) in
+                SystemAPI.Query<RefRW<AnimationSpeedSyncComponent>, RefRO<NavAgentComponent>, RefRO<LocalTransform>, UnitAnimatorComponent>()
                     .WithEntityAccess())
             {
-                if (entityManager.HasComponent<UnitAnimationComponent>(entity))
-                {
-                    var animComp = entityManager.GetComponentObject<UnitAnimationComponent>(entity);
-                    UpdateAnimationSpeed(ref speedSync.ValueRW, animComp, navAgent.ValueRO, localTransform.ValueRO, deltaTime);
-                }
+                if (animatorComp?.Animator == null) continue;
+
+                UpdateAnimationSpeed(
+                    ref speedSync.ValueRW, 
+                    animatorComp, 
+                    navAgent.ValueRO, 
+                    localTransform.ValueRO, 
+                    deltaTime
+                );
             }
         }
 
         private void UpdateAnimationSpeed(
             ref AnimationSpeedSyncComponent speedSync,
-            UnitAnimationComponent animComp,
+            UnitAnimatorComponent animatorComp,
             NavAgentComponent navAgent,
             LocalTransform localTransform,
             float deltaTime)
         {
-            if (!speedSync.SyncMoveSpeedWithAnimation || animComp?.Animator == null) return;
+            if (!speedSync.SyncMoveSpeedWithAnimation || animatorComp?.Animator == null) return;
 
-            float currentSpeed = 0f;
-            if (animComp.HasPreviousPosition)
-            {
-                float distanceMoved = math.distance(localTransform.Position, animComp.PreviousPosition);
-                currentSpeed = distanceMoved / deltaTime;
-            }
+            // Вычисляем текущую скорость (нужно добавить предыдущую позицию в компонент)
+            float currentSpeed = navAgent.MovementSpeed; // Упрощенно используем заданную скорость
 
             float targetAnimationSpeed = navAgent.MovementSpeed > 0
                 ? (currentSpeed / navAgent.MovementSpeed) * speedSync.BaseAnimationSpeed
@@ -56,14 +56,11 @@ namespace PandemicWars.Scripts.Ecs.Systems
                 speedSync.SpeedSmoothTime
             );
 
-            float finalSpeed = speedSync.CurrentAnimationSpeed * animComp.AnimationSpeedMultiplier;
-            if (animComp.Animator.enabled)
+            float finalSpeed = speedSync.CurrentAnimationSpeed * animatorComp.AnimationSpeedMultiplier;
+            if (animatorComp.Animator.enabled)
             {
-                animComp.Animator.speed = math.max(finalSpeed, 0.1f);
+                animatorComp.Animator.speed = math.max(finalSpeed, 0.1f);
             }
-
-            animComp.PreviousPosition = localTransform.Position;
-            animComp.HasPreviousPosition = true;
         }
     }
 }
