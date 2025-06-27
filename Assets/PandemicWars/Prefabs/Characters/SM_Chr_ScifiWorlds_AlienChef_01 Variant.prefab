@@ -535,6 +535,7 @@ GameObject:
   - component: {fileID: 1400335388746923644}
   - component: {fileID: 8732265526644446352}
   - component: {fileID: 7293282611743896274}
+  - component: {fileID: 441754690458633307}
   - component: {fileID: 6287319734825068816}
   - component: {fileID: 7306624013694531592}
   m_Layer: 0
@@ -637,6 +638,36 @@ MonoBehaviour:
   pathColor: {r: 0, g: 1, b: 0, a: 1}
   areaMask: -1
   autoRepath: 1
+--- !u!114 &441754690458633307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1314019402793158820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f59741da837c4124aaaa3e1fc5d4de0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 1400335388746923644}
+  idleAnimationName: Idle
+  moveAnimationName: Move
+  attackAnimationName: Attack
+  deathAnimationName: Death
+  selectionAnimationName: Selected
+  speedParameterName: Speed
+  isMovingParameterName: IsMoving
+  isSelectedParameterName: IsSelected
+  triggerAttackParameterName: Attack
+  triggerDeathParameterName: Death
+  transitionSpeed: 0.2
+  useRootMotion: 0
+  animationSpeedMultiplier: 1
+  syncMoveSpeedWithAnimation: 1
+  baseAnimationSpeed: 1
+  speedSmoothTime: 0.3
+  autoFindAnimator: 1
 --- !u!114 &6287319734825068816
 MonoBehaviour:
   m_ObjectHideFlags: 0

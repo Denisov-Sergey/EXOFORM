@@ -5,17 +5,30 @@ using UnityEngine;
 namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
 {
     /// <summary>
-    /// Компонент для управления анимациями юнита
+    /// Компонент для управления анимациями юнита - теперь правильная ECS структура
     /// </summary>
-    public class UnitAnimationComponent : IComponentData
+    public struct UnitAnimationComponent : IComponentData
+    {
+        [Header("Animation States")]
+        public UnitAnimationState CurrentState;
+        public UnitAnimationState PreviousState;
+        public float StateChangeTime;
+
+        [Header("Internal State")]
+        public float3 PreviousPosition;
+        public bool HasPreviousPosition;
+        public bool WasSelected;
+        public float LastAnimationTime;
+    }
+
+    /// <summary>
+    /// Managed компонент для хранения ссылки на Animator
+    /// Этот компонент содержит UnityEngine.Object ссылки, поэтому должен быть managed
+    /// </summary>
+    public class UnitAnimatorComponent : IComponentData
     {
         [Header("Animator Reference")]
         public Animator Animator;
-
-        [Header("Animation States")]
-        public UnitAnimationState CurrentState = UnitAnimationState.Idle;
-        public UnitAnimationState PreviousState = UnitAnimationState.Idle;
-        public float StateChangeTime;
 
         [Header("Animation Names")]
         public string IdleAnimationName = "Idle";
@@ -35,12 +48,6 @@ namespace PandemicWars.Scripts.Ecs.Components.UnitComponents
         public float TransitionSpeed = 0.2f;
         public bool UseRootMotion = false;
         public float AnimationSpeedMultiplier = 1f;
-
-        [Header("Internal State")]
-        public float3 PreviousPosition;
-        public bool HasPreviousPosition;
-        public bool WasSelected;
-        public float LastAnimationTime;
     }
 
     /// <summary>
