@@ -1,11 +1,10 @@
-﻿using Unity.Entities;
+﻿using PandemicWars.Scripts.Ecs.Components;
+using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
-using PandemicWars.Scripts.Ecs.Components;
-using PandemicWars.Scripts.Ecs.Components.UnitComponents;
 
-namespace PandemicWars.Scripts.Ecs.Systems
+namespace PandemicWars.Scripts.Ecs.Systems.UnitLogicSystems
 {
     /// <summary>
     /// Система для визуализации выбранных юнитов

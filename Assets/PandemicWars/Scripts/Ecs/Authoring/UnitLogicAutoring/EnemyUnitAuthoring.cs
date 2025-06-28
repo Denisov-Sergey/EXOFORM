@@ -1,10 +1,8 @@
-﻿using PandemicWars.Scripts.Ecs.Components;
-using PandemicWars.Scripts.Ecs.Components.UnitComponents;
+﻿using PandemicWars.Scripts.Ecs.Components.UnitComponents;
 using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 
-namespace PandemicWars.Scripts.Ecs.Authoring
+namespace PandemicWars.Scripts.Ecs.Authoring.UnitLogicAutoring
 {
     /// <summary>
     /// Authoring для вражеских юнитов, которые следуют за фиксированной целью

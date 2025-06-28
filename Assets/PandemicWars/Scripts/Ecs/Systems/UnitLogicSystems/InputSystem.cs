@@ -1,15 +1,13 @@
-﻿using System;
+﻿using PandemicWars.Scripts.Ecs.Components;
+using PandemicWars.Scripts.Ecs.Components.UnitComponents;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using PandemicWars.Scripts.Ecs.Components;
-using PandemicWars.Scripts.Ecs.Components.UnitComponents;
-using UnityEngine.AI;
 using Object = UnityEngine.Object;
 
-namespace PandemicWars.Scripts.Ecs.Systems
+namespace PandemicWars.Scripts.Ecs.Systems.UnitLogicSystems
 {
     /// <summary>
     /// Система обработки пользовательского ввода для управления юнитами.

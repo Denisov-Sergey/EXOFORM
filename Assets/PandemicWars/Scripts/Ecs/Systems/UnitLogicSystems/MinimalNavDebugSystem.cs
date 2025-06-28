@@ -1,11 +1,10 @@
-﻿using Unity.Entities;
-using Unity.Mathematics;
+﻿using PandemicWars.Scripts.Ecs.Components;
+using PandemicWars.Scripts.Ecs.Components.UnitComponents;
+using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine;
-using PandemicWars.Scripts.Ecs.Components;
-using PandemicWars.Scripts.Ecs.Components.UnitComponents;
 
-namespace PandemicWars.Scripts.Ecs.Systems
+namespace PandemicWars.Scripts.Ecs.Systems.UnitLogicSystems
 {
     /// <summary>
     /// МИНИМАЛЬНАЯ система отладки без GUI функций

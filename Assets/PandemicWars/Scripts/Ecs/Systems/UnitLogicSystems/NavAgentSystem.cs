@@ -1,14 +1,13 @@
-﻿using PandemicWars.Scripts.Ecs.Components;
-using PandemicWars.Scripts.Ecs.Components.UnitComponents;
-using UnityEngine;
-using Unity.Entities;
-using UnityEngine.Experimental.AI;
+﻿using PandemicWars.Scripts.Ecs.Components.UnitComponents;
+using Unity.Burst;
 using Unity.Collections;
+using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using Unity.Burst;
+using UnityEngine;
+using UnityEngine.Experimental.AI;
 
-namespace PandemicWars.Scripts.Ecs.Systems
+namespace PandemicWars.Scripts.Ecs.Systems.UnitLogicSystems
 {
     /// <summary>
     /// Высокопроизводительная система навигации для ECS архитектуры Unity DOTS.

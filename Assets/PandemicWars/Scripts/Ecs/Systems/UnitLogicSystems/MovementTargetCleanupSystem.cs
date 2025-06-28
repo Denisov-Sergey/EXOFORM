@@ -1,7 +1,7 @@
 ﻿using PandemicWars.Scripts.Ecs.Components.UnitComponents;
 using Unity.Entities;
 
-namespace PandemicWars.Scripts.Ecs.Systems
+namespace PandemicWars.Scripts.Ecs.Systems.UnitLogicSystems
 {
     /// <summary>
     /// Система для очистки старых целей движения
