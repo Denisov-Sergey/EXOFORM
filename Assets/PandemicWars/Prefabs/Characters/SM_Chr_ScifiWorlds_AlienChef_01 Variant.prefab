@@ -653,6 +653,7 @@ MonoBehaviour:
   speedParameterName: Speed
   isMovingParameterName: IsMoving
   isSelectedParameterName: IsSelected
+  selectionTriggerName: TriggerSelection
   attackTriggerName: AttackTrigger
   deathTriggerName: DeathTrigger
   damageFlashDuration: 0.2
