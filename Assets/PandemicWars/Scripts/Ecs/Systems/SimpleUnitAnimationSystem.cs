@@ -86,6 +86,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
 
             Debug.Log($"Entity {entity.Index}: Animation {animState.PreviousState} → {newState}");
 
+            
             if (animatorComp?.Animator == null)
             {
                 Debug.LogError($"Entity {entity.Index}: Animator is null in ChangeAnimationState!");
@@ -93,8 +94,17 @@ namespace PandemicWars.Scripts.Ecs.Systems
             }
 
             var animator = animatorComp.Animator;
-
+            
             // Дополнительные проверки
+            if (animator.cullingMode != AnimatorCullingMode.AlwaysAnimate)
+            {
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            }
+            if (!animator.gameObject.activeInHierarchy)
+            {
+                Debug.LogWarning($"Entity {entity.Index}: GameObject inactive! Activating...");
+                animator.gameObject.SetActive(true);
+            }
             if (!animator.enabled)
             {
                 Debug.LogWarning($"Entity {entity.Index}: Animator is disabled! Enabling...");
@@ -148,6 +158,7 @@ namespace PandemicWars.Scripts.Ecs.Systems
             try
             {
                 animator.Play(animationName, 0, 0f);
+                animator.Update(0f); // Принудительное обновление
                 Debug.Log($"Entity {entity.Index}: Play() method SUCCESS for '{animationName}'");
                 success = true;
             }
