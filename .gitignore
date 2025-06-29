@@ -80,6 +80,6 @@ crashlytics-build.properties
 
 # Except Assets folder structure leading to PandemicWars
 !Assets/
-!Assets/PandemicWars/
-!Assets/PandemicWars/**
+!Assets/EXOFORM/
+!Assets/EXOFORM/**
 
