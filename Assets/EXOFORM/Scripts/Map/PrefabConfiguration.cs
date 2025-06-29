@@ -133,7 +133,7 @@ namespace Exoform.Scripts.Map
             return tileType switch
             {
                 TileType.Structure or TileType.LargeStructure or TileType.ResearchFacility or 
-                TileType.ContainmentUnit or TileType.BioDome or TileType.CommandCenter => PrefabCategory.Buildings,
+                TileType.ProcessingPlant or TileType.BioDome or TileType.CommandCenter => PrefabCategory.Buildings,
                 
                 TileType.Spore or TileType.SporeCluster or 
                 TileType.CorruptedVegetation or  TileType.Forest or 
@@ -142,7 +142,7 @@ namespace Exoform.Scripts.Map
                 TileType.WoodResource or TileType.StoneResource or 
                 TileType.BiomassResource or TileType.MetalResource => PrefabCategory.Resources,
                 
-                TileType.BrokenCar or TileType.Roadblock or TileType.Debris => PrefabCategory.RoadObjects,
+                TileType.AbandonedVehicle or TileType.Barricade or TileType.WreckageDebris => PrefabCategory.RoadObjects,
                 
                 TileType.SupplyCache => PrefabCategory.Loot,
                 

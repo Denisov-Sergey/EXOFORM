@@ -162,7 +162,7 @@ namespace Exoform.Scripts.Map
             if (!cityGrid.IsValidPosition(pos)) return false;
             
             // Не на дорогах
-            if (cityGrid.Grid[pos.x][pos.y] == TileType.RoadStraight) return false;
+            if (cityGrid.Grid[pos.x][pos.y] == TileType.PathwayStraight) return false;
             
             // Не занято зданиями
             if (cityGrid.IsCellOccupiedByBuilding(pos)) return false;
@@ -254,7 +254,7 @@ namespace Exoform.Scripts.Map
                 {
                     Vector2Int checkPos = pos + new Vector2Int(dx, dy);
                     if (cityGrid.IsValidPosition(checkPos) && 
-                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                     {
                         return true;
                     }

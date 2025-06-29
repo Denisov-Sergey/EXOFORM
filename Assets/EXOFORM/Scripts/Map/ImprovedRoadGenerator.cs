@@ -121,7 +121,7 @@ namespace Exoform.Scripts.Map
             // Проверяем, не идет ли дорога уже в этом направлении
             Vector2Int checkPos = startPoint + direction;
             if (cityGrid.IsValidPosition(checkPos) && 
-                cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
             {
                 yield break;
             }
@@ -137,7 +137,7 @@ namespace Exoform.Scripts.Map
                     break;
                 
                 // Если встретили другую дорогу - соединяемся
-                if (cityGrid.Grid[current.x][current.y] == TileType.RoadStraight)
+                if (cityGrid.Grid[current.x][current.y] == TileType.PathwayStraight)
                 {
                     if (settings.createIntersections)
                     {
@@ -147,7 +147,7 @@ namespace Exoform.Scripts.Map
                     break;
                 }
                 
-                cityGrid.Grid[current.x][current.y] = TileType.RoadStraight;
+                cityGrid.Grid[current.x][current.y] = TileType.PathwayStraight;
                 yield return new WaitForSeconds(animationSpeed * 0.1f);
                 
                 // Случайное ответвление
@@ -174,7 +174,7 @@ namespace Exoform.Scripts.Map
             {
                 if (cityGrid.IsValidPosition(current))
                 {
-                    cityGrid.Grid[current.x][current.y] = TileType.RoadStraight;
+                    cityGrid.Grid[current.x][current.y] = TileType.PathwayStraight;
                 }
                 
                 if (current.x != end.x) current.x += direction.x;
@@ -199,7 +199,7 @@ namespace Exoform.Scripts.Map
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    if (cityGrid.Grid[x][y] == TileType.RoadStraight)
+                    if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
                     {
                         roadCells.Add(new Vector2Int(x, y));
                     }
@@ -221,7 +221,7 @@ namespace Exoform.Scripts.Map
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    if (cityGrid.Grid[x][y] == TileType.RoadStraight)
+                    if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
                     {
                         count++;
                     }

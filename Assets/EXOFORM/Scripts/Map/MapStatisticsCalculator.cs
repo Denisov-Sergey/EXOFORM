@@ -144,7 +144,7 @@ namespace Exoform.Scripts.Map
         /// </summary>
         public float GetFreeSpaceUsagePercentage()
         {
-            int roadCells = BaseTileStats.GetValueOrDefault(TileType.RoadStraight, 0);
+            int roadCells = BaseTileStats.GetValueOrDefault(TileType.PathwayStraight, 0);
             int freeCells = TotalCells - roadCells;
             int usedFreeCells = BuildingStats.Values.Sum() + VegetationStats.Values.Sum() + 
                               ResourceStats.Values.Sum() + DecorationStats.Values.Sum();
@@ -157,7 +157,7 @@ namespace Exoform.Scripts.Map
         /// </summary>
         public float GetRoadUsagePercentage()
         {
-            int roadCells = BaseTileStats.GetValueOrDefault(TileType.RoadStraight, 0);
+            int roadCells = BaseTileStats.GetValueOrDefault(TileType.PathwayStraight, 0);
             int usedRoadCells = RoadObjectStats.Values.Sum();
             
             return roadCells > 0 ? (float)usedRoadCells / roadCells * 100f : 0f;
@@ -201,7 +201,7 @@ namespace Exoform.Scripts.Map
 
         private bool IsRoadObjectType(TileType type) => type switch
         {
-            TileType.BrokenCar or TileType.SupplyCache or TileType.Roadblock or TileType.Debris => true,
+            TileType.AbandonedVehicle or TileType.SupplyCache or TileType.Barricade or TileType.WreckageDebris => true,
             _ => false
         };
 
@@ -227,7 +227,7 @@ namespace Exoform.Scripts.Map
         public static string GetTileEmoji(TileType tileType) => tileType switch
         {
             TileType.Grass => "🟩",
-            TileType.RoadStraight => "🛤️",
+            TileType.PathwayStraight => "🛤️",
             _ => "⬜"
         };
 
@@ -237,7 +237,7 @@ namespace Exoform.Scripts.Map
             TileType.Structure => "🏠",
             TileType.LargeStructure => "🏢",
             TileType.ResearchFacility => "🏬",
-            TileType.ContainmentUnit => "🏭",
+            TileType.ProcessingPlant => "🏭",
             TileType.BioDome => "🏞️",
             TileType.CommandCenter => "🏛️",
             
@@ -255,10 +255,10 @@ namespace Exoform.Scripts.Map
             TileType.MetalResource => "⚡",
             
             // Дорожные объекты
-            TileType.BrokenCar => "🚗",
+            TileType.AbandonedVehicle => "🚗",
             TileType.SupplyCache => "📦",
-            TileType.Roadblock => "🚧",
-            TileType.Debris => "🗑️",
+            TileType.Barricade => "🚧",
+            TileType.WreckageDebris => "🗑️",
             TileType.Decoration => "🎨",
             
             _ => "🏗️"
@@ -270,7 +270,7 @@ namespace Exoform.Scripts.Map
             TileType.Structure => new Color(0.3f, 0.3f, 0.8f, 0.8f),
             TileType.LargeStructure => new Color(0.5f, 0.2f, 0.8f, 0.8f),
             TileType.ResearchFacility => new Color(0.8f, 0.2f, 0.5f, 0.8f),
-            TileType.ContainmentUnit => new Color(0.8f, 0.5f, 0.2f, 0.8f),
+            TileType.ProcessingPlant => new Color(0.8f, 0.5f, 0.2f, 0.8f),
             TileType.BioDome => new Color(0.2f, 0.8f, 0.4f, 0.8f),
             TileType.CommandCenter => new Color(0.8f, 0.8f, 0.2f, 0.8f),
 
@@ -299,7 +299,7 @@ namespace Exoform.Scripts.Map
             TileType.Structure => Color.blue,
             TileType.LargeStructure => Color.magenta,
             TileType.ResearchFacility => Color.red,
-            TileType.ContainmentUnit => new Color(1f, 0.5f, 0f),
+            TileType.ProcessingPlant => new Color(1f, 0.5f, 0f),
             TileType.BioDome => Color.green,
             TileType.CommandCenter => Color.yellow,
 
@@ -317,9 +317,9 @@ namespace Exoform.Scripts.Map
             TileType.MetalResource => new Color(0.6f, 0.6f, 0.8f),
 
             // Дорожные объекты
-            TileType.BrokenCar => new Color(0.6f, 0.4f, 0.2f),
-            TileType.Roadblock => Color.red,
-            TileType.Debris => new Color(0.7f, 0.7f, 0.7f),
+            TileType.AbandonedVehicle => new Color(0.6f, 0.4f, 0.2f),
+            TileType.Barricade => Color.red,
+            TileType.WreckageDebris => new Color(0.7f, 0.7f, 0.7f),
             TileType.SupplyCache => new Color(1f, 0.85f, 0f),
             TileType.Decoration => new Color(0.8f, 0.6f, 0.9f),
 

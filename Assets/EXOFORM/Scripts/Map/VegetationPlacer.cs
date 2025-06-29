@@ -307,7 +307,7 @@ namespace Exoform.Scripts.Map
                 {
                     Vector2Int checkPos = pos + new Vector2Int(dx, dy);
                     if (cityGrid.IsValidPosition(checkPos) && 
-                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                     {
                         return true;
                     }

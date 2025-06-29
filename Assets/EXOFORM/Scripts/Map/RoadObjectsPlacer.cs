@@ -45,9 +45,9 @@ namespace Exoform.Scripts.Map
         {
             // ВАЖНО: Лут теперь обрабатывается отдельно через LootPlacer
             // Здесь только декоративные объекты
-            return type == TileType.BrokenCar || 
-                   type == TileType.Roadblock ||
-                   type == TileType.Debris;
+            return type == TileType.AbandonedVehicle || 
+                   type == TileType.Barricade ||
+                   type == TileType.WreckageDebris;
             // type == TileType.SupplyCache исключен!
         }
 
@@ -81,7 +81,7 @@ namespace Exoform.Scripts.Map
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    if (cityGrid.Grid[x][y] == TileType.RoadStraight)
+                    if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
                     {
                         roadCells.Add(new Vector2Int(x, y));
                     }
@@ -144,7 +144,7 @@ namespace Exoform.Scripts.Map
         bool CanPlaceRoadObject(Vector2Int position, PrefabSettings settings)
         {
             // Проверяем, что это действительно дорога
-            if (cityGrid.Grid[position.x][position.y] != TileType.RoadStraight)
+            if (cityGrid.Grid[position.x][position.y] != TileType.PathwayStraight)
                 return false;
 
             // Проверяем, не занята ли позиция другим объектом
@@ -154,15 +154,15 @@ namespace Exoform.Scripts.Map
             // Специальные правила для разных типов
             switch (settings.tileType)
             {
-                case TileType.BrokenCar:
+                case TileType.AbandonedVehicle:
                     // Машины не должны быть слишком близко к перекресткам
                     return !HasIntersectionNearby(position, 2);
                     
-                case TileType.Roadblock:
+                case TileType.Barricade:
                     // Блокпосты лучше на прямых участках
                     return IsLongStraightRoad(position, 3);
                     
-                case TileType.Debris:
+                case TileType.WreckageDebris:
                     // Обломки могут быть везде
                     return true;
                     
@@ -210,7 +210,7 @@ namespace Exoform.Scripts.Map
             {
                 Vector2Int checkPos = position + dir;
                 if (cityGrid.IsValidPosition(checkPos) && 
-                    cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                    cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                 {
                     roadDirections++;
                 }
@@ -231,7 +231,7 @@ namespace Exoform.Scripts.Map
                 // Проверяем в положительном направлении
                 Vector2Int checkPos = position + dir;
                 while (cityGrid.IsValidPosition(checkPos) && 
-                       cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                       cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                 {
                     length++;
                     checkPos += dir;
@@ -240,7 +240,7 @@ namespace Exoform.Scripts.Map
                 // Проверяем в отрицательном направлении
                 checkPos = position - dir;
                 while (cityGrid.IsValidPosition(checkPos) && 
-                       cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                       cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                 {
                     length++;
                     checkPos -= dir;

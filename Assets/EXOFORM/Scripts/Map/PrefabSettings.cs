@@ -151,7 +151,7 @@ namespace Exoform.Scripts.Map
             foreach (var cell in occupiedCells)
             {
                 // Проверяем базовую сетку (дороги блокируют размещение)
-                if (grid[cell.x][cell.y] == TileType.RoadStraight)
+                if (grid[cell.x][cell.y] == TileType.PathwayStraight)
                     return false;
             }
             

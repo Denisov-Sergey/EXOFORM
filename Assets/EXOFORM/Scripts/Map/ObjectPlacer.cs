@@ -83,8 +83,8 @@ namespace Exoform.Scripts.Map
 
         bool IsRoadObjectType(TileType type)
         {
-            return type == TileType.BrokenCar || type == TileType.Roadblock || 
-                   type == TileType.Debris;
+            return type == TileType.AbandonedVehicle || type == TileType.Barricade || 
+                   type == TileType.WreckageDebris;
         }
 
         // Добавим метод для проверки типа лута
@@ -372,7 +372,7 @@ namespace Exoform.Scripts.Map
                 {
                     Vector2Int checkPos = position + new Vector2Int(dx, dy);
                     if (cityGrid.IsValidPosition(checkPos) && 
-                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                     {
                         return true;
                     }

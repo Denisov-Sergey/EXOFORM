@@ -103,7 +103,7 @@ namespace Exoform.Scripts.Map
 
             Vector3 position = cityGrid.GetWorldPosition(x, y);
             TileType baseTileType = cityGrid.Grid[x][y];
-            GameObject basePrefab = baseTileType == TileType.RoadStraight ? roadPrefab : grassPrefab;
+            GameObject basePrefab = baseTileType == TileType.PathwayStraight ? roadPrefab : grassPrefab;
 
             if (basePrefab != null)
             {
@@ -293,8 +293,8 @@ namespace Exoform.Scripts.Map
 
         bool IsRoadObjectType(TileType type)
         {
-            return type == TileType.BrokenCar || type == TileType.Roadblock || 
-                   type == TileType.Debris;
+            return type == TileType.AbandonedVehicle || type == TileType.Barricade || 
+                   type == TileType.WreckageDebris;
         }
 
         bool IsDecorationType(TileType type)
@@ -348,7 +348,7 @@ namespace Exoform.Scripts.Map
                         continue;
 
                     if (cityGrid.IsValidPosition(checkCell) &&
-                        cityGrid.Grid[checkCell.x][checkCell.y] == TileType.RoadStraight)
+                        cityGrid.Grid[checkCell.x][checkCell.y] == TileType.PathwayStraight)
                     {
                         float distance = Vector2Int.Distance(centerCell, checkCell);
                         if (distance < minDistance)

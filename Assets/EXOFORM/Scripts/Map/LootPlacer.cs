@@ -180,7 +180,7 @@ namespace Exoform.Scripts.Map
         bool IsGoodLootPosition(Vector2Int pos)
         {
             // На дороге
-            if (cityGrid.Grid[pos.x][pos.y] == TileType.RoadStraight)
+            if (cityGrid.Grid[pos.x][pos.y] == TileType.PathwayStraight)
             {
                 return !cityGrid.IsCellOccupiedByBuilding(pos);
             }
@@ -234,7 +234,7 @@ namespace Exoform.Scripts.Map
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    if (cityGrid.Grid[x][y] == TileType.RoadStraight)
+                    if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
                         count++;
                 }
             }
@@ -272,7 +272,7 @@ namespace Exoform.Scripts.Map
                 {
                     Vector2Int checkPos = pos + new Vector2Int(dx, dy);
                     if (cityGrid.IsValidPosition(checkPos) && 
-                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.RoadStraight)
+                        cityGrid.Grid[checkPos.x][checkPos.y] == TileType.PathwayStraight)
                     {
                         return true;
                     }

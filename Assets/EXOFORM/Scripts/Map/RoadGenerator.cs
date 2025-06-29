@@ -54,7 +54,7 @@ namespace Exoform.Scripts.Map
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    if (cityGrid.Grid[x][y] == TileType.RoadStraight)
+                    if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
                     {
                         roadCount++;
                     }
@@ -97,7 +97,7 @@ namespace Exoform.Scripts.Map
             {
                 if (cityGrid.IsValidPosition(current))
                 {
-                    cityGrid.Grid[current.x][current.y] = TileType.RoadStraight;
+                    cityGrid.Grid[current.x][current.y] = TileType.PathwayStraight;
                     current += direction;
                     yield return new WaitForSeconds(animationSpeed * 0.2f);
                 }
