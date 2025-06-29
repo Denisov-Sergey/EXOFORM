@@ -75,10 +75,10 @@ namespace PandemicWars.Scripts.Map
 
         bool IsVegetationType(TileType type)
         {
-            return type == TileType.Tree || type == TileType.TreeCluster || 
-                   type == TileType.Bush || type == TileType.Flower || 
-                   type == TileType.SmallPlant || type == TileType.Forest || 
-                   type == TileType.Garden;
+            return type == TileType.Spore || type == TileType.SporeCluster || 
+                   type == TileType.CorruptedVegetation || 
+                   type == TileType.Forest || 
+                   type == TileType.AlienGrowth;
         }
 
         bool IsRoadObjectType(TileType type)
@@ -90,7 +90,7 @@ namespace PandemicWars.Scripts.Map
         // Добавим метод для проверки типа лута
         bool IsLootType(TileType type)
         {
-            return type == TileType.Loot;
+            return type == TileType.SupplyCache;
         }
 
         public IEnumerator PlaceObjects(float baseDensity, float animationSpeed)

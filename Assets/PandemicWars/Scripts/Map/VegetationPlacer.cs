@@ -41,10 +41,10 @@ namespace PandemicWars.Scripts.Map
 
         bool IsVegetationType(TileType type)
         {
-            return type == TileType.Tree || type == TileType.TreeCluster || 
-                   type == TileType.Bush || type == TileType.Flower || 
-                   type == TileType.SmallPlant || type == TileType.Forest || 
-                   type == TileType.Garden;
+            return type == TileType.Spore || type == TileType.SporeCluster || 
+                   type == TileType.CorruptedVegetation || 
+                   type == TileType.Forest || 
+                   type == TileType.AlienGrowth;
         }
 
         public IEnumerator PlaceVegetation(float vegetationDensity, float animationSpeed)
@@ -92,7 +92,7 @@ namespace PandemicWars.Scripts.Map
 
         IEnumerator PlaceGardens(float density, float animationSpeed)
         {
-            var gardenSettings = vegetationPrefabs.Find(v => v.tileType == TileType.Garden);
+            var gardenSettings = vegetationPrefabs.Find(v => v.tileType == TileType.AlienGrowth);
             if (gardenSettings == null) yield break;
 
             Debug.Log("  🌺 Размещение садов...");
@@ -123,8 +123,8 @@ namespace PandemicWars.Scripts.Map
 
             // Получаем мелкую растительность (деревья, кусты, цветы)
             var smallVegetation = vegetationPrefabs.FindAll(v => 
-                v.tileType == TileType.Tree || v.tileType == TileType.Bush || 
-                v.tileType == TileType.Flower || v.tileType == TileType.SmallPlant);
+                v.tileType == TileType.Spore || 
+                v.tileType == TileType.CorruptedVegetation);
 
             foreach (var vegetation in smallVegetation)
             {
@@ -164,11 +164,9 @@ namespace PandemicWars.Scripts.Map
         {
             return vegetationType switch
             {
-                TileType.Tree => baseDensity * 0.4f,        // 40% от базовой плотности
-                TileType.Bush => baseDensity * 0.6f,        // 60% от базовой плотности
-                TileType.Flower => baseDensity * 0.8f,      // 80% от базовой плотности
-                TileType.SmallPlant => baseDensity * 1.0f,  // 100% от базовой плотности
-                TileType.TreeCluster => baseDensity * 0.2f, // 20% от базовой плотности
+                TileType.Spore => baseDensity * 0.4f,        // 40% от базовой плотности
+                TileType.CorruptedVegetation => baseDensity * 0.8f,      // 80% от базовой плотности
+                TileType.SporeCluster => baseDensity * 0.2f, // 20% от базовой плотности
                 _ => baseDensity * 0.5f
             };
         }
@@ -273,15 +271,11 @@ namespace PandemicWars.Scripts.Map
             // Специальные правила для разных типов
             switch (settings.tileType)
             {
-                case TileType.Tree:
+                case TileType.Spore:
                     return !HasRoadNearby(pos, 1); // Деревья не вплотную к дорогам
                     
-                case TileType.Bush:
-                case TileType.Flower:
+                case TileType.CorruptedVegetation:
                     return true; // Кусты и цветы могут быть везде
-                    
-                case TileType.SmallPlant:
-                    return !HasBuildingNearby(pos, 1); // Мелкие растения подальше от зданий
                     
                 default:
                     return true;
@@ -363,7 +357,7 @@ namespace PandemicWars.Scripts.Map
                 if (!CanPlaceVegetationAt(cell, settings)) return false;
             }
 
-            RegisterVegetationArea(TileType.Garden, gardenCells);
+            RegisterVegetationArea(TileType.AlienGrowth, gardenCells);
             return true;
         }
 

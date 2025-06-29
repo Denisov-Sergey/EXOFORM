@@ -92,7 +92,7 @@ public class Building : MonoBehaviour
         
         if (mainCamera == null)
         {
-            Debug.LogError("Building System: Основная камера не найдена! Убедитесь что камера помечена как MainCamera.");
+            Debug.LogError("Structure System: Основная камера не найдена! Убедитесь что камера помечена как MainCamera.");
         }
         
         // Кэшируем устройства ввода
@@ -106,7 +106,7 @@ public class Building : MonoBehaviour
         
         if (debugMode)
         {
-            Debug.Log("Building System: Система строительства инициализирована");
+            Debug.Log("Structure System: Система строительства инициализирована");
         }
     }
     
@@ -220,7 +220,7 @@ public class Building : MonoBehaviour
     
     #endregion
     
-    #region Building System Core
+    #region Structure System Core
     
     /// <summary>
     /// Попытка разместить здание (с проверками валидности)
@@ -233,7 +233,7 @@ public class Building : MonoBehaviour
         }
         else if (debugMode)
         {
-            Debug.Log($"Building System: Невозможно разместить здание. BuildMode: {isBuildMode}, CanPlace: {canPlace}, Preview Active: {currentPreview?.activeInHierarchy}");
+            Debug.Log($"Structure System: Невозможно разместить здание. BuildMode: {isBuildMode}, CanPlace: {canPlace}, Preview Active: {currentPreview?.activeInHierarchy}");
         }
     }
     
@@ -255,7 +255,7 @@ public class Building : MonoBehaviour
         // Валидируем индекс здания
         if (!IsValidBuildingIndex(buildingIndex))
         {
-            Debug.LogWarning($"Building System: Неверный индекс здания: {buildingIndex}");
+            Debug.LogWarning($"Structure System: Неверный индекс здания: {buildingIndex}");
             return;
         }
         
@@ -272,7 +272,7 @@ public class Building : MonoBehaviour
         
         if (debugMode)
         {
-            Debug.Log($"Building System: Выбрано здание: {buildings[buildingIndex].buildingName}");
+            Debug.Log($"Structure System: Выбрано здание: {buildings[buildingIndex].buildingName}");
         }
     }
     
@@ -301,12 +301,12 @@ public class Building : MonoBehaviour
         // Валидируем компоненты
         if (previewRenderer == null)
         {
-            Debug.LogError($"Building System: У превью здания '{buildings[selectedBuildingIndex].buildingName}' отсутствует Renderer!");
+            Debug.LogError($"Structure System: У превью здания '{buildings[selectedBuildingIndex].buildingName}' отсутствует Renderer!");
         }
         
         if (currentPreviewGrid == null)
         {
-            Debug.LogError($"Building System: У превью здания '{buildings[selectedBuildingIndex].buildingName}' отсутствует компонент BuildingGrid!");
+            Debug.LogError($"Structure System: У превью здания '{buildings[selectedBuildingIndex].buildingName}' отсутствует компонент BuildingGrid!");
         }
         
         // Отключаем коллайдер у превью для избежания самопересечений
@@ -318,7 +318,7 @@ public class Building : MonoBehaviour
         
         if (debugMode)
         {
-            Debug.Log($"Building System: Создано превью для здания '{buildings[selectedBuildingIndex].buildingName}'");
+            Debug.Log($"Structure System: Создано превью для здания '{buildings[selectedBuildingIndex].buildingName}'");
         }
     }
     
@@ -375,7 +375,7 @@ public class Building : MonoBehaviour
             
             if (debugMode && Vector3.Distance(hit.point, snappedPosition) > 0.1f)
             {
-                Debug.Log($"Building System: Позиция привязана к сетке. Исходная: {hit.point}, Привязанная: {snappedPosition}");
+                Debug.Log($"Structure System: Позиция привязана к сетке. Исходная: {hit.point}, Привязанная: {snappedPosition}");
             }
         }
         else
@@ -407,7 +407,7 @@ public class Building : MonoBehaviour
                 canPlace = false;
                 if (debugMode)
                 {
-                    Debug.Log($"Building System: Пересечение с зданием на позиции {placedBuilding.transform.position}");
+                    Debug.Log($"Structure System: Пересечение с зданием на позиции {placedBuilding.transform.position}");
                 }
                 break;
             }
@@ -479,7 +479,7 @@ public class Building : MonoBehaviour
         
             if (debugMode)
             {
-                Debug.Log($"Building System: Коллизия с '{collider.name}' (слой: {LayerMask.LayerToName(collider.gameObject.layer)})");
+                Debug.Log($"Structure System: Коллизия с '{collider.name}' (слой: {LayerMask.LayerToName(collider.gameObject.layer)})");
             }
         
             return false;
@@ -568,12 +568,12 @@ public class Building : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"Building System: У размещенного здания '{buildings[selectedBuildingIndex].buildingName}' отсутствует компонент BuildingGrid!");
+            Debug.LogError($"Structure System: У размещенного здания '{buildings[selectedBuildingIndex].buildingName}' отсутствует компонент BuildingGrid!");
         }
         
         if (debugMode)
         {
-            Debug.Log($"Building System: Построено здание '{buildings[selectedBuildingIndex].buildingName}' в позиции {position}");
+            Debug.Log($"Structure System: Построено здание '{buildings[selectedBuildingIndex].buildingName}' в позиции {position}");
         }
         
         // Подготавливаем следующее превью для непрерывного строительства
@@ -609,7 +609,7 @@ public class Building : MonoBehaviour
         
         if (debugMode)
         {
-            Debug.Log("Building System: Строительство отменено");
+            Debug.Log("Structure System: Строительство отменено");
         }
     }
     
@@ -660,7 +660,7 @@ public class Building : MonoBehaviour
         
         if (debugMode)
         {
-            Debug.Log($"Building System: Найдено {placedBuildings.Count} существующих зданий");
+            Debug.Log($"Structure System: Найдено {placedBuildings.Count} существующих зданий");
         }
     }
     
@@ -674,7 +674,7 @@ public class Building : MonoBehaviour
         
         if (debugMode && placedBuildings.Count != originalCount)
         {
-            Debug.Log($"Building System: Удалено {originalCount - placedBuildings.Count} уничтоженных зданий из списка");
+            Debug.Log($"Structure System: Удалено {originalCount - placedBuildings.Count} уничтоженных зданий из списка");
         }
     }
     
@@ -685,7 +685,7 @@ public class Building : MonoBehaviour
     {
         if (buildings == null || buildings.Length == 0)
         {
-            Debug.LogWarning("Building System: Массив зданий пуст!");
+            Debug.LogWarning("Structure System: Массив зданий пуст!");
             return;
         }
         
@@ -693,7 +693,7 @@ public class Building : MonoBehaviour
         {
             if (buildings[i] == null)
             {
-                Debug.LogWarning($"Building System: Здание #{i} является null!");
+                Debug.LogWarning($"Structure System: Здание #{i} является null!");
                 continue;
             }
             
@@ -712,14 +712,14 @@ public class Building : MonoBehaviour
     {
         if (prefab == null)
         {
-            Debug.LogError($"Building System: У здания '{buildingName}' отсутствует {prefabType}!");
+            Debug.LogError($"Structure System: У здания '{buildingName}' отсутствует {prefabType}!");
             return;
         }
         
         BuildingGrid grid = prefab.GetComponent<BuildingGrid>();
         if (grid == null)
         {
-            Debug.LogError($"Building System: У {prefabType} здания '{buildingName}' отсутствует компонент BuildingGrid!");
+            Debug.LogError($"Structure System: У {prefabType} здания '{buildingName}' отсутствует компонент BuildingGrid!");
         }
     }
     

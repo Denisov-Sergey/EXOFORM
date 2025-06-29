@@ -176,7 +176,7 @@ namespace PandemicWars.Scripts.Map
                 warnings.Add($"⚠️ Очень высокая плотность застройки: {freeSpaceUsage:F1}%");
             }
 
-            int lootCount = RoadObjectStats.GetValueOrDefault(TileType.Loot, 0);
+            int lootCount = RoadObjectStats.GetValueOrDefault(TileType.SupplyCache, 0);
             if (lootCount < 5)
             {
                 warnings.Add($"⚠️ Мало лута на карте: {lootCount} ящиков");
@@ -193,22 +193,22 @@ namespace PandemicWars.Scripts.Map
         // Методы проверки типов
         private bool IsVegetationType(TileType type) => type switch
         {
-            TileType.Tree or TileType.TreeCluster or TileType.Bush or 
-            TileType.Flower or TileType.SmallPlant or TileType.Forest or 
-            TileType.Garden => true,
+            TileType.Spore or TileType.SporeCluster or 
+            TileType.CorruptedVegetation or  TileType.Forest or 
+            TileType.AlienGrowth => true,
             _ => false
         };
 
         private bool IsRoadObjectType(TileType type) => type switch
         {
-            TileType.BrokenCar or TileType.Loot or TileType.Roadblock or TileType.Debris => true,
+            TileType.BrokenCar or TileType.SupplyCache or TileType.Roadblock or TileType.Debris => true,
             _ => false
         };
 
         private bool IsResourceType(TileType type) => type switch
         {
             TileType.WoodResource or TileType.StoneResource or 
-            TileType.FoodResource or TileType.MetalResource => true,
+            TileType.BiomassResource or TileType.MetalResource => true,
             _ => false
         };
 
@@ -234,31 +234,29 @@ namespace PandemicWars.Scripts.Map
         public static string GetObjectEmoji(TileType objectType) => objectType switch
         {
             // Здания
-            TileType.Building => "🏠",
-            TileType.LargeBuilding => "🏢",
-            TileType.Mall => "🏬",
-            TileType.Factory => "🏭",
-            TileType.Park => "🏞️",
-            TileType.Special => "🏛️",
+            TileType.Structure => "🏠",
+            TileType.LargeStructure => "🏢",
+            TileType.ResearchFacility => "🏬",
+            TileType.ContainmentUnit => "🏭",
+            TileType.BioDome => "🏞️",
+            TileType.CommandCenter => "🏛️",
             
             // Растительность
-            TileType.Tree => "🌲",
-            TileType.TreeCluster => "🌳",
-            TileType.Bush => "🌿",
-            TileType.Flower => "🌸",
-            TileType.SmallPlant => "🌱",
+            TileType.Spore => "🌲",
+            TileType.SporeCluster => "🌳",
+            TileType.CorruptedVegetation => "🌸",
             TileType.Forest => "🌲🌲",
-            TileType.Garden => "🌺",
+            TileType.AlienGrowth => "🌺",
             
             // Ресурсы
             TileType.WoodResource => "🪵",
             TileType.StoneResource => "🪨",
-            TileType.FoodResource => "🌾",
+            TileType.BiomassResource => "🌾",
             TileType.MetalResource => "⚡",
             
             // Дорожные объекты
             TileType.BrokenCar => "🚗",
-            TileType.Loot => "📦",
+            TileType.SupplyCache => "📦",
             TileType.Roadblock => "🚧",
             TileType.Debris => "🗑️",
             TileType.Decoration => "🎨",
@@ -269,26 +267,24 @@ namespace PandemicWars.Scripts.Map
         public static Color GetObjectColor(TileType objectType) => objectType switch
         {
             // Здания
-            TileType.Building => new Color(0.3f, 0.3f, 0.8f, 0.8f),
-            TileType.LargeBuilding => new Color(0.5f, 0.2f, 0.8f, 0.8f),
-            TileType.Mall => new Color(0.8f, 0.2f, 0.5f, 0.8f),
-            TileType.Factory => new Color(0.8f, 0.5f, 0.2f, 0.8f),
-            TileType.Park => new Color(0.2f, 0.8f, 0.4f, 0.8f),
-            TileType.Special => new Color(0.8f, 0.8f, 0.2f, 0.8f),
+            TileType.Structure => new Color(0.3f, 0.3f, 0.8f, 0.8f),
+            TileType.LargeStructure => new Color(0.5f, 0.2f, 0.8f, 0.8f),
+            TileType.ResearchFacility => new Color(0.8f, 0.2f, 0.5f, 0.8f),
+            TileType.ContainmentUnit => new Color(0.8f, 0.5f, 0.2f, 0.8f),
+            TileType.BioDome => new Color(0.2f, 0.8f, 0.4f, 0.8f),
+            TileType.CommandCenter => new Color(0.8f, 0.8f, 0.2f, 0.8f),
 
             // Растительность
-            TileType.Tree => new Color(0.1f, 0.6f, 0.1f, 0.9f),
-            TileType.TreeCluster => new Color(0.0f, 0.5f, 0.0f, 0.9f),
-            TileType.Bush => new Color(0.3f, 0.7f, 0.3f, 0.8f),
-            TileType.Flower => new Color(0.9f, 0.4f, 0.7f, 0.8f),
-            TileType.SmallPlant => new Color(0.4f, 0.8f, 0.2f, 0.7f),
+            TileType.Spore => new Color(0.1f, 0.6f, 0.1f, 0.9f),
+            TileType.SporeCluster => new Color(0.0f, 0.5f, 0.0f, 0.9f),
+            TileType.CorruptedVegetation => new Color(0.9f, 0.4f, 0.7f, 0.8f),
             TileType.Forest => new Color(0.0f, 0.4f, 0.0f, 0.9f),
-            TileType.Garden => new Color(0.5f, 0.9f, 0.5f, 0.8f),
+            TileType.AlienGrowth => new Color(0.5f, 0.9f, 0.5f, 0.8f),
 
             // Ресурсы
             TileType.WoodResource => new Color(0.6f, 0.3f, 0.1f, 0.9f),
             TileType.StoneResource => new Color(0.7f, 0.7f, 0.7f, 0.9f),
-            TileType.FoodResource => new Color(0.9f, 0.8f, 0.2f, 0.9f),
+            TileType.BiomassResource => new Color(0.9f, 0.8f, 0.2f, 0.9f),
             TileType.MetalResource => new Color(0.4f, 0.4f, 0.6f, 0.9f),
 
             // Декорации
@@ -300,33 +296,31 @@ namespace PandemicWars.Scripts.Map
         public static Color GetObjectOutlineColor(TileType objectType) => objectType switch
         {
             // Здания
-            TileType.Building => Color.blue,
-            TileType.LargeBuilding => Color.magenta,
-            TileType.Mall => Color.red,
-            TileType.Factory => new Color(1f, 0.5f, 0f),
-            TileType.Park => Color.green,
-            TileType.Special => Color.yellow,
+            TileType.Structure => Color.blue,
+            TileType.LargeStructure => Color.magenta,
+            TileType.ResearchFacility => Color.red,
+            TileType.ContainmentUnit => new Color(1f, 0.5f, 0f),
+            TileType.BioDome => Color.green,
+            TileType.CommandCenter => Color.yellow,
 
             // Растительность
-            TileType.Tree => new Color(0f, 0.8f, 0f),
-            TileType.TreeCluster => new Color(0f, 0.6f, 0f),
-            TileType.Bush => new Color(0.5f, 1f, 0.5f),
-            TileType.Flower => new Color(1f, 0.5f, 0.8f),
-            TileType.SmallPlant => new Color(0.7f, 1f, 0.3f),
+            TileType.Spore => new Color(0f, 0.8f, 0f),
+            TileType.SporeCluster => new Color(0f, 0.6f, 0f),
+            TileType.CorruptedVegetation => new Color(1f, 0.5f, 0.8f),
             TileType.Forest => new Color(0f, 0.5f, 0f),
-            TileType.Garden => new Color(0.3f, 1f, 0.3f),
+            TileType.AlienGrowth => new Color(0.3f, 1f, 0.3f),
 
             // Ресурсы
             TileType.WoodResource => new Color(0.8f, 0.4f, 0.1f),
             TileType.StoneResource => new Color(0.9f, 0.9f, 0.9f),
-            TileType.FoodResource => new Color(1f, 0.9f, 0f),
+            TileType.BiomassResource => new Color(1f, 0.9f, 0f),
             TileType.MetalResource => new Color(0.6f, 0.6f, 0.8f),
 
             // Дорожные объекты
             TileType.BrokenCar => new Color(0.6f, 0.4f, 0.2f),
             TileType.Roadblock => Color.red,
             TileType.Debris => new Color(0.7f, 0.7f, 0.7f),
-            TileType.Loot => new Color(1f, 0.85f, 0f),
+            TileType.SupplyCache => new Color(1f, 0.85f, 0f),
             TileType.Decoration => new Color(0.8f, 0.6f, 0.9f),
 
             _ => Color.blue

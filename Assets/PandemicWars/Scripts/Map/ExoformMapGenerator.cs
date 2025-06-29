@@ -10,14 +10,14 @@ namespace PandemicWars.Scripts.Map
     /// <summary>
     /// Главный генератор города с улучшенной архитектурой и разделением префабов
     /// </summary>
-    public class CityGenerator : MonoBehaviour
+    public class ExoformMapGenerator : MonoBehaviour
     {
         #region Inspector Fields
         
-        [Header("🗺️ Grid Settings")]
-        [Tooltip("Ширина сетки города")]
+        [Header("🗺️ Zone Grid Settings")]
+        [Tooltip("Ширина сетки")]
         public int gridWidth = 50;
-        [Tooltip("Высота сетки города")]
+        [Tooltip("Высота сетки")]
         public int gridHeight = 50;
         [Tooltip("Размер одной клетки")]
         public float tileSize = 5f;
@@ -53,7 +53,7 @@ namespace PandemicWars.Scripts.Map
         [Tooltip("Настройки для улучшенного генератора дорог")]
         public ImprovedRoadGenerator.RoadSettings advancedRoadSettings = new ImprovedRoadGenerator.RoadSettings();
 
-        [Header("📦 Loot Settings")]
+        [Header("📦 SupplyCache Settings")]
         [Tooltip("Минимальное количество лута на карте")]
         public int minLootCount = 5;
         [Tooltip("Максимальное количество лута на карте")]
@@ -137,7 +137,7 @@ namespace PandemicWars.Scripts.Map
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"Ошибка при инициализации CityGenerator: {e.Message}\n{e.StackTrace}");
+                Debug.LogError($"Ошибка при инициализации ExoformMapGenerator: {e.Message}\n{e.StackTrace}");
             }
         }
 
@@ -604,7 +604,7 @@ namespace PandemicWars.Scripts.Map
         private void LogDebug(string message)
         {
             if (verboseLogging)
-                Debug.Log($"[CityGenerator] {message}");
+                Debug.Log($"[ExoformMapGenerator] {message}");
         }
 
         #endregion

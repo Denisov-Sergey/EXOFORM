@@ -13,13 +13,13 @@ namespace PandemicWars.Scripts.Map
         private CityGrid cityGrid;
         private List<PrefabSettings> lootPrefabs;
         private MonoBehaviour coroutineRunner;
-        private CityGenerator cityGenerator;
+        private ExoformMapGenerator _exoformMapGenerator;
 
-        public LootPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, CityGenerator generator)
+        public LootPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, ExoformMapGenerator generator)
         {
             cityGrid = grid;
             coroutineRunner = runner;
-            cityGenerator = generator;
+            _exoformMapGenerator = generator;
             LoadLootPrefabs(prefabs);
         }
 
@@ -32,7 +32,7 @@ namespace PandemicWars.Scripts.Map
                 if (prefab != null)
                 {
                     var settings = prefab.GetComponent<PrefabSettings>();
-                    if (settings != null && settings.tileType == TileType.Loot)
+                    if (settings != null && settings.tileType == TileType.SupplyCache)
                     {
                         lootPrefabs.Add(settings);
                     }
@@ -63,15 +63,15 @@ namespace PandemicWars.Scripts.Map
 
             // Рассчитываем количество лута
             int roadCellsCount = CountRoadCells();
-            int targetLootCount = Mathf.RoundToInt(roadCellsCount * cityGenerator.lootDensity);
-            targetLootCount = Mathf.Clamp(targetLootCount, cityGenerator.minLootCount, cityGenerator.maxLootCount);
+            int targetLootCount = Mathf.RoundToInt(roadCellsCount * _exoformMapGenerator.lootDensity);
+            targetLootCount = Mathf.Clamp(targetLootCount, _exoformMapGenerator.minLootCount, _exoformMapGenerator.maxLootCount);
 
             Debug.Log($"  📊 Дорожных клеток: {roadCellsCount}");
-            Debug.Log($"  🎯 Целевое количество лута: {targetLootCount} ({cityGenerator.lootDensity * 100:F1}% от дорог)");
+            Debug.Log($"  🎯 Целевое количество лута: {targetLootCount} ({_exoformMapGenerator.lootDensity * 100:F1}% от дорог)");
             Debug.Log($"  📍 Доступных позиций: {lootPositions.Count}");
 
             // Размещаем лут
-            if (cityGenerator.clusterLoot)
+            if (_exoformMapGenerator.clusterLoot)
             {
                 yield return PlaceLootClusters(lootPositions, targetLootCount, animationSpeed);
             }
@@ -84,9 +84,9 @@ namespace PandemicWars.Scripts.Map
         IEnumerator PlaceLootClusters(List<Vector2Int> positions, int targetCount, float animationSpeed)
         {
             int placedCount = 0;
-            int clusterCount = Mathf.CeilToInt((float)targetCount / cityGenerator.lootClusterSize);
+            int clusterCount = Mathf.CeilToInt((float)targetCount / _exoformMapGenerator.lootClusterSize);
 
-            Debug.Log($"  🎯 Создаем {clusterCount} групп лута по {cityGenerator.lootClusterSize} штук");
+            Debug.Log($"  🎯 Создаем {clusterCount} групп лута по {_exoformMapGenerator.lootClusterSize} штук");
 
             for (int i = 0; i < clusterCount && positions.Count > 0 && placedCount < targetCount; i++)
             {
@@ -95,7 +95,7 @@ namespace PandemicWars.Scripts.Map
                 Vector2Int center = positions[centerIndex];
 
                 // Размещаем кластер
-                var clusterPositions = GetClusterPositions(center, positions, cityGenerator.lootClusterSize);
+                var clusterPositions = GetClusterPositions(center, positions, _exoformMapGenerator.lootClusterSize);
                 
                 foreach (var pos in clusterPositions)
                 {
@@ -219,10 +219,10 @@ namespace PandemicWars.Scripts.Map
             // Выбираем случайный префаб лута
             var lootPrefab = lootPrefabs[Random.Range(0, lootPrefabs.Count)];
             
-            if (!cityGrid.BuildingOccupancy.ContainsKey(TileType.Loot))
-                cityGrid.BuildingOccupancy[TileType.Loot] = new List<Vector2Int>();
+            if (!cityGrid.BuildingOccupancy.ContainsKey(TileType.SupplyCache))
+                cityGrid.BuildingOccupancy[TileType.SupplyCache] = new List<Vector2Int>();
             
-            cityGrid.BuildingOccupancy[TileType.Loot].Add(position);
+            cityGrid.BuildingOccupancy[TileType.SupplyCache].Add(position);
             
             return true;
         }
@@ -283,10 +283,10 @@ namespace PandemicWars.Scripts.Map
 
         bool IsVegetationType(TileType type)
         {
-            return type == TileType.Tree || type == TileType.TreeCluster || 
-                   type == TileType.Bush || type == TileType.Flower || 
-                   type == TileType.SmallPlant || type == TileType.Forest || 
-                   type == TileType.Garden;
+            return type == TileType.Spore || type == TileType.SporeCluster || 
+                   type == TileType.CorruptedVegetation || 
+                   type == TileType.Forest || 
+                   type == TileType.AlienGrowth;
         }
 
         void RemoveNearbyPositions(List<Vector2Int> positions, Vector2Int center, int distance)

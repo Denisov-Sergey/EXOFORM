@@ -132,19 +132,19 @@ namespace PandemicWars.Scripts.Map
         {
             return tileType switch
             {
-                TileType.Building or TileType.LargeBuilding or TileType.Mall or 
-                TileType.Factory or TileType.Park or TileType.Special => PrefabCategory.Buildings,
+                TileType.Structure or TileType.LargeStructure or TileType.ResearchFacility or 
+                TileType.ContainmentUnit or TileType.BioDome or TileType.CommandCenter => PrefabCategory.Buildings,
                 
-                TileType.Tree or TileType.TreeCluster or TileType.Bush or 
-                TileType.Flower or TileType.SmallPlant or TileType.Forest or 
-                TileType.Garden => PrefabCategory.Vegetation,
+                TileType.Spore or TileType.SporeCluster or 
+                TileType.CorruptedVegetation or  TileType.Forest or 
+                TileType.AlienGrowth => PrefabCategory.Vegetation,
                 
                 TileType.WoodResource or TileType.StoneResource or 
-                TileType.FoodResource or TileType.MetalResource => PrefabCategory.Resources,
+                TileType.BiomassResource or TileType.MetalResource => PrefabCategory.Resources,
                 
                 TileType.BrokenCar or TileType.Roadblock or TileType.Debris => PrefabCategory.RoadObjects,
                 
-                TileType.Loot => PrefabCategory.Loot,
+                TileType.SupplyCache => PrefabCategory.Loot,
                 
                 TileType.Decoration => PrefabCategory.Decorations,
                 

@@ -13,13 +13,13 @@ namespace PandemicWars.Scripts.Map
         private CityGrid cityGrid;
         private List<PrefabSettings> resourcePrefabs;
         private MonoBehaviour coroutineRunner;
-        private CityGenerator cityGenerator;
+        private ExoformMapGenerator _exoformMapGenerator;
 
-        public ResourcePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, CityGenerator generator)
+        public ResourcePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, ExoformMapGenerator generator)
         {
             cityGrid = grid;
             coroutineRunner = runner;
-            cityGenerator = generator;
+            _exoformMapGenerator = generator;
             LoadResourcePrefabs(prefabs);
         }
 
@@ -265,16 +265,16 @@ namespace PandemicWars.Scripts.Map
 
         bool IsVegetationType(TileType type)
         {
-            return type == TileType.Tree || type == TileType.TreeCluster || 
-                   type == TileType.Bush || type == TileType.Flower || 
-                   type == TileType.SmallPlant || type == TileType.Forest || 
-                   type == TileType.Garden;
+            return type == TileType.Spore || type == TileType.SporeCluster || 
+                   type == TileType.CorruptedVegetation || 
+                   type == TileType.Forest || 
+                   type == TileType.AlienGrowth;
         }
 
         bool IsResourceType(TileType type)
         {
             return type == TileType.WoodResource || type == TileType.StoneResource || 
-                   type == TileType.FoodResource || type == TileType.MetalResource;
+                   type == TileType.BiomassResource || type == TileType.MetalResource;
         }
 
         string GetResourceEmoji(TileType resourceType)
@@ -283,7 +283,7 @@ namespace PandemicWars.Scripts.Map
             {
                 TileType.WoodResource => "🪵",
                 TileType.StoneResource => "🪨", 
-                TileType.FoodResource => "🌾",
+                TileType.BiomassResource => "🌾",
                 TileType.MetalResource => "⚡",
                 _ => "⛏️"
             };

@@ -10,10 +10,10 @@ namespace PandemicWars.Scripts.Map
     {
         [Header("Basic Info")]
         [Tooltip("Название объекта")]
-        public string objectName = "Building";
+        public string objectName = "Structure";
         
         [Tooltip("Тип тайла")]
-        public TileType tileType = TileType.Building;
+        public TileType tileType = TileType.Structure;
 
         [Header("Size Settings")]
         [Tooltip("Размер объекта в клетках (ширина x высота)")]

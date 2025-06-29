@@ -279,16 +279,16 @@ namespace PandemicWars.Scripts.Map
         {
             if (IsVegetationType(type)) return "Vegetation";
             if (IsRoadObjectType(type)) return "RoadObject";
-            if (type == TileType.Loot) return "Loot";
-            return "Building";
+            if (type == TileType.SupplyCache) return "SupplyCache";
+            return "Structure";
         }
 
         bool IsVegetationType(TileType type)
         {
-            return type == TileType.Tree || type == TileType.TreeCluster || 
-                   type == TileType.Bush || type == TileType.Flower || 
-                   type == TileType.SmallPlant || type == TileType.Forest || 
-                   type == TileType.Garden;
+            return type == TileType.Spore || type == TileType.SporeCluster || 
+                   type == TileType.CorruptedVegetation || 
+                   type == TileType.Forest || 
+                   type == TileType.AlienGrowth;
         }
 
         bool IsRoadObjectType(TileType type)

@@ -7,39 +7,39 @@
         RoadStraight,       // Прямая дорога
         
         // Здания
-        Building,           // Здание
-        LargeBuilding,      // Крупное здание
-        Mall,               // Торговый центр
-        Factory,            // Завод
-        Park,               // Парк
-        Special,            // Особый объект
-        Infrastructure,     // Инфраструктура
+        Structure,           
+        LargeStructure,      
+        ResearchFacility,          // исследовательские объекты
+        ContainmentUnit,           // блоки сдерживания
+        BioDome,            // био-купола
+        CommandCenter,            // Особый объект
 
         // Растительность
-        Tree,               // Отдельные деревья
-        TreeCluster,        // Группы деревьев
-        Bush,               // Кусты
-        Flower,             // Цветы
-        SmallPlant,         // Мелкие растения
+        Spore,               // Отдельные споры
+        SporeCluster,               // Кусты
+        CorruptedVegetation,         // Мелкие растения
 
         // Специальные зоны
         Forest,             // Лесные массивы
-        Garden,             // Сады
+        AlienGrowth,             // инопланетный рост
 
         // Объекты на дорогах
         BrokenCar,          // Сломанная машина
-        Loot,               // Лут/припасы
+        SupplyCache,               // тайники снабжения
         Roadblock,          // Блокпост/баррикада
         Debris,             // Обломки/мусор
         
         // Декорации
         Decoration,         // Декоративные объекты
         
-        // НОВОЕ: Ресурсы
+        //Ресурсы
         WoodResource,       // Древесина
         StoneResource,      // Камень
-        FoodResource,       // Еда/сельхоз
+        BiomassResource,       // биомасса 
         MetalResource,      // Металл/руда
+        EnergyResource,         // энергия для активации
+        ArtifactsResource,      // артефакты
+        TechSalvageResource,    // технические обломки
         
         Reserved            // Зарезервировано
     }

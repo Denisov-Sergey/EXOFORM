@@ -48,7 +48,7 @@ namespace PandemicWars.Scripts.Map
             return type == TileType.BrokenCar || 
                    type == TileType.Roadblock ||
                    type == TileType.Debris;
-            // type == TileType.Loot исключен!
+            // type == TileType.SupplyCache исключен!
         }
 
         public IEnumerator PlaceRoadObjects(float density, float animationSpeed)
