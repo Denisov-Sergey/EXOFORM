@@ -5,34 +5,59 @@ using UnityEngine;
 namespace Exoform.Scripts.Map
 {
     /// <summary>
-    /// Класс для создания и обновления тайлов
+    /// Класс для создания и обновления тайлов с поддержкой массивов префабов
     /// </summary>
     public class TileSpawner
     {
         private CityGrid cityGrid;
         private Transform parent;
-        private Dictionary<string, int> spawnedPrefabCounts; // Счетчик по именам префабов
+        private Dictionary<string, int> spawnedPrefabCounts;
+        private bool pathwaysOverGrass; // Дороги поверх травы
 
-        public TileSpawner(CityGrid grid, Transform parentTransform)
+        public TileSpawner(CityGrid grid, Transform parentTransform, bool pathwaysOverGrass = false)
         {
             cityGrid = grid;
             parent = parentTransform;
+            this.pathwaysOverGrass = pathwaysOverGrass;
             spawnedPrefabCounts = new Dictionary<string, int>();
         }
 
-        public IEnumerator SpawnAllTiles(GameObject grassPrefab, GameObject roadPrefab,
-            List<GameObject> prefabsWithSettings, float animationSpeed)
+        public IEnumerator SpawnAllTiles(GameObject[] grassPrefabs, GameObject[] pathwayPrefabs,
+            List<GameObject> prefabsWithSettings, float animationSpeed, bool combineGrass = false)
         {
             Debug.Log("  🎯 Создание базовых тайлов...");
             spawnedPrefabCounts.Clear();
 
+            // Сначала создаем все тайлы травы
             for (int x = 0; x < cityGrid.Width; x++)
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    CreateTileAt(x, y, grassPrefab, roadPrefab);
+                    // Создаем траву везде
+                    CreateGrassTileAt(x, y, grassPrefabs);
 
                     if ((x * cityGrid.Height + y) % 10 == 0)
+                    {
+                        yield return new WaitForSeconds(animationSpeed * 0.1f);
+                    }
+                }
+            }
+
+            // Если дороги поверх травы, создаем их как отдельный слой
+            if (pathwaysOverGrass)
+            {
+                Debug.Log("  🛤️ Создание дорог поверх травы...");
+                for (int x = 0; x < cityGrid.Width; x++)
+                {
+                    for (int y = 0; y < cityGrid.Height; y++)
+                    {
+                        if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
+                        {
+                            CreatePathwayOverGrass(x, y, pathwayPrefabs);
+                        }
+                    }
+
+                    if (x % 5 == 0)
                     {
                         yield return new WaitForSeconds(animationSpeed * 0.1f);
                     }
@@ -44,8 +69,8 @@ namespace Exoform.Scripts.Map
             LogSpawnedCounts();
         }
 
-        public IEnumerator UpdateChangedTiles(GameObject grassPrefab, GameObject roadPrefab,
-            List<GameObject> prefabsWithSettings, float animationSpeed)
+        public IEnumerator UpdateChangedTiles(GameObject[] grassPrefabs, GameObject[] pathwayPrefabs,
+            List<GameObject> prefabsWithSettings, float animationSpeed, bool combineGrass = false)
         {
             // Очищаем старые объекты
             ClearExistingBuildings();
@@ -54,14 +79,38 @@ namespace Exoform.Scripts.Map
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    if (cityGrid.SpawnedTiles[x][y] != null &&
-                        cityGrid.SpawnedTiles[x][y].name.StartsWith("Base_"))
+                    // Удаляем старые тайлы
+                    if (cityGrid.SpawnedTiles[x][y] != null)
                     {
-                        Object.DestroyImmediate(cityGrid.SpawnedTiles[x][y]);
-                        cityGrid.SpawnedTiles[x][y] = null;
+                        // Пропускаем объединенную траву
+                        if (cityGrid.SpawnedTiles[x][y].name == "CombinedGrass")
+                            continue;
+                            
+                        if (cityGrid.SpawnedTiles[x][y].name.StartsWith("Base_") ||
+                            cityGrid.SpawnedTiles[x][y].name.StartsWith("Pathway_"))
+                        {
+                            Object.DestroyImmediate(cityGrid.SpawnedTiles[x][y]);
+                            cityGrid.SpawnedTiles[x][y] = null;
+                        }
                     }
 
-                    CreateTileAt(x, y, grassPrefab, roadPrefab);
+                    // Создаем новые тайлы
+                    if (pathwaysOverGrass)
+                    {
+                        // Всегда создаем траву
+                        CreateGrassTileAt(x, y, grassPrefabs);
+                        
+                        // Дорогу создаем поверх если нужно
+                        if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
+                        {
+                            CreatePathwayOverGrass(x, y, pathwayPrefabs);
+                        }
+                    }
+                    else
+                    {
+                        // Старый режим - либо трава, либо дорога
+                        CreateTileAt(x, y, grassPrefabs, pathwayPrefabs);
+                    }
                 }
 
                 yield return new WaitForSeconds(animationSpeed * 0.1f);
@@ -74,15 +123,19 @@ namespace Exoform.Scripts.Map
 
         void ClearExistingBuildings()
         {
-            // Удаляем все объекты кроме базовых тайлов
+            // Удаляем все объекты кроме базовых тайлов и объединенной травы
             List<GameObject> toDestroy = new List<GameObject>();
             
             foreach (Transform child in parent)
             {
+                if (child.name == "CombinedGrass")
+                    continue;
+                    
                 if (child.name.StartsWith("Building_") || 
                     child.name.StartsWith("Vegetation_") || 
                     child.name.StartsWith("RoadObject_") ||
-                    child.name.StartsWith("Loot_"))
+                    child.name.StartsWith("Loot_") ||
+                    child.name.StartsWith("Pathway_"))
                 {
                     toDestroy.Add(child.gameObject);
                 }
@@ -96,22 +149,86 @@ namespace Exoform.Scripts.Map
             spawnedPrefabCounts.Clear();
         }
 
-        void CreateTileAt(int x, int y, GameObject grassPrefab, GameObject roadPrefab)
+        void CreateGrassTileAt(int x, int y, GameObject[] grassPrefabs)
+        {
+            if (grassPrefabs == null || grassPrefabs.Length == 0) return;
+            
+            Vector3 position = cityGrid.GetWorldPosition(x, y);
+            
+            // Выбираем случайный префаб травы
+            GameObject grassPrefab = GetRandomPrefab(grassPrefabs);
+            if (grassPrefab == null) return;
+
+            GameObject grassTile = Object.Instantiate(grassPrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
+            grassTile.name = $"Base_{x}_{y}_Grass";
+            grassTile.transform.SetParent(parent);
+            cityGrid.SpawnedTiles[x][y] = grassTile;
+        }
+
+        void CreatePathwayOverGrass(int x, int y, GameObject[] pathwayPrefabs)
+        {
+            if (pathwayPrefabs == null || pathwayPrefabs.Length == 0) return;
+            
+            Vector3 position = cityGrid.GetWorldPosition(x, y);
+            // Поднимаем дорогу немного выше травы
+            position.y += 0.05f;
+            
+            // Выбираем случайный префаб дороги
+            GameObject pathwayPrefab = GetRandomPrefab(pathwayPrefabs);
+            if (pathwayPrefab == null) return;
+
+            GameObject pathway = Object.Instantiate(pathwayPrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
+            pathway.name = $"Pathway_{x}_{y}";
+            pathway.transform.SetParent(parent);
+            
+            // Не заменяем ссылку в SpawnedTiles - там остается трава
+            // Дорога существует как отдельный объект поверх
+        }
+
+        void CreateTileAt(int x, int y, GameObject[] grassPrefabs, GameObject[] pathwayPrefabs)
         {
             if (cityGrid.SpawnedTiles[x][y] != null)
                 return;
 
             Vector3 position = cityGrid.GetWorldPosition(x, y);
             TileType baseTileType = cityGrid.Grid[x][y];
-            GameObject basePrefab = baseTileType == TileType.PathwayStraight ? roadPrefab : grassPrefab;
-
-            if (basePrefab != null)
+            
+            GameObject tilePrefab = null;
+            if (baseTileType == TileType.PathwayStraight)
             {
-                GameObject baseTile = Object.Instantiate(basePrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
+                tilePrefab = GetRandomPrefab(pathwayPrefabs);
+            }
+            else
+            {
+                tilePrefab = GetRandomPrefab(grassPrefabs);
+            }
+
+            if (tilePrefab != null)
+            {
+                GameObject baseTile = Object.Instantiate(tilePrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
                 baseTile.name = $"Base_{x}_{y}_{baseTileType}";
                 baseTile.transform.SetParent(parent);
                 cityGrid.SpawnedTiles[x][y] = baseTile;
             }
+        }
+
+        GameObject GetRandomPrefab(GameObject[] prefabArray)
+        {
+            if (prefabArray == null || prefabArray.Length == 0)
+                return null;
+                
+            // Фильтруем null элементы
+            List<GameObject> validPrefabs = new List<GameObject>();
+            foreach (var prefab in prefabArray)
+            {
+                if (prefab != null)
+                    validPrefabs.Add(prefab);
+            }
+            
+            if (validPrefabs.Count == 0)
+                return null;
+                
+            return validPrefabs[Random.Range(0, validPrefabs.Count)];
         }
 
         void CreateBuildingsLayer(List<GameObject> prefabsWithSettings)

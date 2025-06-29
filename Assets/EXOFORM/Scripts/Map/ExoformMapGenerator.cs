@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -8,7 +9,7 @@ using UnityEditor;
 namespace Exoform.Scripts.Map
 {
     /// <summary>
-    /// Главный генератор карты EXOFORM с улучшенной архитектурой и зональной системой
+    /// Главный генератор карты EXOFORM с улучшенной архитектурой и оптимизацией тайлов
     /// </summary>
     public class ExoformMapGenerator : MonoBehaviour
     {
@@ -104,13 +105,19 @@ namespace Exoform.Scripts.Map
         
         [Tooltip("Пакетное обновление визуала (улучшает производительность)")]
         public bool useBatchedVisualUpdates = true;
+        
+        [Tooltip("Объединять тайлы травы в один меш для оптимизации")]
+        public bool combineGrassTiles = true;
+        
+        [Tooltip("Дороги размещаются поверх травы (не удаляют траву)")]
+        public bool pathwaysOverGrass = true;
 
         [Header("🎯 Base Prefabs")]
-        [Tooltip("Префаб травы")]
-        public GameObject grassPrefab;
+        [Tooltip("Массив префабов травы (выбирается случайный)")]
+        public GameObject[] grassPrefabs;
         
-        [Tooltip("Префаб пути")]
-        public GameObject pathwayPrefab;
+        [Tooltip("Массив префабов путей (выбирается случайный)")]
+        public GameObject[] pathwayPrefabs;
 
         [Header("🏗️ Prefab Configuration")]
         [Tooltip("Конфигурация префабов по категориям")]
@@ -146,6 +153,7 @@ namespace Exoform.Scripts.Map
             SupplyCache,
             PathwayObjects,
             Decorations,
+            Optimization,
             Completed
         }
 
@@ -169,6 +177,11 @@ namespace Exoform.Scripts.Map
         private ExoformZoneSystem zoneSystem;
         private StaticCorruptionPlacer staticCorruptionPlacer;
         private TechSalvagePlacer techSalvagePlacer;
+
+        // Оптимизация
+        private GameObject combinedGrassObject;
+        private MeshFilter combinedGrassMeshFilter;
+        private MeshRenderer combinedGrassMeshRenderer;
 
         // Состояние
         private bool isGenerating = false;
@@ -267,8 +280,8 @@ namespace Exoform.Scripts.Map
             // Инициализация EXOFORM систем
             InitializeExoformSystems(allPrefabs);
 
-            // Инициализация спавнера тайлов
-            tileSpawner ??= new TileSpawner(cityGrid, transform);
+            // Инициализация спавнера тайлов с поддержкой массивов префабов
+            tileSpawner ??= new TileSpawner(cityGrid, transform, pathwaysOverGrass);
 
             LogDebug("Все компоненты инициализированы");
         }
@@ -277,11 +290,11 @@ namespace Exoform.Scripts.Map
         {
             if (useImprovedPathwayGenerator)
             {
-                improvedRoadGenerator ??= new ImprovedRoadGenerator(cityGrid, advancedPathwaySettings);
+                improvedRoadGenerator ??= new ImprovedRoadGenerator(cityGrid, advancedPathwaySettings, pathwaysOverGrass);
             }
             else
             {
-                roadGenerator ??= new RoadGenerator(cityGrid);
+                roadGenerator ??= new RoadGenerator(cityGrid, pathwaysOverGrass);
             }
         }
 
@@ -318,6 +331,17 @@ namespace Exoform.Scripts.Map
             tileSize = Mathf.Max(0.1f, tileSize);
             pathwayLength = Mathf.Max(1, pathwayLength);
             animationSpeed = Mathf.Max(0.01f, animationSpeed);
+
+            // Валидация массивов префабов
+            if (grassPrefabs == null || grassPrefabs.Length == 0)
+            {
+                Debug.LogError("⚠️ Массив префабов травы пуст! Добавьте хотя бы один префаб травы.");
+            }
+            
+            if (pathwayPrefabs == null || pathwayPrefabs.Length == 0)
+            {
+                Debug.LogError("⚠️ Массив префабов путей пуст! Добавьте хотя бы один префаб пути.");
+            }
 
             // Валидация плотностей
             ValidateDensityValues();
@@ -438,7 +462,8 @@ namespace Exoform.Scripts.Map
                 ("Размещение техники", "🔧", PlaceTechSalvage),
                 ("Размещение снабжения", "📦", PlaceSupplyCache),
                 ("Объекты на путях", "🚗", PlacePathwayObjects),
-                ("Размещение декораций", "🎨", PlaceDecorations)
+                ("Размещение декораций", "🎨", PlaceDecorations),
+                ("Оптимизация тайлов", "⚡", OptimizeTiles)
             };
 
             for (int i = 0; i < steps.Length; i++)
@@ -451,7 +476,12 @@ namespace Exoform.Scripts.Map
                 // Выполняем этап напрямую - обработка ошибок внутри каждого метода
                 yield return StartCoroutine(action());
 
-                yield return StartCoroutine(UpdateVisuals());
+                // Не обновляем визуалы после оптимизации
+                if (currentStage != GenerationStage.Optimization)
+                {
+                    yield return StartCoroutine(UpdateVisuals());
+                }
+                
                 yield return new WaitForSeconds(animationSpeed * 2);
             }
         }
@@ -463,7 +493,7 @@ namespace Exoform.Scripts.Map
         private IEnumerator InitializeBaseLayer()
         {
             cityGrid.Initialize();
-            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefab, pathwayPrefab, GetAllPrefabs(), animationSpeed));
+            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed, combineGrassTiles));
         }
 
         private IEnumerator InitializeExoformZones()
@@ -539,12 +569,126 @@ namespace Exoform.Scripts.Map
             yield return StartCoroutine(decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed));
         }
 
+        private IEnumerator OptimizeTiles()
+        {
+            if (combineGrassTiles)
+            {
+                Debug.Log("⚡ Оптимизация: объединение тайлов травы...");
+                yield return StartCoroutine(CombineGrassTiles());
+            }
+            else
+            {
+                Debug.Log("⚡ Оптимизация тайлов отключена");
+            }
+        }
+
+        private IEnumerator CombineGrassTiles()
+        {
+            var startTime = Time.time;
+            List<GameObject> grassTilesToCombine = new List<GameObject>();
+            
+            // Собираем все тайлы травы
+            for (int x = 0; x < cityGrid.Width; x++)
+            {
+                for (int y = 0; y < cityGrid.Height; y++)
+                {
+                    if (cityGrid.SpawnedTiles[x][y] != null && 
+                        cityGrid.SpawnedTiles[x][y].name.StartsWith("Base_") &&
+                        cityGrid.SpawnedTiles[x][y].name.Contains("Grass"))
+                    {
+                        grassTilesToCombine.Add(cityGrid.SpawnedTiles[x][y]);
+                    }
+                }
+                
+                if (x % 10 == 0)
+                {
+                    yield return null; // Даем возможность другим процессам работать
+                }
+            }
+            
+            Debug.Log($"  📊 Найдено {grassTilesToCombine.Count} тайлов травы для объединения");
+            
+            if (grassTilesToCombine.Count > 0)
+            {
+                // Создаем объединенный объект
+                combinedGrassObject = new GameObject("CombinedGrass");
+                combinedGrassObject.transform.SetParent(transform);
+                combinedGrassObject.transform.localPosition = Vector3.zero;
+                
+                // Объединяем меши
+                CombineInstance[] combineInstances = new CombineInstance[grassTilesToCombine.Count];
+                Material sharedMaterial = null;
+                
+                for (int i = 0; i < grassTilesToCombine.Count; i++)
+                {
+                    MeshFilter meshFilter = grassTilesToCombine[i].GetComponent<MeshFilter>();
+                    MeshRenderer meshRenderer = grassTilesToCombine[i].GetComponent<MeshRenderer>();
+                    
+                    if (meshFilter != null && meshRenderer != null)
+                    {
+                        combineInstances[i].mesh = meshFilter.sharedMesh;
+                        combineInstances[i].transform = grassTilesToCombine[i].transform.localToWorldMatrix;
+                        
+                        if (sharedMaterial == null)
+                        {
+                            sharedMaterial = meshRenderer.sharedMaterial;
+                        }
+                    }
+                    
+                    if (i % 50 == 0)
+                    {
+                        yield return null;
+                    }
+                }
+                
+                // Создаем объединенный меш
+                combinedGrassMeshFilter = combinedGrassObject.AddComponent<MeshFilter>();
+                combinedGrassMeshRenderer = combinedGrassObject.AddComponent<MeshRenderer>();
+                
+                Mesh combinedMesh = new Mesh();
+                combinedMesh.name = "CombinedGrassMesh";
+                combinedMesh.CombineMeshes(combineInstances, true, true);
+                combinedMesh.RecalculateBounds();
+                combinedMesh.RecalculateNormals();
+                
+                combinedGrassMeshFilter.mesh = combinedMesh;
+                combinedGrassMeshRenderer.material = sharedMaterial;
+                
+                // Добавляем MeshCollider для оптимизированных коллизий
+                MeshCollider meshCollider = combinedGrassObject.AddComponent<MeshCollider>();
+                meshCollider.sharedMesh = combinedMesh;
+                
+                // Удаляем оригинальные тайлы травы
+                foreach (var grassTile in grassTilesToCombine)
+                {
+                    DestroyImmediate(grassTile);
+                }
+                
+                // Очищаем ссылки в сетке
+                for (int x = 0; x < cityGrid.Width; x++)
+                {
+                    for (int y = 0; y < cityGrid.Height; y++)
+                    {
+                        if (cityGrid.Grid[x][y] == TileType.Grass)
+                        {
+                            cityGrid.SpawnedTiles[x][y] = combinedGrassObject;
+                        }
+                    }
+                }
+                
+                var optimizationTime = Time.time - startTime;
+                Debug.Log($"  ✅ Объединение завершено за {optimizationTime:F2} сек");
+                Debug.Log($"  📊 Результат: {grassTilesToCombine.Count} объектов → 1 объект");
+                Debug.Log($"  📊 Вершин в объединенном меше: {combinedMesh.vertexCount}");
+            }
+        }
+
         private IEnumerator UpdateVisuals()
         {
             var allPrefabs = GetAllPrefabs();
             float updateSpeed = useBatchedVisualUpdates ? animationSpeed * 0.5f : animationSpeed;
 
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefab, pathwayPrefab, allPrefabs, updateSpeed));
+            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed, combineGrassTiles));
         }
 
         #endregion
@@ -822,6 +966,13 @@ namespace Exoform.Scripts.Map
             // Сброс всех компонентов
             ResetPlacers();
             ResetExoformSystems();
+            
+            // Очистка объединенной травы
+            if (combinedGrassObject != null)
+            {
+                DestroyImmediate(combinedGrassObject);
+                combinedGrassObject = null;
+            }
         }
 
         private void ResetPlacers()
@@ -1049,6 +1200,28 @@ namespace Exoform.Scripts.Map
         #region Legacy Support Properties
 
         // Для обратной совместимости с существующими скриптами
+        public GameObject grassPrefab
+        {
+            get => grassPrefabs != null && grassPrefabs.Length > 0 ? grassPrefabs[0] : null;
+            set
+            {
+                if (grassPrefabs == null || grassPrefabs.Length == 0)
+                    grassPrefabs = new GameObject[1];
+                grassPrefabs[0] = value;
+            }
+        }
+        
+        public GameObject pathwayPrefab
+        {
+            get => pathwayPrefabs != null && pathwayPrefabs.Length > 0 ? pathwayPrefabs[0] : null;
+            set
+            {
+                if (pathwayPrefabs == null || pathwayPrefabs.Length == 0)
+                    pathwayPrefabs = new GameObject[1];
+                pathwayPrefabs[0] = value;
+            }
+        }
+        
         public float roadDensity
         {
             get => pathwayDensity;

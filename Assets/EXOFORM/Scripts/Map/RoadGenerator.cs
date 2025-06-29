@@ -5,15 +5,17 @@ using UnityEngine;
 namespace Exoform.Scripts.Map
 {
     /// <summary>
-    /// Класс для генерации дорог
+    /// Класс для генерации дорог с поддержкой размещения поверх травы
     /// </summary>
     public class RoadGenerator
     {
         private CityGrid cityGrid;
+        private bool pathwaysOverGrass;
 
-        public RoadGenerator(CityGrid grid)
+        public RoadGenerator(CityGrid grid, bool pathwaysOverGrass = false)
         {
             cityGrid = grid;
+            this.pathwaysOverGrass = pathwaysOverGrass;
         }
 
         public IEnumerator GenerateRoads(float density, int roadLength, float animationSpeed)
@@ -23,13 +25,18 @@ namespace Exoform.Scripts.Map
             int roadSegments = Mathf.Max(1, targetRoadCells / roadLength);
 
             Debug.Log($"🛤️ Планируем создать {roadSegments} сегментов (целевое количество клеток: {targetRoadCells}, {density * 100:F1}% карты)");
+            
+            if (pathwaysOverGrass)
+            {
+                Debug.Log("  📌 Режим: дороги размещаются поверх травы");
+            }
 
             // Подсчитываем дороги до генерации
             int roadsBefore = CountRoadCells();
 
             for (int i = 0; i < roadSegments; i++)
             {
-                Vector2Int start = GetRandomGrassPosition();
+                Vector2Int start = GetRandomStartPosition();
                 if (start.x >= 0)
                 {
                     yield return CreateRoadSegment(start, roadLength, animationSpeed);
@@ -63,6 +70,22 @@ namespace Exoform.Scripts.Map
             return roadCount;
         }
 
+        Vector2Int GetRandomStartPosition()
+        {
+            // Если дороги поверх травы, можем начинать с любой позиции
+            if (pathwaysOverGrass)
+            {
+                return new Vector2Int(
+                    Random.Range(0, cityGrid.Width),
+                    Random.Range(0, cityGrid.Height)
+                );
+            }
+            else
+            {
+                // Старый режим - ищем только траву
+                return GetRandomGrassPosition();
+            }
+        }
 
         Vector2Int GetRandomGrassPosition()
         {
@@ -97,6 +120,7 @@ namespace Exoform.Scripts.Map
             {
                 if (cityGrid.IsValidPosition(current))
                 {
+                    // Просто помечаем клетку как дорогу, не меняя базовый тип
                     cityGrid.Grid[current.x][current.y] = TileType.PathwayStraight;
                     current += direction;
                     yield return new WaitForSeconds(animationSpeed * 0.2f);

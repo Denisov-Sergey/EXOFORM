@@ -5,11 +5,12 @@ using UnityEngine;
 namespace Exoform.Scripts.Map
 {
     /// <summary>
-    /// Улучшенный генератор дорог с перекрестками и связностью
+    /// Улучшенный генератор дорог с перекрестками и связностью, поддержка путей поверх травы
     /// </summary>
     public class ImprovedRoadGenerator
     {
         private CityGrid cityGrid;
+        private bool pathwaysOverGrass;
         
         [System.Serializable]
         public class RoadSettings
@@ -29,10 +30,11 @@ namespace Exoform.Scripts.Map
         
         private RoadSettings settings;
 
-        public ImprovedRoadGenerator(CityGrid grid, RoadSettings roadSettings = null)
+        public ImprovedRoadGenerator(CityGrid grid, RoadSettings roadSettings = null, bool pathwaysOverGrass = false)
         {
             cityGrid = grid;
             settings = roadSettings ?? new RoadSettings();
+            this.pathwaysOverGrass = pathwaysOverGrass;
         }
 
         public IEnumerator GenerateRoads(float density, int roadLength, float animationSpeed)
@@ -45,6 +47,11 @@ namespace Exoform.Scripts.Map
             settings.maxSegmentLength = Mathf.Max(settings.minSegmentLength + 1, roadLength);
             
             Debug.Log($"🛤️ Генерация улучшенных дорог (цель: {targetRoadCells} клеток, длина сегментов: {settings.minSegmentLength}-{settings.maxSegmentLength})");
+            
+            if (pathwaysOverGrass)
+            {
+                Debug.Log("  📌 Режим: дороги размещаются поверх травы");
+            }
 
             // Создаем основные магистрали
             yield return CreateMainRoads(animationSpeed);

@@ -319,43 +319,60 @@ MonoBehaviour:
   gridWidth: 50
   gridHeight: 50
   tileSize: 5
-  roadDensity: 0.15
-  buildingDensity: 0.2
-  vegetationDensity: 0.4
+  pathwayDensity: 0.15
+  structureDensity: 0.2
+  vegetationDensity: 0.1
   resourceDensity: 0.08
   decorationDensity: 0.1
-  roadObjectDensity: 0.1
-  lootDensity: 0.05
-  roadLength: 15
-  useImprovedRoadGenerator: 1
-  advancedRoadSettings:
+  zoneSize: 10
+  standardZoneDensity: 0.6
+  technicalZoneDensity: 0.2
+  artifactZoneDensity: 0.15
+  corruptedTrapDensity: 0.05
+  initialCorruptionLevel: 0.1
+  staticCorruptionDensity: 0.1
+  createCorruptionClusters: 1
+  techSalvageDensity: 0.05
+  pathwayLength: 30
+  useImprovedPathwayGenerator: 1
+  advancedPathwaySettings:
     branchProbability: 0.3
-    minSegmentLength: 3
-    maxSegmentLength: 10
+    minSegmentLength: 10
+    maxSegmentLength: 20
     createIntersections: 1
     connectRoads: 1
-  minLootCount: 5
-  maxLootCount: 30
-  clusterLoot: 1
-  lootClusterSize: 3
+  pathwayObjectDensity: 0.1
+  supplyCacheDensity: 0.05
+  minSupplyCacheCount: 5
+  maxSupplyCacheCount: 30
+  clusterSupplyCache: 1
+  supplyCacheClusterSize: 3
   animationSpeed: 0.01
   useBatchedVisualUpdates: 1
-  grassPrefab: {fileID: 0}
-  roadPrefab: {fileID: 0}
+  combineGrassTiles: 1
+  pathwaysOverGrass: 1
+  grassPrefabs:
+  - {fileID: 8350565405820835728, guid: a3f672e3be2f5c34db6509158f75506b, type: 3}
+  pathwayPrefabs:
+  - {fileID: 2769658057350518571, guid: 613a03b73fd1a2342ae30b1a26eab0eb, type: 3}
   prefabConfig:
-    buildingPrefabs: []
-    vegetationPrefabs: []
+    buildingPrefabs:
+    - {fileID: 3907037380921043336, guid: 8832482798b3d254b9b7846523e5394e, type: 3}
+    - {fileID: 3901928577092509777, guid: f6f66ac239a0d1b4398cf5fb1c1dab16, type: 3}
+    vegetationPrefabs:
+    - {fileID: 1334290729812991710, guid: 3eda941d978b49a4696f4a1efe832323, type: 3}
+    - {fileID: 8659290267191179947, guid: 818676f5efc28264ea2024e8f329c5b1, type: 3}
+    - {fileID: 481879580567534653, guid: 8e7c9a264a6b02b4ab443371da125448, type: 3}
+    - {fileID: 464721960285228230, guid: aa01d21a4fc898945953d79de5ef2721, type: 3}
     resourcePrefabs: []
     roadObjectPrefabs: []
     lootPrefabs: []
     decorationPrefabs: []
-  legacyPrefabsWithSettings: []
-  _generateCity: 0
-  _clearCity: 0
+  _generateMap: 0
+  _clearMap: 0
   _validatePrefabs: 0
-  _migrateLegacyPrefabs: 0
-  showGizmos: 1
-  verboseLogging: 0
+  showGizmos: 0
+  verboseLogging: 1
 --- !u!1 &1996543179
 GameObject:
   m_ObjectHideFlags: 0
