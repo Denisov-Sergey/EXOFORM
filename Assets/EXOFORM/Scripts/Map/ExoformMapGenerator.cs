@@ -106,9 +106,6 @@ namespace Exoform.Scripts.Map
         [Tooltip("Пакетное обновление визуала (улучшает производительность)")]
         public bool useBatchedVisualUpdates = true;
         
-        [Tooltip("Объединять тайлы травы в один меш для оптимизации")]
-        public bool combineGrassTiles = true;
-        
         [Tooltip("Дороги размещаются поверх травы (не удаляют траву)")]
         public bool pathwaysOverGrass = true;
 
@@ -177,11 +174,6 @@ namespace Exoform.Scripts.Map
         private ExoformZoneSystem zoneSystem;
         private StaticCorruptionPlacer staticCorruptionPlacer;
         private TechSalvagePlacer techSalvagePlacer;
-
-        // Оптимизация
-        private GameObject combinedGrassObject;
-        private MeshFilter combinedGrassMeshFilter;
-        private MeshRenderer combinedGrassMeshRenderer;
 
         // Состояние
         private bool isGenerating = false;
@@ -462,8 +454,7 @@ namespace Exoform.Scripts.Map
                 ("Размещение техники", "🔧", PlaceTechSalvage),
                 ("Размещение снабжения", "📦", PlaceSupplyCache),
                 ("Объекты на путях", "🚗", PlacePathwayObjects),
-                ("Размещение декораций", "🎨", PlaceDecorations),
-                ("Оптимизация тайлов", "⚡", OptimizeTiles)
+                ("Размещение декораций", "🎨", PlaceDecorations)
             };
 
             for (int i = 0; i < steps.Length; i++)
@@ -493,7 +484,7 @@ namespace Exoform.Scripts.Map
         private IEnumerator InitializeBaseLayer()
         {
             cityGrid.Initialize();
-            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed, combineGrassTiles));
+            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed));
         }
 
         private IEnumerator InitializeExoformZones()
@@ -568,127 +559,14 @@ namespace Exoform.Scripts.Map
         {
             yield return StartCoroutine(decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed));
         }
-
-        private IEnumerator OptimizeTiles()
-        {
-            if (combineGrassTiles)
-            {
-                Debug.Log("⚡ Оптимизация: объединение тайлов травы...");
-                yield return StartCoroutine(CombineGrassTiles());
-            }
-            else
-            {
-                Debug.Log("⚡ Оптимизация тайлов отключена");
-            }
-        }
-
-        private IEnumerator CombineGrassTiles()
-        {
-            var startTime = Time.time;
-            List<GameObject> grassTilesToCombine = new List<GameObject>();
-            
-            // Собираем все тайлы травы
-            for (int x = 0; x < cityGrid.Width; x++)
-            {
-                for (int y = 0; y < cityGrid.Height; y++)
-                {
-                    if (cityGrid.SpawnedTiles[x][y] != null && 
-                        cityGrid.SpawnedTiles[x][y].name.StartsWith("Base_") &&
-                        cityGrid.SpawnedTiles[x][y].name.Contains("Grass"))
-                    {
-                        grassTilesToCombine.Add(cityGrid.SpawnedTiles[x][y]);
-                    }
-                }
-                
-                if (x % 10 == 0)
-                {
-                    yield return null; // Даем возможность другим процессам работать
-                }
-            }
-            
-            Debug.Log($"  📊 Найдено {grassTilesToCombine.Count} тайлов травы для объединения");
-            
-            if (grassTilesToCombine.Count > 0)
-            {
-                // Создаем объединенный объект
-                combinedGrassObject = new GameObject("CombinedGrass");
-                combinedGrassObject.transform.SetParent(transform);
-                combinedGrassObject.transform.localPosition = Vector3.zero;
-                
-                // Объединяем меши
-                CombineInstance[] combineInstances = new CombineInstance[grassTilesToCombine.Count];
-                Material sharedMaterial = null;
-                
-                for (int i = 0; i < grassTilesToCombine.Count; i++)
-                {
-                    MeshFilter meshFilter = grassTilesToCombine[i].GetComponent<MeshFilter>();
-                    MeshRenderer meshRenderer = grassTilesToCombine[i].GetComponent<MeshRenderer>();
-                    
-                    if (meshFilter != null && meshRenderer != null)
-                    {
-                        combineInstances[i].mesh = meshFilter.sharedMesh;
-                        combineInstances[i].transform = grassTilesToCombine[i].transform.localToWorldMatrix;
-                        
-                        if (sharedMaterial == null)
-                        {
-                            sharedMaterial = meshRenderer.sharedMaterial;
-                        }
-                    }
-                    
-                    if (i % 50 == 0)
-                    {
-                        yield return null;
-                    }
-                }
-                
-                // Создаем объединенный меш
-                combinedGrassMeshFilter = combinedGrassObject.AddComponent<MeshFilter>();
-                combinedGrassMeshRenderer = combinedGrassObject.AddComponent<MeshRenderer>();
-                
-                Mesh combinedMesh = new Mesh();
-                combinedMesh.name = "CombinedGrassMesh";
-                combinedMesh.CombineMeshes(combineInstances, true, true);
-                combinedMesh.RecalculateBounds();
-                combinedMesh.RecalculateNormals();
-                
-                combinedGrassMeshFilter.mesh = combinedMesh;
-                combinedGrassMeshRenderer.material = sharedMaterial;
-                
-                // Добавляем MeshCollider для оптимизированных коллизий
-                MeshCollider meshCollider = combinedGrassObject.AddComponent<MeshCollider>();
-                meshCollider.sharedMesh = combinedMesh;
-                
-                // Удаляем оригинальные тайлы травы
-                foreach (var grassTile in grassTilesToCombine)
-                {
-                    DestroyImmediate(grassTile);
-                }
-                
-                // Очищаем ссылки в сетке
-                for (int x = 0; x < cityGrid.Width; x++)
-                {
-                    for (int y = 0; y < cityGrid.Height; y++)
-                    {
-                        if (cityGrid.Grid[x][y] == TileType.Grass)
-                        {
-                            cityGrid.SpawnedTiles[x][y] = combinedGrassObject;
-                        }
-                    }
-                }
-                
-                var optimizationTime = Time.time - startTime;
-                Debug.Log($"  ✅ Объединение завершено за {optimizationTime:F2} сек");
-                Debug.Log($"  📊 Результат: {grassTilesToCombine.Count} объектов → 1 объект");
-                Debug.Log($"  📊 Вершин в объединенном меше: {combinedMesh.vertexCount}");
-            }
-        }
+        
 
         private IEnumerator UpdateVisuals()
         {
             var allPrefabs = GetAllPrefabs();
             float updateSpeed = useBatchedVisualUpdates ? animationSpeed * 0.5f : animationSpeed;
 
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed, combineGrassTiles));
+            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed));
         }
 
         #endregion
@@ -966,13 +844,6 @@ namespace Exoform.Scripts.Map
             // Сброс всех компонентов
             ResetPlacers();
             ResetExoformSystems();
-            
-            // Очистка объединенной травы
-            if (combinedGrassObject != null)
-            {
-                DestroyImmediate(combinedGrassObject);
-                combinedGrassObject = null;
-            }
         }
 
         private void ResetPlacers()

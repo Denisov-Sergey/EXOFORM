@@ -23,7 +23,7 @@ namespace Exoform.Scripts.Map
         }
 
         public IEnumerator SpawnAllTiles(GameObject[] grassPrefabs, GameObject[] pathwayPrefabs,
-            List<GameObject> prefabsWithSettings, float animationSpeed, bool combineGrass = false)
+            List<GameObject> prefabsWithSettings, float animationSpeed)
         {
             Debug.Log("  🎯 Создание базовых тайлов...");
             spawnedPrefabCounts.Clear();
@@ -70,7 +70,7 @@ namespace Exoform.Scripts.Map
         }
 
         public IEnumerator UpdateChangedTiles(GameObject[] grassPrefabs, GameObject[] pathwayPrefabs,
-            List<GameObject> prefabsWithSettings, float animationSpeed, bool combineGrass = false)
+            List<GameObject> prefabsWithSettings, float animationSpeed)
         {
             // Очищаем старые объекты
             ClearExistingBuildings();
@@ -82,10 +82,6 @@ namespace Exoform.Scripts.Map
                     // Удаляем старые тайлы
                     if (cityGrid.SpawnedTiles[x][y] != null)
                     {
-                        // Пропускаем объединенную траву
-                        if (cityGrid.SpawnedTiles[x][y].name == "CombinedGrass")
-                            continue;
-                            
                         if (cityGrid.SpawnedTiles[x][y].name.StartsWith("Base_") ||
                             cityGrid.SpawnedTiles[x][y].name.StartsWith("Pathway_"))
                         {
@@ -128,8 +124,6 @@ namespace Exoform.Scripts.Map
             
             foreach (Transform child in parent)
             {
-                if (child.name == "CombinedGrass")
-                    continue;
                     
                 if (child.name.StartsWith("Building_") || 
                     child.name.StartsWith("Vegetation_") || 
