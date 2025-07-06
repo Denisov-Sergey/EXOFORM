@@ -1048,5 +1048,42 @@ namespace Exoform.Scripts.Map
 
         #endregion
 
+        #region Loot Property Aliases
+
+        /// <summary>
+        /// Обертки для старых названий параметров лута, сохранены для совместимости
+        /// </summary>
+        public float lootDensity
+        {
+            get => supplyCacheDensity;
+            set => supplyCacheDensity = value;
+        }
+
+        public int minLootCount
+        {
+            get => minSupplyCacheCount;
+            set => minSupplyCacheCount = value;
+        }
+
+        public int maxLootCount
+        {
+            get => maxSupplyCacheCount;
+            set => maxSupplyCacheCount = value;
+        }
+
+        public bool clusterLoot
+        {
+            get => clusterSupplyCache;
+            set => clusterSupplyCache = value;
+        }
+
+        public int lootClusterSize
+        {
+            get => supplyCacheClusterSize;
+            set => supplyCacheClusterSize = value;
+        }
+
+        #endregion
+
     }
 }
