@@ -196,9 +196,9 @@ namespace Exoform.Scripts.Map
 
             // Регистрируем декорацию
             if (!cityGrid.BuildingOccupancy.ContainsKey(TileType.Decoration))
-                cityGrid.BuildingOccupancy[TileType.Decoration] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[TileType.Decoration].Add(position);
+                cityGrid.BuildingOccupancy[TileType.Decoration] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[TileType.Decoration].Add(new OccupiedCell(position, 0));
 
             // Увеличиваем счетчик
             if (!spawnedCounts.ContainsKey(settings))

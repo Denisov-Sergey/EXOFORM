@@ -182,9 +182,9 @@ namespace Exoform.Scripts.Map
 
             // Регистрируем объект
             if (!cityGrid.BuildingOccupancy.ContainsKey(settings.tileType))
-                cityGrid.BuildingOccupancy[settings.tileType] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[settings.tileType].Add(position);
+                cityGrid.BuildingOccupancy[settings.tileType] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[settings.tileType].Add(new OccupiedCell(position, 0));
 
             // Увеличиваем счетчик
             if (!spawnedCounts.ContainsKey(settings))

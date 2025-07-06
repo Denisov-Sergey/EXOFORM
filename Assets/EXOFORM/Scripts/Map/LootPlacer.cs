@@ -63,15 +63,15 @@ namespace Exoform.Scripts.Map
 
             // Рассчитываем количество лута
             int roadCellsCount = CountRoadCells();
-            int targetLootCount = Mathf.RoundToInt(roadCellsCount * _exoformMapGenerator.lootDensity);
-            targetLootCount = Mathf.Clamp(targetLootCount, _exoformMapGenerator.minLootCount, _exoformMapGenerator.maxLootCount);
+            int targetLootCount = Mathf.RoundToInt(roadCellsCount * _exoformMapGenerator.supplyCacheDensity);
+            targetLootCount = Mathf.Clamp(targetLootCount, _exoformMapGenerator.minSupplyCacheCount, _exoformMapGenerator.maxSupplyCacheCount);
 
             Debug.Log($"  📊 Дорожных клеток: {roadCellsCount}");
-            Debug.Log($"  🎯 Целевое количество лута: {targetLootCount} ({_exoformMapGenerator.lootDensity * 100:F1}% от дорог)");
+            Debug.Log($"  🎯 Целевое количество лута: {targetLootCount} ({_exoformMapGenerator.supplyCacheDensity * 100:F1}% от дорог)");
             Debug.Log($"  📍 Доступных позиций: {lootPositions.Count}");
 
             // Размещаем лут
-            if (_exoformMapGenerator.clusterLoot)
+            if (_exoformMapGenerator.clusterSupplyCache)
             {
                 yield return PlaceLootClusters(lootPositions, targetLootCount, animationSpeed);
             }
@@ -84,9 +84,9 @@ namespace Exoform.Scripts.Map
         IEnumerator PlaceLootClusters(List<Vector2Int> positions, int targetCount, float animationSpeed)
         {
             int placedCount = 0;
-            int clusterCount = Mathf.CeilToInt((float)targetCount / _exoformMapGenerator.lootClusterSize);
+            int clusterCount = Mathf.CeilToInt((float)targetCount / _exoformMapGenerator.supplyCacheClusterSize);
 
-            Debug.Log($"  🎯 Создаем {clusterCount} групп лута по {_exoformMapGenerator.lootClusterSize} штук");
+            Debug.Log($"  🎯 Создаем {clusterCount} групп лута по {_exoformMapGenerator.supplyCacheClusterSize} штук");
 
             for (int i = 0; i < clusterCount && positions.Count > 0 && placedCount < targetCount; i++)
             {
@@ -95,7 +95,7 @@ namespace Exoform.Scripts.Map
                 Vector2Int center = positions[centerIndex];
 
                 // Размещаем кластер
-                var clusterPositions = GetClusterPositions(center, positions, _exoformMapGenerator.lootClusterSize);
+                var clusterPositions = GetClusterPositions(center, positions, _exoformMapGenerator.supplyCacheClusterSize);
                 
                 foreach (var pos in clusterPositions)
                 {
@@ -220,9 +220,9 @@ namespace Exoform.Scripts.Map
             var lootPrefab = lootPrefabs[Random.Range(0, lootPrefabs.Count)];
             
             if (!cityGrid.BuildingOccupancy.ContainsKey(TileType.SupplyCache))
-                cityGrid.BuildingOccupancy[TileType.SupplyCache] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[TileType.SupplyCache].Add(position);
+                cityGrid.BuildingOccupancy[TileType.SupplyCache] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[TileType.SupplyCache].Add(new OccupiedCell(position, 0));
             
             return true;
         }

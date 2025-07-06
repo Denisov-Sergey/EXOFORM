@@ -55,6 +55,12 @@ namespace Exoform.Scripts.Map
         [Range(0.01f, 0.1f)] [Tooltip("Плотность заражённых ловушек")]
         public float corruptedTrapDensity = 0.05f;
 
+        [Range(0.01f, 0.1f)] [Tooltip("Плотность зон инфестации")]
+        public float infestZoneDensity = 0.03f;
+
+        [Range(0.005f, 0.05f)] [Tooltip("Плотность босс-зон")]
+        public float bossZoneDensity = 0.02f;
+
         [Header("🦠 Corruption System")]
         [Range(0.0f, 0.3f)] [Tooltip("Начальный уровень заражения карты")]
         public float initialCorruptionLevel = 0.1f;
@@ -348,7 +354,7 @@ namespace Exoform.Scripts.Map
             zoneSize = Mathf.Clamp(zoneSize, 5, 20);
 
             // Проверяем, что сумма плотностей зон не превышает 100%
-            float totalZoneDensity = standardZoneDensity + technicalZoneDensity + artifactZoneDensity + corruptedTrapDensity;
+            float totalZoneDensity = standardZoneDensity + technicalZoneDensity + artifactZoneDensity + corruptedTrapDensity + infestZoneDensity + bossZoneDensity;
             if (totalZoneDensity > 1.0f)
             {
                 Debug.LogWarning($"⚠️ Сумма плотностей зон превышает 100%: {totalZoneDensity * 100:F1}%");
@@ -367,6 +373,8 @@ namespace Exoform.Scripts.Map
             technicalZoneDensity *= normalizer;
             artifactZoneDensity *= normalizer;
             corruptedTrapDensity *= normalizer;
+            infestZoneDensity *= normalizer;
+            bossZoneDensity *= normalizer;
         }
 
         private void ValidateSupplyCacheValues()
@@ -588,7 +596,9 @@ namespace Exoform.Scripts.Map
                 ["standard"] = Mathf.RoundToInt(totalZones * standardZoneDensity),
                 ["technical"] = Mathf.RoundToInt(totalZones * technicalZoneDensity),
                 ["artifact"] = Mathf.RoundToInt(totalZones * artifactZoneDensity),
-                ["corrupted"] = Mathf.RoundToInt(totalZones * corruptedTrapDensity)
+                ["corrupted"] = Mathf.RoundToInt(totalZones * corruptedTrapDensity),
+                ["infest"] = Mathf.RoundToInt(totalZones * infestZoneDensity),
+                ["boss"] = Mathf.RoundToInt(totalZones * bossZoneDensity)
             };
 
             return (totalZones, expectedZones);
@@ -632,6 +642,8 @@ namespace Exoform.Scripts.Map
             Debug.Log($"🔧 Технические: {expectedZones["technical"]} ({technicalZoneDensity * 100:F1}%)");
             Debug.Log($"🧬 Артефактные: {expectedZones["artifact"]} ({artifactZoneDensity * 100:F1}%)");
             Debug.Log($"⚠️ Заражённые: {expectedZones["corrupted"]} ({corruptedTrapDensity * 100:F1}%)");
+            Debug.Log($"🪲 Инфестации: {expectedZones["infest"]} ({infestZoneDensity * 100:F1}%)");
+            Debug.Log($"👹 Боссы: {expectedZones["boss"]} ({bossZoneDensity * 100:F1}%)");
             Debug.Log($"🦠 Элементы Порчи: {corruptionElements} ({staticCorruptionDensity * 100:F1}%)");
             Debug.Log($"🔧 Техника для восстановления: {techSalvageItems} ({techSalvageDensity * 100:F1}%)");
         }
@@ -663,9 +675,12 @@ namespace Exoform.Scripts.Map
         {
             if (cityGrid?.BuildingOccupancy == null) return;
 
-            int tentacles = cityGrid.BuildingOccupancy.GetValueOrDefault(TileType.TentacleGrowth, new List<Vector2Int>()).Count;
-            int tumors = cityGrid.BuildingOccupancy.GetValueOrDefault(TileType.TumorNode, new List<Vector2Int>()).Count;
-            int corruptedGround = cityGrid.BuildingOccupancy.GetValueOrDefault(TileType.CorruptedGround, new List<Vector2Int>()).Count;
+            int tentacles = cityGrid.BuildingOccupancy.ContainsKey(TileType.TentacleGrowth) ?
+                cityGrid.BuildingOccupancy[TileType.TentacleGrowth].Count : 0;
+            int tumors = cityGrid.BuildingOccupancy.ContainsKey(TileType.TumorNode) ?
+                cityGrid.BuildingOccupancy[TileType.TumorNode].Count : 0;
+            int corruptedGround = cityGrid.BuildingOccupancy.ContainsKey(TileType.CorruptedGround) ?
+                cityGrid.BuildingOccupancy[TileType.CorruptedGround].Count : 0;
 
             Debug.Log("🦠 === СТАТИСТИКА ПОРЧИ ===");
             Debug.Log($"🐙 Щупальца: {tentacles}");
@@ -732,7 +747,7 @@ namespace Exoform.Scripts.Map
                 {
                     if (cityGrid.BuildingOccupancy.ContainsKey(type))
                     {
-                        positions.AddRange(cityGrid.BuildingOccupancy[type]);
+                        positions.AddRange(cityGrid.BuildingOccupancy[type].Select(c => c.Cell));
                     }
                 }
             }
@@ -761,7 +776,7 @@ namespace Exoform.Scripts.Map
                 {
                     if (cityGrid.BuildingOccupancy.ContainsKey(type))
                     {
-                        positions.AddRange(cityGrid.BuildingOccupancy[type]);
+                        positions.AddRange(cityGrid.BuildingOccupancy[type].Select(c => c.Cell));
                     }
                 }
             }
@@ -1043,10 +1058,13 @@ namespace Exoform.Scripts.Map
             TileType.TechnicalZone => new Color(0.2f, 0.5f, 0.8f, 0.5f),
             TileType.ArtifactZone => new Color(0.8f, 0.2f, 0.8f, 0.5f),
             TileType.CorruptedTrap => new Color(0.8f, 0.2f, 0.2f, 0.5f),
+            TileType.InfestZone => new Color(0.6f, 0.4f, 0.1f, 0.5f),
+            TileType.BossZone => new Color(0.9f, 0.1f, 0.1f, 0.6f),
             _ => new Color(0.5f, 0.5f, 0.5f, 0.3f)
         };
 
         #endregion
+
 
     }
 }

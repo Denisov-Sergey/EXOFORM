@@ -185,8 +185,9 @@ namespace Exoform.Scripts.Map
             {
                 if (IsStructureType(kvp.Key))
                 {
-                    foreach (var structurePos in kvp.Value)
+                    foreach (var structureCell in kvp.Value)
                     {
+                        var structurePos = structureCell.Cell;
                         for (int dx = -4; dx <= 4; dx++)
                         {
                             for (int dy = -4; dy <= 4; dy++)
@@ -272,9 +273,9 @@ namespace Exoform.Scripts.Map
             
             // Регистрируем технику
             if (!cityGrid.BuildingOccupancy.ContainsKey(techType))
-                cityGrid.BuildingOccupancy[techType] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[techType].Add(position);
+                cityGrid.BuildingOccupancy[techType] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[techType].Add(new OccupiedCell(position, 0));
             
             // Увеличиваем счетчик
             if (prefab != null)

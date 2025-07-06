@@ -101,7 +101,8 @@ namespace Exoform.Scripts.Map
                 float chance = Random.value;
                 if (chance < 0.5f) return TileType.StandardZone;
                 if (chance < 0.8f) return TileType.TechnicalZone;
-                return TileType.ArtifactZone;
+                if (chance < 0.95f) return TileType.ArtifactZone;
+                return TileType.InfestZone;
             }
             else
             {

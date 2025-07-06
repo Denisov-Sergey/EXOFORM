@@ -75,20 +75,49 @@ namespace Exoform.Scripts.Map
         // ====== МЕТОДЫ ======
         
         /// <summary>
-        /// Получить все клетки, которые занимает объект
+        /// Получить все клетки, которые занимает объект с учетом поворота
         /// </summary>
         public List<Vector2Int> GetOccupiedCells(Vector2Int basePosition)
         {
+            return GetOccupiedCells(basePosition, 0);
+        }
+
+        /// <summary>
+        /// Получить все клетки, которые занимает объект с учетом поворота
+        /// </summary>
+        public List<Vector2Int> GetOccupiedCells(Vector2Int basePosition, int rotationDegrees)
+        {
             List<Vector2Int> cells = new List<Vector2Int>();
-            
-            for (int x = 0; x < gridSize.x; x++)
+
+            int rot = ((rotationDegrees % 360) + 360) % 360;
+            Vector2Int size = gridSize;
+            if (rot == 90 || rot == 270)
+                size = new Vector2Int(gridSize.y, gridSize.x);
+
+            for (int x = 0; x < size.x; x++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int y = 0; y < size.y; y++)
                 {
-                    cells.Add(basePosition + new Vector2Int(x, y));
+                    Vector2Int offset = new Vector2Int(x, y);
+                    Vector2Int rotated = offset;
+
+                    switch (rot)
+                    {
+                        case 90:
+                            rotated = new Vector2Int(offset.y, size.x - 1 - offset.x);
+                            break;
+                        case 180:
+                            rotated = new Vector2Int(size.x - 1 - offset.x, size.y - 1 - offset.y);
+                            break;
+                        case 270:
+                            rotated = new Vector2Int(size.y - 1 - offset.y, offset.x);
+                            break;
+                    }
+
+                    cells.Add(basePosition + rotated);
                 }
             }
-            
+
             return cells;
         }
         

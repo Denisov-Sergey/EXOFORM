@@ -193,7 +193,7 @@ namespace Exoform.Scripts.Map
             foreach (var kvp in cityGrid.BuildingOccupancy)
             {
                 TileType buildingType = kvp.Key;
-                List<Vector2Int> buildingCells = kvp.Value;
+                List<OccupiedCell> buildingCells = kvp.Value;
 
                 if (!prefabsByType.ContainsKey(buildingType))
                 {
@@ -207,11 +207,12 @@ namespace Exoform.Scripts.Map
 
                 foreach (var buildingGroup in buildingGroups)
                 {
-                    Vector2Int baseCell = buildingGroup[0];
+                    Vector2Int baseCell = buildingGroup[0].Cell;
                     foreach (var cell in buildingGroup)
                     {
-                        if (cell.x < baseCell.x || (cell.x == baseCell.x && cell.y < baseCell.y))
-                            baseCell = cell;
+                        var cellPos = cell.Cell;
+                        if (cellPos.x < baseCell.x || (cellPos.x == baseCell.x && cellPos.y < baseCell.y))
+                            baseCell = cellPos;
                     }
 
                     if (processedBuildings.Contains(baseCell))
@@ -223,17 +224,22 @@ namespace Exoform.Scripts.Map
             }
         }
 
-        List<List<Vector2Int>> GroupConnectedCells(List<Vector2Int> allCells)
+        List<List<OccupiedCell>> GroupConnectedCells(List<OccupiedCell> allCells)
         {
-            List<List<Vector2Int>> groups = new List<List<Vector2Int>>();
+            List<List<OccupiedCell>> groups = new List<List<OccupiedCell>>();
             HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
 
-            foreach (var cell in allCells)
+            Dictionary<Vector2Int, OccupiedCell> lookup = new Dictionary<Vector2Int, OccupiedCell>();
+            foreach (var c in allCells)
+                lookup[c.Cell] = c;
+
+            foreach (var cellData in allCells)
             {
+                Vector2Int cell = cellData.Cell;
                 if (visited.Contains(cell))
                     continue;
 
-                List<Vector2Int> group = new List<Vector2Int>();
+                List<OccupiedCell> group = new List<OccupiedCell>();
                 Queue<Vector2Int> toCheck = new Queue<Vector2Int>();
                 toCheck.Enqueue(cell);
                 visited.Add(cell);
@@ -241,13 +247,13 @@ namespace Exoform.Scripts.Map
                 while (toCheck.Count > 0)
                 {
                     Vector2Int current = toCheck.Dequeue();
-                    group.Add(current);
+                    group.Add(lookup[current]);
 
                     Vector2Int[] directions = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
                     foreach (var dir in directions)
                     {
                         Vector2Int neighbor = current + dir;
-                        if (allCells.Contains(neighbor) && !visited.Contains(neighbor))
+                        if (lookup.ContainsKey(neighbor) && !visited.Contains(neighbor))
                         {
                             visited.Add(neighbor);
                             toCheck.Enqueue(neighbor);
@@ -261,7 +267,7 @@ namespace Exoform.Scripts.Map
             return groups;
         }
 
-        void CreateSingleBuilding(TileType buildingType, List<Vector2Int> buildingCells,
+        void CreateSingleBuilding(TileType buildingType, List<OccupiedCell> buildingCells,
             List<GameObject> availablePrefabs)
         {
             GameObject buildingPrefab = GetBuildingPrefab(buildingType, availablePrefabs);
@@ -274,11 +280,12 @@ namespace Exoform.Scripts.Map
             var settings = buildingPrefab.GetComponent<PrefabSettings>();
             string prefabKey = GetPrefabKey(buildingPrefab);
 
-            Vector2Int minCell = buildingCells[0];
-            Vector2Int maxCell = buildingCells[0];
+            Vector2Int minCell = buildingCells[0].Cell;
+            Vector2Int maxCell = buildingCells[0].Cell;
 
-            foreach (var cell in buildingCells)
+            foreach (var c in buildingCells)
             {
+                Vector2Int cell = c.Cell;
                 if (cell.x < minCell.x) minCell.x = cell.x;
                 if (cell.y < minCell.y) minCell.y = cell.y;
                 if (cell.x > maxCell.x) maxCell.x = cell.x;
@@ -299,20 +306,7 @@ namespace Exoform.Scripts.Map
                 centerPosition += settings.GetVisualOffset() * cityGrid.TileSize;
             }
 
-            // Определяем поворот
-            Quaternion rotation = Quaternion.identity;
-            
-            // Проверяем случайный поворот
-            if (settings != null && settings.useRandomRotation)
-            {
-                rotation = settings.GetRandomRotation();
-            }
-            // Или поворот к дороге
-            else if (settings != null && settings.rotateTowardsRoad)
-            {
-                Vector2Int centerCell = new Vector2Int(Mathf.RoundToInt(centerX), Mathf.RoundToInt(centerY));
-                rotation = CalculateBuildingRotation(centerCell, buildingCells, settings);
-            }
+            Quaternion rotation = Quaternion.Euler(0, buildingCells[0].Rotation, 0);
 
             GameObject building = Object.Instantiate(buildingPrefab, centerPosition, rotation);
             
@@ -356,84 +350,6 @@ namespace Exoform.Scripts.Map
             return type == TileType.Decoration;
         }
 
-        Quaternion CalculateBuildingRotation(Vector2Int centerCell, List<Vector2Int> buildingCells,
-            PrefabSettings settings)
-        {
-            if (!settings.rotateTowardsRoad || settings.allowedRotations.Count == 0)
-                return Quaternion.identity;
-
-            Vector2Int? nearestRoad = FindNearestRoad(centerCell, buildingCells);
-
-            if (!nearestRoad.HasValue)
-            {
-                if (settings.randomRotationIfNoRoad && settings.allowedRotations.Count > 0)
-                {
-                    float randomAngle = settings.allowedRotations[Random.Range(0, settings.allowedRotations.Count)];
-                    return Quaternion.Euler(0, randomAngle, 0);
-                }
-
-                return Quaternion.identity;
-            }
-
-            Vector2 directionToRoad = new Vector2(
-                nearestRoad.Value.x - centerCell.x,
-                nearestRoad.Value.y - centerCell.y
-            ).normalized;
-
-            float targetAngle = Mathf.Atan2(directionToRoad.x, directionToRoad.y) * Mathf.Rad2Deg;
-            float bestAngle = FindClosestAllowedAngle(targetAngle, settings.allowedRotations);
-
-            return Quaternion.Euler(0, bestAngle, 0);
-        }
-
-        Vector2Int? FindNearestRoad(Vector2Int centerCell, List<Vector2Int> buildingCells)
-        {
-            Vector2Int? nearestRoad = null;
-            float minDistance = float.MaxValue;
-
-            int searchRadius = 5;
-            for (int dx = -searchRadius; dx <= searchRadius; dx++)
-            {
-                for (int dy = -searchRadius; dy <= searchRadius; dy++)
-                {
-                    Vector2Int checkCell = centerCell + new Vector2Int(dx, dy);
-
-                    if (buildingCells.Contains(checkCell))
-                        continue;
-
-                    if (cityGrid.IsValidPosition(checkCell) &&
-                        cityGrid.Grid[checkCell.x][checkCell.y] == TileType.PathwayStraight)
-                    {
-                        float distance = Vector2Int.Distance(centerCell, checkCell);
-                        if (distance < minDistance)
-                        {
-                            minDistance = distance;
-                            nearestRoad = checkCell;
-                        }
-                    }
-                }
-            }
-
-            return nearestRoad;
-        }
-
-        float FindClosestAllowedAngle(float targetAngle, List<float> allowedAngles)
-        {
-            float bestAngle = allowedAngles[0];
-            float minDifference = Mathf.Abs(Mathf.DeltaAngle(targetAngle, bestAngle));
-
-            foreach (float angle in allowedAngles)
-            {
-                float difference = Mathf.Abs(Mathf.DeltaAngle(targetAngle, angle));
-                if (difference < minDifference)
-                {
-                    minDifference = difference;
-                    bestAngle = angle;
-                }
-            }
-
-            return bestAngle;
-        }
 
         /// <summary>
         /// Получить случайный префаб с учетом весов и текущих лимитов
