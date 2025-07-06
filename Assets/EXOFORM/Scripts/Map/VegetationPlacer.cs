@@ -373,11 +373,11 @@ namespace Exoform.Scripts.Map
         void RegisterVegetationArea(TileType vegetationType, List<Vector2Int> cells)
         {
             if (!cityGrid.BuildingOccupancy.ContainsKey(vegetationType))
-                cityGrid.BuildingOccupancy[vegetationType] = new List<Vector2Int>();
+                cityGrid.BuildingOccupancy[vegetationType] = new List<OccupiedCell>();
 
             foreach (var cell in cells)
             {
-                cityGrid.BuildingOccupancy[vegetationType].Add(cell);
+                cityGrid.BuildingOccupancy[vegetationType].Add(new OccupiedCell(cell, 0));
             }
         }
 

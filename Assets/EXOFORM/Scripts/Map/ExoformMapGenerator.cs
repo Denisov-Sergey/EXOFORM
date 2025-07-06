@@ -683,9 +683,12 @@ namespace Exoform.Scripts.Map
         {
             if (cityGrid?.BuildingOccupancy == null) return;
 
-            int tentacles = cityGrid.BuildingOccupancy.GetValueOrDefault(TileType.TentacleGrowth, new List<Vector2Int>()).Count;
-            int tumors = cityGrid.BuildingOccupancy.GetValueOrDefault(TileType.TumorNode, new List<Vector2Int>()).Count;
-            int corruptedGround = cityGrid.BuildingOccupancy.GetValueOrDefault(TileType.CorruptedGround, new List<Vector2Int>()).Count;
+            int tentacles = cityGrid.BuildingOccupancy.ContainsKey(TileType.TentacleGrowth) ?
+                cityGrid.BuildingOccupancy[TileType.TentacleGrowth].Count : 0;
+            int tumors = cityGrid.BuildingOccupancy.ContainsKey(TileType.TumorNode) ?
+                cityGrid.BuildingOccupancy[TileType.TumorNode].Count : 0;
+            int corruptedGround = cityGrid.BuildingOccupancy.ContainsKey(TileType.CorruptedGround) ?
+                cityGrid.BuildingOccupancy[TileType.CorruptedGround].Count : 0;
 
             Debug.Log("🦠 === СТАТИСТИКА ПОРЧИ ===");
             Debug.Log($"🐙 Щупальца: {tentacles}");
@@ -752,7 +755,7 @@ namespace Exoform.Scripts.Map
                 {
                     if (cityGrid.BuildingOccupancy.ContainsKey(type))
                     {
-                        positions.AddRange(cityGrid.BuildingOccupancy[type]);
+                        positions.AddRange(cityGrid.BuildingOccupancy[type].Select(c => c.Cell));
                     }
                 }
             }
@@ -781,7 +784,7 @@ namespace Exoform.Scripts.Map
                 {
                     if (cityGrid.BuildingOccupancy.ContainsKey(type))
                     {
-                        positions.AddRange(cityGrid.BuildingOccupancy[type]);
+                        positions.AddRange(cityGrid.BuildingOccupancy[type].Select(c => c.Cell));
                     }
                 }
             }

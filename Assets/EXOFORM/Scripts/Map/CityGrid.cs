@@ -10,7 +10,7 @@ namespace Exoform.Scripts.Map
     {
         public TileType[][] Grid { get; private set; }
         public GameObject[][] SpawnedTiles { get; private set; }
-        public Dictionary<TileType, List<Vector2Int>> BuildingOccupancy { get; private set; }
+        public Dictionary<TileType, List<OccupiedCell>> BuildingOccupancy { get; private set; }
         public int Width { get; private set; }
         public int Height { get; private set; }
         public float TileSize { get; private set; }
@@ -20,7 +20,7 @@ namespace Exoform.Scripts.Map
             Width = width;
             Height = height;
             TileSize = tileSize;
-            BuildingOccupancy = new Dictionary<TileType, List<Vector2Int>>();
+            BuildingOccupancy = new Dictionary<TileType, List<OccupiedCell>>();
             Initialize();
         }
 
@@ -64,8 +64,11 @@ namespace Exoform.Scripts.Map
         {
             foreach (var buildingType in BuildingOccupancy.Values)
             {
-                if (buildingType.Contains(cell))
-                    return true;
+                foreach (var occupied in buildingType)
+                {
+                    if (occupied.Cell == cell)
+                        return true;
+                }
             }
             return false;
         }
@@ -77,8 +80,11 @@ namespace Exoform.Scripts.Map
         {
             foreach (var kvp in BuildingOccupancy)
             {
-                if (kvp.Value.Contains(cell))
-                    return kvp.Key;
+                foreach (var occupied in kvp.Value)
+                {
+                    if (occupied.Cell == cell)
+                        return kvp.Key;
+                }
             }
             return null;
         }

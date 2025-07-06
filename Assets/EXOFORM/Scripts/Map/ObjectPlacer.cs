@@ -293,26 +293,22 @@ namespace Exoform.Scripts.Map
 
         bool TryPlaceObject(PrefabSettings settings, Vector2Int position)
         {
-            if (!settings.CanPlaceAtWithBuildingCheck(position, cityGrid.Grid, cityGrid.Width, cityGrid.Height, 
-                cityGrid.IsCellOccupiedByBuilding))
-            {
+            int rotation = DetermineRotation(position, settings);
+            var occupiedCells = settings.GetOccupiedCells(position, rotation);
+
+            if (!CanPlaceRotated(occupiedCells, settings))
                 return false;
-            }
 
             int currentCount = GetSpawnedCount(settings);
             if (settings.maxCount > 0 && currentCount >= settings.maxCount)
-            {
                 return false;
-            }
 
-            var occupiedCells = settings.GetOccupiedCells(position);
-            
             if (!cityGrid.BuildingOccupancy.ContainsKey(settings.tileType))
-                cityGrid.BuildingOccupancy[settings.tileType] = new List<Vector2Int>();
-            
+                cityGrid.BuildingOccupancy[settings.tileType] = new List<OccupiedCell>();
+
             foreach (var cell in occupiedCells)
             {
-                cityGrid.BuildingOccupancy[settings.tileType].Add(cell);
+                cityGrid.BuildingOccupancy[settings.tileType].Add(new OccupiedCell(cell, rotation));
             }
 
             if (!spawnedCounts.ContainsKey(settings))
@@ -379,6 +375,109 @@ namespace Exoform.Scripts.Map
                 }
             }
             return false;
+        }
+
+        int DetermineRotation(Vector2Int position, PrefabSettings settings)
+        {
+            if (settings.useRandomRotation && settings.allowedRotations.Count > 0)
+            {
+                int idx = Random.Range(0, settings.allowedRotations.Count);
+                return Mathf.RoundToInt(settings.allowedRotations[idx]);
+            }
+
+            if (settings.rotateTowardsRoad && settings.allowedRotations.Count > 0)
+            {
+                Vector2Int centerCell = new Vector2Int(
+                    Mathf.RoundToInt(position.x + settings.gridSize.x * 0.5f - 0.5f),
+                    Mathf.RoundToInt(position.y + settings.gridSize.y * 0.5f - 0.5f));
+
+                Vector2Int? nearestRoad = FindNearestRoad(centerCell);
+
+                if (!nearestRoad.HasValue)
+                {
+                    if (settings.randomRotationIfNoRoad)
+                    {
+                        int idx = Random.Range(0, settings.allowedRotations.Count);
+                        return Mathf.RoundToInt(settings.allowedRotations[idx]);
+                    }
+
+                    return 0;
+                }
+
+                Vector2 dir = new Vector2(nearestRoad.Value.x - centerCell.x, nearestRoad.Value.y - centerCell.y).normalized;
+                float targetAngle = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
+                return Mathf.RoundToInt(FindClosestAllowedAngle(targetAngle, settings.allowedRotations));
+            }
+
+            return 0;
+        }
+
+        Vector2Int? FindNearestRoad(Vector2Int centerCell)
+        {
+            Vector2Int? nearest = null;
+            float minDist = float.MaxValue;
+            int searchRadius = 5;
+
+            for (int dx = -searchRadius; dx <= searchRadius; dx++)
+            {
+                for (int dy = -searchRadius; dy <= searchRadius; dy++)
+                {
+                    Vector2Int check = centerCell + new Vector2Int(dx, dy);
+                    if (!cityGrid.IsValidPosition(check))
+                        continue;
+
+                    if (cityGrid.Grid[check.x][check.y] == TileType.PathwayStraight)
+                    {
+                        float dist = Vector2Int.Distance(centerCell, check);
+                        if (dist < minDist)
+                        {
+                            minDist = dist;
+                            nearest = check;
+                        }
+                    }
+                }
+            }
+
+            return nearest;
+        }
+
+        float FindClosestAllowedAngle(float targetAngle, List<float> allowed)
+        {
+            float best = allowed[0];
+            float minDiff = Mathf.Abs(Mathf.DeltaAngle(targetAngle, best));
+
+            foreach (float angle in allowed)
+            {
+                float diff = Mathf.Abs(Mathf.DeltaAngle(targetAngle, angle));
+                if (diff < minDiff)
+                {
+                    minDiff = diff;
+                    best = angle;
+                }
+            }
+
+            return best;
+        }
+
+        bool CanPlaceRotated(List<Vector2Int> cells, PrefabSettings settings)
+        {
+            foreach (var cell in cells)
+            {
+                if (!cityGrid.IsValidPosition(cell))
+                    return false;
+
+                if (!settings.canBeAtEdge &&
+                    (cell.x == 0 || cell.y == 0 || cell.x == cityGrid.Width - 1 || cell.y == cityGrid.Height - 1))
+                    return false;
+
+                if (cityGrid.Grid[cell.x][cell.y] == TileType.PathwayStraight)
+                    return false;
+
+                if (cityGrid.IsCellOccupiedByBuilding(cell))
+                    return false;
+            }
+
+            return true;
         }
     }
 }

@@ -285,9 +285,9 @@ namespace Exoform.Scripts.Map
             
             // Регистрируем элемент Порчи
             if (!cityGrid.BuildingOccupancy.ContainsKey(corruptionType))
-                cityGrid.BuildingOccupancy[corruptionType] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[corruptionType].Add(position);
+                cityGrid.BuildingOccupancy[corruptionType] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[corruptionType].Add(new OccupiedCell(position, 0));
             
             // Увеличиваем счетчик
             if (prefab != null)
