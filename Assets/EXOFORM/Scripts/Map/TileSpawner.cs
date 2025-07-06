@@ -13,6 +13,16 @@ namespace Exoform.Scripts.Map
         private Transform parent;
         private Dictionary<string, int> spawnedPrefabCounts;
 
+        // Префиксы для удаляемых объектов. Соответствуют категориям из GetObjectCategory.
+        private static readonly string[] ObjectCategoryPrefixes =
+        {
+            "Structure_",
+            "Vegetation_",
+            "RoadObject_",
+            "SupplyCache_",
+            "Decoration_"
+        };
+
         public TileSpawner(CityGrid grid, Transform parentTransform)
         {
             cityGrid = grid;
@@ -86,13 +96,13 @@ namespace Exoform.Scripts.Map
 
             foreach (Transform child in parent)
             {
-                if (child.name.StartsWith("Structure_") ||
-                    child.name.StartsWith("Vegetation_") ||
-                    child.name.StartsWith("RoadObject_") ||
-                    child.name.StartsWith("SupplyCache_") ||
-                    child.name.StartsWith("Decoration_"))
+                foreach (var prefix in ObjectCategoryPrefixes)
                 {
-                    toDestroy.Add(child.gameObject);
+                    if (child.name.StartsWith(prefix))
+                    {
+                        toDestroy.Add(child.gameObject);
+                        break;
+                    }
                 }
             }
 
