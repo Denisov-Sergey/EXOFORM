@@ -11,13 +11,15 @@ namespace Exoform.Scripts.Map
     public class ObjectPlacer
     {
         private CityGrid cityGrid;
+        private ExoformZoneSystem zoneSystem;
         private List<PrefabSettings> prefabSettings;
         private Dictionary<PrefabSettings, int> spawnedCounts;
         private MonoBehaviour coroutineRunner;
 
-        public ObjectPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner)
+        public ObjectPlacer(CityGrid grid, ExoformZoneSystem zones, List<GameObject> prefabs, MonoBehaviour runner)
         {
             cityGrid = grid;
+            zoneSystem = zones;
             coroutineRunner = runner;
             spawnedCounts = new Dictionary<PrefabSettings, int>();
             LoadPrefabSettings(prefabs);
@@ -277,11 +279,18 @@ namespace Exoform.Scripts.Map
                 for (int y = 0; y <= cityGrid.Height - settings.gridSize.y; y++)
                 {
                     Vector2Int pos = new Vector2Int(x, y);
-                    if (settings.CanPlaceAtWithBuildingCheck(pos, cityGrid.Grid, cityGrid.Width, cityGrid.Height, 
+                    if (settings.CanPlaceAtWithBuildingCheck(pos, cityGrid.Grid, cityGrid.Width, cityGrid.Height,
                         cityGrid.IsCellOccupiedByBuilding))
                     {
                         if (settings.minDistanceFromRoad == 0 || HasRoadNearby(pos, settings.minDistanceFromRoad))
                         {
+                            if (zoneSystem != null)
+                            {
+                                var zone = zoneSystem.GetZoneAt(pos);
+                                if (zone.HasValue && settings.allowedZones.Count > 0 &&
+                                    !settings.allowedZones.Contains(zone.Value.zoneType))
+                                    continue;
+                            }
                             positions.Add(pos);
                         }
                     }
