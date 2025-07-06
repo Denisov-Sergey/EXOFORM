@@ -10,12 +10,14 @@ namespace Exoform.Scripts.Map
     public class VegetationPlacer
     {
         private CityGrid cityGrid;
+        private ExoformZoneSystem zoneSystem;
         private List<PrefabSettings> vegetationPrefabs;
         private MonoBehaviour coroutineRunner;
 
-        public VegetationPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner)
+        public VegetationPlacer(CityGrid grid, ExoformZoneSystem zones, List<GameObject> prefabs, MonoBehaviour runner)
         {
             cityGrid = grid;
+            zoneSystem = zones;
             coroutineRunner = runner;
             LoadVegetationPrefabs(prefabs);
         }
@@ -222,6 +224,13 @@ namespace Exoform.Scripts.Map
                     Vector2Int pos = new Vector2Int(x, y);
                     if (CanPlaceVegetationAt(pos, settings))
                     {
+                        if (zoneSystem != null)
+                        {
+                            var zone = zoneSystem.GetZoneAt(pos);
+                            if (zone.HasValue && settings.allowedZones.Count > 0 &&
+                                !settings.allowedZones.Contains(zone.Value.zoneType))
+                                continue;
+                        }
                         positions.Add(pos);
                     }
                 }

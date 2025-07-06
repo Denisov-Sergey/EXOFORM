@@ -11,13 +11,15 @@ namespace Exoform.Scripts.Map
     public class TechSalvagePlacer
     {
         private CityGrid cityGrid;
+        private ExoformZoneSystem zoneSystem;
         private List<PrefabSettings> techSalvagePrefabs;
         private MonoBehaviour coroutineRunner;
         private Dictionary<PrefabSettings, int> spawnedCounts;
 
-        public TechSalvagePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner)
+        public TechSalvagePlacer(CityGrid grid, ExoformZoneSystem zones, List<GameObject> prefabs, MonoBehaviour runner)
         {
             cityGrid = grid;
+            zoneSystem = zones;
             coroutineRunner = runner;
             spawnedCounts = new Dictionary<PrefabSettings, int>();
             LoadTechSalvagePrefabs(prefabs);

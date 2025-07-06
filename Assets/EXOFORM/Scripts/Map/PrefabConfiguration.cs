@@ -30,6 +30,14 @@ namespace Exoform.Scripts.Map
         [Tooltip("Префабы ящиков с лутом")]
         public List<GameObject> lootPrefabs = new List<GameObject>();
 
+        [Header("🦠 Порча")]
+        [Tooltip("Префабы статичных элементов Порчи")]
+        public List<GameObject> corruptionPrefabs = new List<GameObject>();
+
+        [Header("🔧 Техника для восстановления")]
+        [Tooltip("Префабы техники, появляющейся в технических зонах")]
+        public List<GameObject> techSalvagePrefabs = new List<GameObject>();
+
         [Header("🎨 Декорации")]
         [Tooltip("Декоративные объекты")]
         public List<GameObject> decorationPrefabs = new List<GameObject>();
@@ -46,6 +54,8 @@ namespace Exoform.Scripts.Map
             allPrefabs.AddRange(resourcePrefabs.Where(p => p != null));
             allPrefabs.AddRange(roadObjectPrefabs.Where(p => p != null));
             allPrefabs.AddRange(lootPrefabs.Where(p => p != null));
+            allPrefabs.AddRange(corruptionPrefabs.Where(p => p != null));
+            allPrefabs.AddRange(techSalvagePrefabs.Where(p => p != null));
             allPrefabs.AddRange(decorationPrefabs.Where(p => p != null));
 
             return allPrefabs;
@@ -58,12 +68,14 @@ namespace Exoform.Scripts.Map
         {
             return category switch
             {
-                PrefabCategory.Buildings => buildingPrefabs.Where(p => p != null).ToList(),
-                PrefabCategory.Vegetation => vegetationPrefabs.Where(p => p != null).ToList(),
-                PrefabCategory.Resources => resourcePrefabs.Where(p => p != null).ToList(),
-                PrefabCategory.RoadObjects => roadObjectPrefabs.Where(p => p != null).ToList(),
-                PrefabCategory.Loot => lootPrefabs.Where(p => p != null).ToList(),
-                PrefabCategory.Decorations => decorationPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.Buildings    => buildingPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.Vegetation   => vegetationPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.Resources    => resourcePrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.RoadObjects  => roadObjectPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.Loot         => lootPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.Corruption   => corruptionPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.TechSalvage  => techSalvagePrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.Decorations  => decorationPrefabs.Where(p => p != null).ToList(),
                 _ => new List<GameObject>()
             };
         }
@@ -143,9 +155,15 @@ namespace Exoform.Scripts.Map
                 TileType.BiomassResource or TileType.MetalResource => PrefabCategory.Resources,
                 
                 TileType.AbandonedVehicle or TileType.Barricade or TileType.WreckageDebris => PrefabCategory.RoadObjects,
-                
+
                 TileType.SupplyCache => PrefabCategory.Loot,
-                
+
+                TileType.TentacleGrowth or TileType.TumorNode or TileType.CorruptedGround or
+                TileType.SporeEmitter or TileType.BiologicalMass => PrefabCategory.Corruption,
+
+                TileType.DamagedGenerator or TileType.BrokenRobot or TileType.CorruptedTerminal or
+                TileType.TechSalvageResource => PrefabCategory.TechSalvage,
+
                 TileType.Decoration => PrefabCategory.Decorations,
                 
                 _ => PrefabCategory.Buildings
@@ -159,8 +177,10 @@ namespace Exoform.Scripts.Map
             if (resourcePrefabs.Contains(prefab)) return PrefabCategory.Resources;
             if (roadObjectPrefabs.Contains(prefab)) return PrefabCategory.RoadObjects;
             if (lootPrefabs.Contains(prefab)) return PrefabCategory.Loot;
+            if (corruptionPrefabs.Contains(prefab)) return PrefabCategory.Corruption;
+            if (techSalvagePrefabs.Contains(prefab)) return PrefabCategory.TechSalvage;
             if (decorationPrefabs.Contains(prefab)) return PrefabCategory.Decorations;
-            
+
             return PrefabCategory.Buildings; // по умолчанию
         }
 
@@ -175,6 +195,8 @@ namespace Exoform.Scripts.Map
             stats += $"⛏️ Ресурсов: {resourcePrefabs.Count(p => p != null)}\n";
             stats += $"🚗 Дорожных объектов: {roadObjectPrefabs.Count(p => p != null)}\n";
             stats += $"📦 Лута: {lootPrefabs.Count(p => p != null)}\n";
+            stats += $"🦠 Порчи: {corruptionPrefabs.Count(p => p != null)}\n";
+            stats += $"🔧 Техники: {techSalvagePrefabs.Count(p => p != null)}\n";
             stats += $"🎨 Декораций: {decorationPrefabs.Count(p => p != null)}\n";
             stats += $"📝 Всего: {GetAllPrefabs().Count}\n";
             
@@ -216,6 +238,12 @@ namespace Exoform.Scripts.Map
                         case PrefabCategory.Loot:
                             lootPrefabs.Add(prefab);
                             break;
+                        case PrefabCategory.Corruption:
+                            corruptionPrefabs.Add(prefab);
+                            break;
+                        case PrefabCategory.TechSalvage:
+                            techSalvagePrefabs.Add(prefab);
+                            break;
                         case PrefabCategory.Decorations:
                             decorationPrefabs.Add(prefab);
                             break;
@@ -232,6 +260,8 @@ namespace Exoform.Scripts.Map
         Resources,
         RoadObjects,
         Loot,
+        Corruption,
+        TechSalvage,
         Decorations
     }
 

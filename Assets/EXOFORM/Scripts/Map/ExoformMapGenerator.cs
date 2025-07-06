@@ -221,7 +221,7 @@ namespace Exoform.Scripts.Map
                     InitializeComponents();
                     if (!isGenerating)
                     {
-                        StartCoroutine(GenerateMap());
+                        GenerateMap();
                     }
                 }
                 catch (System.Exception e)
@@ -292,11 +292,11 @@ namespace Exoform.Scripts.Map
 
         private void InitializePlacers(List<GameObject> allPrefabs)
         {
-            objectPlacer ??= new ObjectPlacer(cityGrid, allPrefabs, this);
-            vegetationPlacer ??= new VegetationPlacer(cityGrid, allPrefabs, this);
+            objectPlacer ??= new ObjectPlacer(cityGrid, zoneSystem, allPrefabs, this);
+            vegetationPlacer ??= new VegetationPlacer(cityGrid, zoneSystem, allPrefabs, this);
             resourcePlacer ??= new ResourcePlacer(cityGrid, allPrefabs, this, this);
-            decorationPlacer ??= new DecorationPlacer(cityGrid, allPrefabs, this);
-            roadObjectsPlacer ??= new RoadObjectsPlacer(cityGrid, allPrefabs, this);
+            decorationPlacer ??= new DecorationPlacer(cityGrid, zoneSystem, allPrefabs, this);
+            roadObjectsPlacer ??= new RoadObjectsPlacer(cityGrid, zoneSystem, allPrefabs, this);
             lootPlacer ??= new LootPlacer(cityGrid, allPrefabs, this, this);
         }
 
@@ -304,7 +304,7 @@ namespace Exoform.Scripts.Map
         {
             zoneSystem ??= new ExoformZoneSystem(cityGrid);
             staticCorruptionPlacer ??= new StaticCorruptionPlacer(cityGrid, allPrefabs, this);
-            techSalvagePlacer ??= new TechSalvagePlacer(cityGrid, allPrefabs, this);
+            techSalvagePlacer ??= new TechSalvagePlacer(cityGrid, zoneSystem, allPrefabs, this);
         }
 
         /// <summary>
@@ -396,7 +396,7 @@ namespace Exoform.Scripts.Map
                 _generateMap = false;
                 if (!isGenerating)
                 {
-                    StartCoroutine(GenerateMap());
+                    GenerateMap();
                 }
             }
 
@@ -417,9 +417,9 @@ namespace Exoform.Scripts.Map
 
         #region Generation Pipeline
 
-        private IEnumerator GenerateMap()
+        private void GenerateMap()
         {
-            if (isGenerating) yield break;
+            if (isGenerating) return;
 
             isGenerating = true;
             var startTime = Time.time;
@@ -428,7 +428,7 @@ namespace Exoform.Scripts.Map
             CalculateExpectedCounts();
 
             // Выполняем генерацию
-            yield return StartCoroutine(ExecuteGenerationPipeline());
+            ExecuteGenerationPipeline();
 
             // Завершение генерации
             currentStage = GenerationStage.Completed;
@@ -440,7 +440,7 @@ namespace Exoform.Scripts.Map
             isGenerating = false;
         }
 
-        private IEnumerator ExecuteGenerationPipeline()
+        private void ExecuteGenerationPipeline()
         {
             var steps = new (string name, string emoji, System.Func<IEnumerator> action)[]
             {
@@ -464,16 +464,12 @@ namespace Exoform.Scripts.Map
                 Debug.Log($"\n{emoji} Этап {i + 1}/{steps.Length}: {name}");
                 currentStage = (GenerationStage)(i + 1);
 
-                // Выполняем этап напрямую - обработка ошибок внутри каждого метода
-                yield return StartCoroutine(action());
+                RunSync(action());
 
-                // Не обновляем визуалы после оптимизации
                 if (currentStage != GenerationStage.Optimization)
                 {
-                    yield return StartCoroutine(UpdateVisuals());
+                    RunSync(UpdateVisuals());
                 }
-                
-                yield return new WaitForSeconds(animationSpeed * 2);
             }
         }
 
@@ -484,7 +480,7 @@ namespace Exoform.Scripts.Map
         private IEnumerator InitializeBaseLayer()
         {
             cityGrid.Initialize();
-            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed));
+            return tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed);
         }
 
         private IEnumerator InitializeExoformZones()
@@ -498,38 +494,39 @@ namespace Exoform.Scripts.Map
         {
             if (useImprovedPathwayGenerator)
             {
-                yield return StartCoroutine(improvedRoadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
+                return improvedRoadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed);
             }
             else
             {
-                yield return StartCoroutine(roadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
+                return roadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed);
             }
         }
 
         private IEnumerator PlaceStructures()
         {
-            yield return StartCoroutine(objectPlacer.PlaceObjects(structureDensity, animationSpeed));
+            return objectPlacer.PlaceObjects(structureDensity, animationSpeed);
         }
 
         private IEnumerator PlaceVegetation()
         {
-            yield return StartCoroutine(vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed));
+            return vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed);
         }
 
         private IEnumerator PlaceResources()
         {
-            yield return StartCoroutine(resourcePlacer.PlaceResources(resourceDensity, animationSpeed));
+            return resourcePlacer.PlaceResources(resourceDensity, animationSpeed);
         }
 
         private IEnumerator PlaceStaticCorruption()
         {
             if (staticCorruptionPlacer != null)
             {
-                yield return StartCoroutine(staticCorruptionPlacer.PlaceStaticCorruption(staticCorruptionDensity, animationSpeed));
+                return staticCorruptionPlacer.PlaceStaticCorruption(staticCorruptionDensity, animationSpeed);
             }
             else
             {
                 LogDebug("StaticCorruptionPlacer не инициализирован - пропускаем этап");
+                return EmptyCoroutine();
             }
         }
 
@@ -537,27 +534,28 @@ namespace Exoform.Scripts.Map
         {
             if (techSalvagePlacer != null)
             {
-                yield return StartCoroutine(techSalvagePlacer.PlaceTechSalvage(techSalvageDensity, animationSpeed));
+                return techSalvagePlacer.PlaceTechSalvage(techSalvageDensity, animationSpeed);
             }
             else
             {
                 LogDebug("TechSalvagePlacer не инициализирован - пропускаем этап");
+                return EmptyCoroutine();
             }
         }
 
         private IEnumerator PlaceSupplyCache()
         {
-            yield return StartCoroutine(lootPlacer.PlaceLoot(animationSpeed));
+            return lootPlacer.PlaceLoot(animationSpeed);
         }
 
         private IEnumerator PlacePathwayObjects()
         {
-            yield return StartCoroutine(roadObjectsPlacer.PlaceRoadObjects(pathwayObjectDensity, animationSpeed));
+            return roadObjectsPlacer.PlaceRoadObjects(pathwayObjectDensity, animationSpeed);
         }
 
         private IEnumerator PlaceDecorations()
         {
-            yield return StartCoroutine(decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed));
+            return decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed);
         }
         
 
@@ -566,7 +564,12 @@ namespace Exoform.Scripts.Map
             var allPrefabs = GetAllPrefabs();
             float updateSpeed = useBatchedVisualUpdates ? animationSpeed * 0.5f : animationSpeed;
 
-            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed));
+            return tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed);
+        }
+
+        private IEnumerator EmptyCoroutine()
+        {
+            yield break;
         }
 
         #endregion
@@ -942,6 +945,25 @@ namespace Exoform.Scripts.Map
         {
             if (verboseLogging)
                 Debug.Log($"[ExoformMapGenerator] {message}");
+        }
+
+        private void RunSync(IEnumerator routine)
+        {
+            var stack = new Stack<IEnumerator>();
+            stack.Push(routine);
+            while (stack.Count > 0)
+            {
+                var e = stack.Peek();
+                if (!e.MoveNext())
+                {
+                    stack.Pop();
+                    continue;
+                }
+                if (e.Current is IEnumerator nested)
+                {
+                    stack.Push(nested);
+                }
+            }
         }
 
         /// <summary>
