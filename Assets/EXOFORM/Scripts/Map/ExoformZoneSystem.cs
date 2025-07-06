@@ -97,20 +97,23 @@ namespace Exoform.Scripts.Map
             }
             else if (normalizedDistance < 0.6f)
             {
-                // Средние зоны - микс стандартных и технических
+                // Средние зоны - появляются редкие инфестации
                 float chance = Random.value;
                 if (chance < 0.5f) return TileType.StandardZone;
                 if (chance < 0.8f) return TileType.TechnicalZone;
-                return TileType.ArtifactZone;
+                if (chance < 0.95f) return TileType.ArtifactZone;
+                return TileType.InfestZone;
             }
             else
             {
-                // Внешние зоны - опасные
+                // Внешние зоны - самые опасные
                 float chance = Random.value;
-                if (chance < 0.3f) return TileType.StandardZone;
-                if (chance < 0.5f) return TileType.TechnicalZone;
-                if (chance < 0.8f) return TileType.ArtifactZone;
-                return TileType.CorruptedTrap;
+                if (chance < 0.25f) return TileType.StandardZone;
+                if (chance < 0.45f) return TileType.TechnicalZone;
+                if (chance < 0.7f) return TileType.ArtifactZone;
+                if (chance < 0.9f) return TileType.CorruptedTrap;
+                if (chance < 0.97f) return TileType.InfestZone;
+                return TileType.BossZone;
             }
         }
         
@@ -122,6 +125,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => 1.3f,
                 TileType.ArtifactZone => 1.7f,
                 TileType.CorruptedTrap => 2.5f,
+                TileType.InfestZone => 3.0f,
+                TileType.BossZone => 4.5f,
                 _ => 1.0f
             };
             
@@ -138,6 +143,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => Random.Range(0.1f, 0.3f),
                 TileType.ArtifactZone => Random.Range(0.3f, 0.5f),
                 TileType.CorruptedTrap => Random.Range(0.7f, 1.0f),
+                TileType.InfestZone => Random.Range(0.8f, 1.0f),
+                TileType.BossZone => 1.0f,
                 _ => 0f
             };
         }
@@ -159,6 +166,12 @@ namespace Exoform.Scripts.Map
                     break;
                 case TileType.CorruptedTrap:
                     rewards.AddRange(new[] { "Corrupted_Samples", "Biomass", "Danger_Intel" });
+                    break;
+                case TileType.InfestZone:
+                    rewards.AddRange(new[] { "Infested_Biomass", "Mutagen", "Hive_Shard" });
+                    break;
+                case TileType.BossZone:
+                    rewards.AddRange(new[] { "Epic_Loot", "Boss_Core" });
                     break;
             }
             
@@ -183,6 +196,12 @@ namespace Exoform.Scripts.Map
                 case TileType.CorruptedTrap:
                     enemies.AddRange(new[] { "Corruption_Mass", "Tentacle_Swarm", "Spore_Cloud" });
                     break;
+                case TileType.InfestZone:
+                    enemies.AddRange(new[] { "Infested_Soldier", "Hive_Mutant" });
+                    break;
+                case TileType.BossZone:
+                    enemies.AddRange(new[] { "Zone_Boss" });
+                    break;
             }
             
             return enemies;
@@ -196,6 +215,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => 0.2f,
                 TileType.ArtifactZone => 0.4f,
                 TileType.CorruptedTrap => 0.6f,
+                TileType.InfestZone => 0.7f,
+                TileType.BossZone => 0.8f,
                 _ => 0f
             };
         }
@@ -210,6 +231,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => Random.value < 0.5f ? "Malfunctioning_AI" : "Hidden_Lab",
                 TileType.ArtifactZone => Random.value < 0.5f ? "Ancient_Vault" : "Psi_Anomaly",
                 TileType.CorruptedTrap => Random.value < 0.5f ? "Corruption_Outbreak" : "Hive_Mind",
+                TileType.InfestZone => Random.value < 0.5f ? "Hive_Emergence" : "Massive_Spawning",
+                TileType.BossZone => "Boss_Encounter",
                 _ => ""
             };
         }
@@ -326,6 +349,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => "🔧",
                 TileType.ArtifactZone => "🧬",
                 TileType.CorruptedTrap => "⚠️",
+                TileType.InfestZone => "🪲",
+                TileType.BossZone => "👹",
                 _ => "❓"
             };
         }
@@ -338,6 +363,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => "Техническая", 
                 TileType.ArtifactZone => "Артефактная",
                 TileType.CorruptedTrap => "Заражённая",
+                TileType.InfestZone => "Инфест-зона",
+                TileType.BossZone => "Босс-зона",
                 _ => "Неизвестная"
             };
         }
