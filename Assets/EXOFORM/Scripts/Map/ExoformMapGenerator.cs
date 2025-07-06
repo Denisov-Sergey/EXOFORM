@@ -287,7 +287,7 @@ namespace Exoform.Scripts.Map
         {
             objectPlacer ??= new ObjectPlacer(cityGrid, allPrefabs, this);
             vegetationPlacer ??= new VegetationPlacer(cityGrid, allPrefabs, this);
-            resourcePlacer ??= new ResourcePlacer(cityGrid, allPrefabs, this, this);
+            resourcePlacer ??= new ResourcePlacer(cityGrid, allPrefabs, this, this, zoneSystem);
             decorationPlacer ??= new DecorationPlacer(cityGrid, allPrefabs, this);
             roadObjectsPlacer ??= new RoadObjectsPlacer(cityGrid, allPrefabs, this);
             lootPlacer ??= new LootPlacer(cityGrid, allPrefabs, this, this);
@@ -296,8 +296,8 @@ namespace Exoform.Scripts.Map
         private void InitializeExoformSystems(List<GameObject> allPrefabs)
         {
             zoneSystem ??= new ExoformZoneSystem(cityGrid);
-            staticCorruptionPlacer ??= new StaticCorruptionPlacer(cityGrid, allPrefabs, this);
-            techSalvagePlacer ??= new TechSalvagePlacer(cityGrid, allPrefabs, this);
+            staticCorruptionPlacer ??= new StaticCorruptionPlacer(cityGrid, allPrefabs, this, zoneSystem);
+            techSalvagePlacer ??= new TechSalvagePlacer(cityGrid, allPrefabs, this, zoneSystem);
         }
 
         /// <summary>
