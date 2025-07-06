@@ -201,9 +201,9 @@ namespace Exoform.Scripts.Map
 
             // Добавляем ресурс в сетку
             if (!cityGrid.BuildingOccupancy.ContainsKey(resourceType))
-                cityGrid.BuildingOccupancy[resourceType] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[resourceType].Add(position);
+                cityGrid.BuildingOccupancy[resourceType] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[resourceType].Add(new OccupiedCell(position, 0));
             
             return true;
         }

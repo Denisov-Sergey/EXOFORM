@@ -220,9 +220,9 @@ namespace Exoform.Scripts.Map
             var lootPrefab = lootPrefabs[Random.Range(0, lootPrefabs.Count)];
             
             if (!cityGrid.BuildingOccupancy.ContainsKey(TileType.SupplyCache))
-                cityGrid.BuildingOccupancy[TileType.SupplyCache] = new List<Vector2Int>();
-            
-            cityGrid.BuildingOccupancy[TileType.SupplyCache].Add(position);
+                cityGrid.BuildingOccupancy[TileType.SupplyCache] = new List<OccupiedCell>();
+
+            cityGrid.BuildingOccupancy[TileType.SupplyCache].Add(new OccupiedCell(position, 0));
             
             return true;
         }
