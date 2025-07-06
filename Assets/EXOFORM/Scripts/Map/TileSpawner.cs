@@ -81,27 +81,26 @@ namespace Exoform.Scripts.Map
 
         void ClearExistingBuildings()
         {
-            // Удаляем все объекты кроме базовых тайлов и объединенной травы
+            // Удаляем все ранее созданные визуальные объекты на тайлах
             List<GameObject> toDestroy = new List<GameObject>();
-            
+
             foreach (Transform child in parent)
             {
-                    
-                if (child.name.StartsWith("Building_") || 
-                    child.name.StartsWith("Vegetation_") || 
+                if (child.name.StartsWith("Structure_") ||
+                    child.name.StartsWith("Vegetation_") ||
                     child.name.StartsWith("RoadObject_") ||
-                    child.name.StartsWith("Loot_") ||
-                    child.name.StartsWith("Pathway_"))
+                    child.name.StartsWith("SupplyCache_") ||
+                    child.name.StartsWith("Decoration_"))
                 {
                     toDestroy.Add(child.gameObject);
                 }
             }
-            
+
             foreach (var obj in toDestroy)
             {
                 Object.DestroyImmediate(obj);
             }
-            
+
             spawnedPrefabCounts.Clear();
         }
 
@@ -328,6 +327,7 @@ namespace Exoform.Scripts.Map
             if (IsVegetationType(type)) return "Vegetation";
             if (IsRoadObjectType(type)) return "RoadObject";
             if (type == TileType.SupplyCache) return "SupplyCache";
+            if (IsDecorationType(type)) return "Decoration";
             return "Structure";
         }
 
