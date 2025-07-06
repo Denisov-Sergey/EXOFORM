@@ -337,7 +337,6 @@ namespace Exoform.Scripts.Map
             if (IsVegetationType(type)) return "Vegetation";
             if (IsRoadObjectType(type)) return "RoadObject";
             if (type == TileType.SupplyCache) return "SupplyCache";
-            if (IsDecorationType(type)) return "Decoration";
             return "Structure";
         }
 

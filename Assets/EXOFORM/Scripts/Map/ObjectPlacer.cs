@@ -325,38 +325,56 @@ namespace Exoform.Scripts.Map
 
         void RemoveOccupiedPositions(List<Vector2Int> positions, PrefabSettings settings, Vector2Int placedPosition, int rotation)
         {
-            var occupiedCells = settings.GetOccupiedCells(placedPosition, rotation);
+            var placedCells = settings.GetOccupiedCells(placedPosition, rotation);
             int minDistance = settings.minDistanceFromSameType;
-            
+
+            bool CellsClash(List<Vector2Int> a, List<Vector2Int> b)
+            {
+                foreach (var cell in a)
+                {
+                    if (b.Contains(cell))
+                        return true;
+                }
+
+                foreach (var cellA in a)
+                {
+                    foreach (var cellB in b)
+                    {
+                        int dist = Mathf.Max(Mathf.Abs(cellA.x - cellB.x), Mathf.Abs(cellA.y - cellB.y));
+                        if (dist < minDistance)
+                            return true;
+                    }
+                }
+
+                return false;
+            }
+
             positions.RemoveAll(pos =>
             {
-                var testCells = settings.GetOccupiedCells(pos);
-                
-                foreach (var testCell in testCells)
+                // rotation that would be used when placing at this position
+                int rot = DetermineRotation(pos, settings);
+                var testCells = settings.GetOccupiedCells(pos, rot);
+
+                if (CellsClash(testCells, placedCells))
+                    return true;
+
+                // if object would clash with placed object in every possible rotation, remove it
+                var rotations = (settings.allowedRotations != null && settings.allowedRotations.Count > 0)
+                    ? settings.allowedRotations
+                    : new List<float> { 0f };
+
+                bool clashAll = true;
+                foreach (var r in rotations)
                 {
-                    if (occupiedCells.Contains(testCell))
+                    var cells = settings.GetOccupiedCells(pos, Mathf.RoundToInt(r));
+                    if (!CellsClash(cells, placedCells))
                     {
-                        return true;
+                        clashAll = false;
+                        break;
                     }
                 }
-                
-                foreach (var testCell in testCells)
-                {
-                    foreach (var occupiedCell in occupiedCells)
-                    {
-                        int distance = Mathf.Max(
-                            Mathf.Abs(testCell.x - occupiedCell.x),
-                            Mathf.Abs(testCell.y - occupiedCell.y)
-                        );
-                        
-                        if (distance < minDistance)
-                        {
-                            return true;
-                        }
-                    }
-                }
-                
-                return false;
+
+                return clashAll;
             });
         }
 
