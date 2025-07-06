@@ -12,13 +12,11 @@ namespace Exoform.Scripts.Map
         private CityGrid cityGrid;
         private Transform parent;
         private Dictionary<string, int> spawnedPrefabCounts;
-        private bool pathwaysOverGrass; // Дороги поверх травы
 
-        public TileSpawner(CityGrid grid, Transform parentTransform, bool pathwaysOverGrass = false)
+        public TileSpawner(CityGrid grid, Transform parentTransform)
         {
             cityGrid = grid;
             parent = parentTransform;
-            this.pathwaysOverGrass = pathwaysOverGrass;
             spawnedPrefabCounts = new Dictionary<string, int>();
         }
 
@@ -28,13 +26,12 @@ namespace Exoform.Scripts.Map
             Debug.Log("  🎯 Создание базовых тайлов...");
             spawnedPrefabCounts.Clear();
 
-            // Сначала создаем все тайлы травы
+            // Создаем базовые тайлы (трава или дорога)
             for (int x = 0; x < cityGrid.Width; x++)
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
-                    // Создаем траву везде
-                    CreateGrassTileAt(x, y, grassPrefabs);
+                    CreateTileAt(x, y, grassPrefabs, pathwayPrefabs);
 
                     if ((x * cityGrid.Height + y) % 10 == 0)
                     {
@@ -43,26 +40,6 @@ namespace Exoform.Scripts.Map
                 }
             }
 
-            // Если дороги поверх травы, создаем их как отдельный слой
-            if (pathwaysOverGrass)
-            {
-                Debug.Log("  🛤️ Создание дорог поверх травы...");
-                for (int x = 0; x < cityGrid.Width; x++)
-                {
-                    for (int y = 0; y < cityGrid.Height; y++)
-                    {
-                        if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
-                        {
-                            CreatePathwayOverGrass(x, y, pathwayPrefabs);
-                        }
-                    }
-
-                    if (x % 5 == 0)
-                    {
-                        yield return new WaitForSeconds(animationSpeed * 0.1f);
-                    }
-                }
-            }
 
             Debug.Log("  🏢 Создание зданий поверх базы...");
             CreateBuildingsLayer(prefabsWithSettings);
@@ -90,23 +67,8 @@ namespace Exoform.Scripts.Map
                         }
                     }
 
-                    // Создаем новые тайлы
-                    if (pathwaysOverGrass)
-                    {
-                        // Всегда создаем траву
-                        CreateGrassTileAt(x, y, grassPrefabs);
-                        
-                        // Дорогу создаем поверх если нужно
-                        if (cityGrid.Grid[x][y] == TileType.PathwayStraight)
-                        {
-                            CreatePathwayOverGrass(x, y, pathwayPrefabs);
-                        }
-                    }
-                    else
-                    {
-                        // Старый режим - либо трава, либо дорога
-                        CreateTileAt(x, y, grassPrefabs, pathwayPrefabs);
-                    }
+                    // Создаем новый тайл в соответствии с типом клетки
+                    CreateTileAt(x, y, grassPrefabs, pathwayPrefabs);
                 }
 
                 yield return new WaitForSeconds(animationSpeed * 0.1f);
@@ -159,25 +121,6 @@ namespace Exoform.Scripts.Map
             cityGrid.SpawnedTiles[x][y] = grassTile;
         }
 
-        void CreatePathwayOverGrass(int x, int y, GameObject[] pathwayPrefabs)
-        {
-            if (pathwayPrefabs == null || pathwayPrefabs.Length == 0) return;
-            
-            Vector3 position = cityGrid.GetWorldPosition(x, y);
-            // Поднимаем дорогу немного выше травы
-            position.y += 0.05f;
-            
-            // Выбираем случайный префаб дороги
-            GameObject pathwayPrefab = GetRandomPrefab(pathwayPrefabs);
-            if (pathwayPrefab == null) return;
-
-            GameObject pathway = Object.Instantiate(pathwayPrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
-            pathway.name = $"Pathway_{x}_{y}";
-            pathway.transform.SetParent(parent);
-            
-            // Не заменяем ссылку в SpawnedTiles - там остается трава
-            // Дорога существует как отдельный объект поверх
-        }
 
         void CreateTileAt(int x, int y, GameObject[] grassPrefabs, GameObject[] pathwayPrefabs)
         {

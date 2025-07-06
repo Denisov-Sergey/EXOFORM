@@ -73,9 +73,6 @@ namespace Exoform.Scripts.Map
         [Range(3, 30)] [Tooltip("Длина сегмента пути")]
         public int pathwayLength = 15;
         
-        [Tooltip("Использовать улучшенный генератор путей")]
-        public bool useImprovedPathwayGenerator = true;
-        
         [Tooltip("Настройки для улучшенного генератора путей")]
         public ImprovedRoadGenerator.RoadSettings advancedPathwaySettings = new ImprovedRoadGenerator.RoadSettings();
 
@@ -106,8 +103,6 @@ namespace Exoform.Scripts.Map
         [Tooltip("Пакетное обновление визуала (улучшает производительность)")]
         public bool useBatchedVisualUpdates = true;
         
-        [Tooltip("Дороги размещаются поверх травы (не удаляют траву)")]
-        public bool pathwaysOverGrass = true;
 
         [Header("🎯 Base Prefabs")]
         [Tooltip("Массив префабов травы (выбирается случайный)")]
@@ -160,7 +155,6 @@ namespace Exoform.Scripts.Map
 
         // Компоненты системы
         private CityGrid cityGrid;
-        private RoadGenerator roadGenerator;
         private ImprovedRoadGenerator improvedRoadGenerator;
         private ObjectPlacer objectPlacer;
         private VegetationPlacer vegetationPlacer;
@@ -273,21 +267,14 @@ namespace Exoform.Scripts.Map
             InitializeExoformSystems(allPrefabs);
 
             // Инициализация спавнера тайлов с поддержкой массивов префабов
-            tileSpawner ??= new TileSpawner(cityGrid, transform, pathwaysOverGrass);
+            tileSpawner ??= new TileSpawner(cityGrid, transform);
 
             LogDebug("Все компоненты инициализированы");
         }
 
         private void InitializePathwayGenerators()
         {
-            if (useImprovedPathwayGenerator)
-            {
-                improvedRoadGenerator ??= new ImprovedRoadGenerator(cityGrid, advancedPathwaySettings, pathwaysOverGrass);
-            }
-            else
-            {
-                roadGenerator ??= new RoadGenerator(cityGrid, pathwaysOverGrass);
-            }
+            improvedRoadGenerator ??= new ImprovedRoadGenerator(cityGrid, advancedPathwaySettings);
         }
 
         private void InitializePlacers(List<GameObject> allPrefabs)
@@ -496,14 +483,7 @@ namespace Exoform.Scripts.Map
 
         private IEnumerator GeneratePathways()
         {
-            if (useImprovedPathwayGenerator)
-            {
-                yield return StartCoroutine(improvedRoadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
-            }
-            else
-            {
-                yield return StartCoroutine(roadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
-            }
+            yield return StartCoroutine(improvedRoadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
         }
 
         private IEnumerator PlaceStructures()
@@ -1068,97 +1048,5 @@ namespace Exoform.Scripts.Map
 
         #endregion
 
-        #region Legacy Support Properties
-
-        // Для обратной совместимости с существующими скриптами
-        public GameObject grassPrefab
-        {
-            get => grassPrefabs != null && grassPrefabs.Length > 0 ? grassPrefabs[0] : null;
-            set
-            {
-                if (grassPrefabs == null || grassPrefabs.Length == 0)
-                    grassPrefabs = new GameObject[1];
-                grassPrefabs[0] = value;
-            }
-        }
-        
-        public GameObject pathwayPrefab
-        {
-            get => pathwayPrefabs != null && pathwayPrefabs.Length > 0 ? pathwayPrefabs[0] : null;
-            set
-            {
-                if (pathwayPrefabs == null || pathwayPrefabs.Length == 0)
-                    pathwayPrefabs = new GameObject[1];
-                pathwayPrefabs[0] = value;
-            }
-        }
-        
-        public float roadDensity
-        {
-            get => pathwayDensity;
-            set => pathwayDensity = value;
-        }
-
-        public float buildingDensity
-        {
-            get => structureDensity;
-            set => structureDensity = value;
-        }
-
-        public float roadObjectDensity
-        {
-            get => pathwayObjectDensity;
-            set => pathwayObjectDensity = value;
-        }
-
-        public float lootDensity
-        {
-            get => supplyCacheDensity;
-            set => supplyCacheDensity = value;
-        }
-
-        public int roadLength
-        {
-            get => pathwayLength;
-            set => pathwayLength = value;
-        }
-
-        public bool useImprovedRoadGenerator
-        {
-            get => useImprovedPathwayGenerator;
-            set => useImprovedPathwayGenerator = value;
-        }
-
-        public ImprovedRoadGenerator.RoadSettings advancedRoadSettings
-        {
-            get => advancedPathwaySettings;
-            set => advancedPathwaySettings = value;
-        }
-
-        public int minLootCount
-        {
-            get => minSupplyCacheCount;
-            set => minSupplyCacheCount = value;
-        }
-
-        public int maxLootCount
-        {
-            get => maxSupplyCacheCount;
-            set => maxSupplyCacheCount = value;
-        }
-
-        public bool clusterLoot
-        {
-            get => clusterSupplyCache;
-            set => clusterSupplyCache = value;
-        }
-
-        public int lootClusterSize
-        {
-            get => supplyCacheClusterSize;
-            set => supplyCacheClusterSize = value;
-        }
-
-        #endregion
     }
 }
