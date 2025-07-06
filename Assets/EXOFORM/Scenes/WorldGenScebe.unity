@@ -347,14 +347,18 @@ MonoBehaviour:
   maxSupplyCacheCount: 30
   clusterSupplyCache: 1
   supplyCacheClusterSize: 3
-  animationSpeed: 0.01
+  animationSpeed: 0.5
   useBatchedVisualUpdates: 1
-  combineGrassTiles: 0
   pathwaysOverGrass: 1
   grassPrefabs:
   - {fileID: 8350565405820835728, guid: a3f672e3be2f5c34db6509158f75506b, type: 3}
+  - {fileID: 8350565405820835728, guid: 4680cf934f0edda4e80790168fb7d926, type: 3}
+  - {fileID: 8350565405820835728, guid: a8cc76add385a754494715c86619ee3c, type: 3}
+  - {fileID: 8350565405820835728, guid: 98c223bdbd26235439407a7f62d65d88, type: 3}
   pathwayPrefabs:
   - {fileID: 2769658057350518571, guid: 613a03b73fd1a2342ae30b1a26eab0eb, type: 3}
+  - {fileID: 2769658057350518571, guid: caa9fa4b4fbb47a4f9982ae562b06d01, type: 3}
+  - {fileID: 2769658057350518571, guid: 027922bc328329149b6b37de01effe38, type: 3}
   prefabConfig:
     buildingPrefabs:
     - {fileID: 3907037380921043336, guid: 8832482798b3d254b9b7846523e5394e, type: 3}
@@ -364,7 +368,8 @@ MonoBehaviour:
     - {fileID: 8659290267191179947, guid: 818676f5efc28264ea2024e8f329c5b1, type: 3}
     - {fileID: 481879580567534653, guid: 8e7c9a264a6b02b4ab443371da125448, type: 3}
     - {fileID: 464721960285228230, guid: aa01d21a4fc898945953d79de5ef2721, type: 3}
-    resourcePrefabs: []
+    resourcePrefabs:
+    - {fileID: 1728656628097400706, guid: 1906d405c626e394fbd2eba316f1d45d, type: 3}
     roadObjectPrefabs: []
     lootPrefabs: []
     decorationPrefabs: []

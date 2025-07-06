@@ -131,7 +131,7 @@ MonoBehaviour:
   spawnWeight: 1
   canBeAtEdge: 1
   minDistanceFromRoad: 2
-  minDistanceFromSameType: 0
+  minDistanceFromSameType: 1
   rotateTowardsRoad: 1
   useRandomRotation: 1
   allowedRotations:

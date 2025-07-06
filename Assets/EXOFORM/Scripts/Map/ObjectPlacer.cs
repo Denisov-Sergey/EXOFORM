@@ -89,7 +89,6 @@ namespace Exoform.Scripts.Map
                    type == TileType.WreckageDebris;
         }
 
-        // Добавим метод для проверки типа лута
         bool IsLootType(TileType type)
         {
             return type == TileType.SupplyCache;
@@ -269,65 +268,116 @@ namespace Exoform.Scripts.Map
             Debug.Log("==========================================\n");
         }
 
-        // Остальные методы остаются без изменений...
+        // ИСПРАВЛЕНИЕ: Улучшенный поиск валидных позиций с fallback логикой
         List<Vector2Int> FindValidPositions(PrefabSettings settings)
         {
             List<Vector2Int> positions = new List<Vector2Int>();
+            int checkedPositions = 0;
+            int validPositions = 0;
 
             for (int x = 0; x <= cityGrid.Width - settings.gridSize.x; x++)
             {
                 for (int y = 0; y <= cityGrid.Height - settings.gridSize.y; y++)
                 {
+                    checkedPositions++;
                     Vector2Int pos = new Vector2Int(x, y);
-                    if (settings.CanPlaceAtWithBuildingCheck(pos, cityGrid.Grid, cityGrid.Width, cityGrid.Height,
+                    
+                    // Базовая проверка размещения
+                    if (!settings.CanPlaceAtWithBuildingCheck(pos, cityGrid.Grid, cityGrid.Width, cityGrid.Height,
                         cityGrid.IsCellOccupiedByBuilding))
+                        continue;
+
+                    // Проверка расстояния от дорог
+                    if (settings.minDistanceFromRoad > 0)
                     {
-                        if (settings.minDistanceFromRoad == 0 || HasRoadNearby(pos, settings.minDistanceFromRoad))
+                        if (!HasRoadNearby(pos, settings.minDistanceFromRoad))
+                            continue;
+                    }
+
+                    // ИСПРАВЛЕНИЕ: Проверка зон с fallback логикой
+                    bool zoneAllowed = true;
+                    if (zoneSystem != null)
+                    {
+                        var zone = zoneSystem.GetZoneAt(pos);
+                        if (zone.HasValue && settings.allowedZones.Count > 0 &&
+                            !settings.allowedZones.Contains(zone.Value.zoneType))
                         {
-                            if (zoneSystem != null)
-                            {
-                                var zone = zoneSystem.GetZoneAt(pos);
-                                if (zone.HasValue && settings.allowedZones.Count > 0 &&
-                                    !settings.allowedZones.Contains(zone.Value.zoneType))
-                                    continue;
-                            }
-                            positions.Add(pos);
+                            zoneAllowed = false;
                         }
+                    }
+                    else if (settings.allowedZones.Count > 0)
+                    {
+                        // Fallback: если зоны не инициализированы, проверяем на стандартную зону
+                        if (!settings.allowedZones.Contains(TileType.StandardZone))
+                        {
+                            zoneAllowed = false;
+                        }
+                    }
+
+                    if (zoneAllowed)
+                    {
+                        positions.Add(pos);
+                        validPositions++;
                     }
                 }
             }
 
+            Debug.Log($"    📊 Проверено позиций: {checkedPositions}, валидных: {validPositions} для {settings.objectName}");
             return positions;
         }
 
+        // ИСПРАВЛЕНИЕ: Атомарное размещение объектов
         bool TryPlaceObject(PrefabSettings settings, Vector2Int position)
         {
-            if (!settings.CanPlaceAtWithBuildingCheck(position, cityGrid.Grid, cityGrid.Width, cityGrid.Height, 
-                cityGrid.IsCellOccupiedByBuilding))
+            // Получаем все клетки, которые займет объект
+            var occupiedCells = settings.GetOccupiedCells(position);
+            
+            // КРИТИЧНО: Проверяем ВСЕ клетки сразу перед размещением
+            foreach (var cell in occupiedCells)
             {
-                return false;
+                if (!cityGrid.IsValidPosition(cell))
+                {
+                    LogPlacementFailure(settings, position, $"Клетка {cell} вне границ карты");
+                    return false;
+                }
+                
+                if (cityGrid.Grid[cell.x][cell.y] == TileType.PathwayStraight)
+                {
+                    LogPlacementFailure(settings, position, $"Клетка {cell} занята дорогой");
+                    return false;
+                }
+                
+                if (cityGrid.IsCellOccupiedByBuilding(cell))
+                {
+                    LogPlacementFailure(settings, position, $"Клетка {cell} уже занята зданием");
+                    return false;
+                }
             }
-
+            
+            // Проверяем лимиты
             int currentCount = GetSpawnedCount(settings);
             if (settings.maxCount > 0 && currentCount >= settings.maxCount)
             {
+                LogPlacementFailure(settings, position, $"Достигнут лимит: {currentCount}/{settings.maxCount}");
                 return false;
             }
 
-            var occupiedCells = settings.GetOccupiedCells(position);
-            
+            // АТОМАРНАЯ РЕГИСТРАЦИЯ: только если ВСЕ проверки прошли
             if (!cityGrid.BuildingOccupancy.ContainsKey(settings.tileType))
                 cityGrid.BuildingOccupancy[settings.tileType] = new List<Vector2Int>();
             
+            // Регистрируем ВСЕ клетки сразу
             foreach (var cell in occupiedCells)
             {
                 cityGrid.BuildingOccupancy[settings.tileType].Add(cell);
             }
 
+            // Увеличиваем счетчик
             if (!spawnedCounts.ContainsKey(settings))
                 spawnedCounts[settings] = 0;
             spawnedCounts[settings]++;
 
+            Debug.Log($"    ✅ Успешно размещен {settings.objectName} в {position} (занято {occupiedCells.Count} клеток)");
             return true;
         }
         
@@ -336,23 +386,30 @@ namespace Exoform.Scripts.Map
             return spawnedCounts.ContainsKey(settings) ? spawnedCounts[settings] : 0;
         }
 
+        // ИСПРАВЛЕНИЕ: Более точное удаление конфликтующих позиций
         void RemoveOccupiedPositions(List<Vector2Int> positions, PrefabSettings settings, Vector2Int placedPosition)
         {
             var occupiedCells = settings.GetOccupiedCells(placedPosition);
-            int minDistance = settings.minDistanceFromSameType;
+            int minDistance = Mathf.Max(1, settings.minDistanceFromSameType);
+            
+            int removedCount = 0;
+            int initialCount = positions.Count;
             
             positions.RemoveAll(pos =>
             {
                 var testCells = settings.GetOccupiedCells(pos);
                 
+                // Проверяем прямое пересечение клеток
                 foreach (var testCell in testCells)
                 {
                     if (occupiedCells.Contains(testCell))
                     {
-                        return true;
+                        removedCount++;
+                        return true; // Удаляем позицию с пересекающимися клетками
                     }
                 }
                 
+                // Проверяем минимальное расстояние
                 foreach (var testCell in testCells)
                 {
                     foreach (var occupiedCell in occupiedCells)
@@ -364,13 +421,16 @@ namespace Exoform.Scripts.Map
                         
                         if (distance < minDistance)
                         {
-                            return true;
+                            removedCount++;
+                            return true; // Удаляем позицию слишком близко
                         }
                     }
                 }
                 
-                return false;
+                return false; // Позицию оставляем
             });
+            
+            Debug.Log($"    🧹 Удалено конфликтующих позиций: {removedCount} из {initialCount} (осталось: {positions.Count})");
         }
 
         bool HasRoadNearby(Vector2Int position, int distance)
@@ -388,6 +448,36 @@ namespace Exoform.Scripts.Map
                 }
             }
             return false;
+        }
+
+        // ИСПРАВЛЕНИЕ: Добавление подробного логирования
+        void LogPlacementFailure(PrefabSettings settings, Vector2Int position, string reason)
+        {
+            // Включаем только для отладки
+            bool verboseLogging = true; // Можно вынести в настройки
+            
+            if (verboseLogging)
+            {
+                Debug.LogWarning($"❌ Не удалось разместить {settings.objectName} в {position}: {reason}");
+                
+                // Детальная диагностика состояния клеток
+                var cells = settings.GetOccupiedCells(position);
+                foreach (var cell in cells)
+                {
+                    if (cityGrid.IsValidPosition(cell))
+                    {
+                        TileType tileType = cityGrid.Grid[cell.x][cell.y];
+                        bool occupied = cityGrid.IsCellOccupiedByBuilding(cell);
+                        TileType? buildingType = cityGrid.GetBuildingTypeAt(cell);
+                        
+                        Debug.Log($"      Клетка {cell}: тип={tileType}, занята={occupied}, здание={buildingType}");
+                    }
+                    else
+                    {
+                        Debug.Log($"      Клетка {cell}: ВНЕ ГРАНИЦ КАРТЫ");
+                    }
+                }
+            }
         }
     }
 }
