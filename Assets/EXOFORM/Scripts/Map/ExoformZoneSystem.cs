@@ -102,7 +102,7 @@ namespace Exoform.Scripts.Map
                 if (chance < 0.5f) return TileType.StandardZone;
                 if (chance < 0.8f) return TileType.TechnicalZone;
                 if (chance < 0.95f) return TileType.ArtifactZone;
-                return TileType.InfestZone;
+                return TileType.InfestationZone;
             }
             else
             {

@@ -1058,7 +1058,7 @@ namespace Exoform.Scripts.Map
             TileType.TechnicalZone => new Color(0.2f, 0.5f, 0.8f, 0.5f),
             TileType.ArtifactZone => new Color(0.8f, 0.2f, 0.8f, 0.5f),
             TileType.CorruptedTrap => new Color(0.8f, 0.2f, 0.2f, 0.5f),
-            TileType.InfestZone => new Color(0.6f, 0.4f, 0.1f, 0.5f),
+            TileType.InfestationZone => new Color(0.6f, 0.4f, 0.1f, 0.5f),
             TileType.BossZone => new Color(0.9f, 0.1f, 0.1f, 0.6f),
             _ => new Color(0.5f, 0.5f, 0.5f, 0.3f)
         };
