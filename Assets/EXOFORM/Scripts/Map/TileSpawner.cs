@@ -207,11 +207,12 @@ namespace Exoform.Scripts.Map
 
                 foreach (var buildingGroup in buildingGroups)
                 {
-                    Vector2Int baseCell = buildingGroup[0];
+                    Vector2Int baseCell = buildingGroup[0].Cell;
                     foreach (var cell in buildingGroup)
                     {
-                        if (cell.x < baseCell.x || (cell.x == baseCell.x && cell.y < baseCell.y))
-                            baseCell = cell;
+                        var cellPos = cell.Cell;
+                        if (cellPos.x < baseCell.x || (cellPos.x == baseCell.x && cellPos.y < baseCell.y))
+                            baseCell = cellPos;
                     }
 
                     if (processedBuildings.Contains(baseCell))
