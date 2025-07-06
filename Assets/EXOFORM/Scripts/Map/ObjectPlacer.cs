@@ -196,10 +196,10 @@ namespace Exoform.Scripts.Map
                 int randomIndex = Random.Range(0, validPositions.Count);
                 Vector2Int position = validPositions[randomIndex];
 
-                if (TryPlaceObject(settings, position))
+                if (TryPlaceObject(settings, position, out int rotation))
                 {
                     placedCount++;
-                    RemoveOccupiedPositions(validPositions, settings, position);
+                    RemoveOccupiedPositions(validPositions, settings, position, rotation);
                     
                     // Логирование прогресса каждые 5 объектов
                     if (placedCount % 5 == 0 || placedCount == objectsToPlace)
@@ -291,9 +291,9 @@ namespace Exoform.Scripts.Map
             return positions;
         }
 
-        bool TryPlaceObject(PrefabSettings settings, Vector2Int position)
+        bool TryPlaceObject(PrefabSettings settings, Vector2Int position, out int rotation)
         {
-            int rotation = DetermineRotation(position, settings);
+            rotation = DetermineRotation(position, settings);
             var occupiedCells = settings.GetOccupiedCells(position, rotation);
 
             if (!CanPlaceRotated(occupiedCells, settings))
@@ -323,9 +323,9 @@ namespace Exoform.Scripts.Map
             return spawnedCounts.ContainsKey(settings) ? spawnedCounts[settings] : 0;
         }
 
-        void RemoveOccupiedPositions(List<Vector2Int> positions, PrefabSettings settings, Vector2Int placedPosition)
+        void RemoveOccupiedPositions(List<Vector2Int> positions, PrefabSettings settings, Vector2Int placedPosition, int rotation)
         {
-            var occupiedCells = settings.GetOccupiedCells(placedPosition);
+            var occupiedCells = settings.GetOccupiedCells(placedPosition, rotation);
             int minDistance = settings.minDistanceFromSameType;
             
             positions.RemoveAll(pos =>
