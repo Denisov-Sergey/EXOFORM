@@ -14,12 +14,17 @@ namespace Exoform.Scripts.Map
         private List<PrefabSettings> corruptionPrefabs;
         private MonoBehaviour coroutineRunner;
         private Dictionary<PrefabSettings, int> spawnedCounts;
+        private ExoformZoneSystem zoneSystem;
+        private bool trapDeactivated;
+        public bool TrapDeactivated { get => trapDeactivated; set => trapDeactivated = value; }
 
-        public StaticCorruptionPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner)
+        public StaticCorruptionPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, ExoformZoneSystem zoneSystem)
         {
             cityGrid = grid;
             coroutineRunner = runner;
             spawnedCounts = new Dictionary<PrefabSettings, int>();
+            this.zoneSystem = zoneSystem;
+            trapDeactivated = false;
             LoadCorruptionPrefabs(prefabs);
         }
 
@@ -156,7 +161,7 @@ namespace Exoform.Scripts.Map
                 {
                     Vector2Int pos = new Vector2Int(x, y);
                     
-                    if (IsGoodClusterCenter(pos))
+                    if (IsGoodClusterCenter(pos) && IsAllowedZone(pos))
                     {
                         centers.Add(pos);
                     }
@@ -199,7 +204,7 @@ namespace Exoform.Scripts.Map
                     Vector2Int pos = center + new Vector2Int(dx, dy);
                     float distance = Vector2.Distance(pos, center);
                     
-                    if (distance <= radius && CanPlaceCorruptionAt(pos))
+                    if (distance <= radius && CanPlaceCorruptionAt(pos) && IsAllowedZone(pos))
                     {
                         candidates.Add(pos);
                     }
@@ -246,7 +251,7 @@ namespace Exoform.Scripts.Map
                 {
                     Vector2Int pos = new Vector2Int(x, y);
                     
-                    if (CanPlaceCorruptionAt(pos))
+                    if (CanPlaceCorruptionAt(pos) && IsAllowedZone(pos))
                     {
                         positions.Add(pos);
                     }
@@ -261,15 +266,23 @@ namespace Exoform.Scripts.Map
             if (!cityGrid.IsValidPosition(pos)) return false;
             if (cityGrid.Grid[pos.x][pos.y] != TileType.Grass) return false;
             if (cityGrid.IsCellOccupiedByBuilding(pos)) return false;
-            
+
             // Порча не размещается слишком близко к дорогам
             if (HasRoadNearby(pos, 1)) return false;
-            
+
+            if (!IsAllowedZone(pos)) return false;
+
             return true;
         }
 
         bool TryPlaceCorruption(Vector2Int position, TileType corruptionType)
         {
+            if (!IsAllowedZone(position))
+            {
+                Debug.Log($"[StaticCorruptionPlacer] Зона несовместима в {position}");
+                return false;
+            }
+
             if (!CanPlaceCorruptionAt(position)) return false;
             
             // Проверяем лимиты
@@ -356,6 +369,37 @@ namespace Exoform.Scripts.Map
                 TileType.BiologicalMass => "🦠",
                 _ => "☣️"
             };
+        }
+
+        bool IsAllowedZone(Vector2Int pos)
+        {
+            var zone = zoneSystem?.GetZoneAt(pos);
+            if (!zone.HasValue) return false;
+
+            if (zone.Value.zoneType == TileType.CorruptedTrap && !trapDeactivated)
+                return true;
+            if (zone.Value.zoneType == TileType.InfestationZone)
+                return true;
+            return false;
+        }
+
+        public IEnumerator SpawnInfestationRoutine(float interval)
+        {
+            while (true)
+            {
+                var zones = zoneSystem.GetZonesByType(TileType.InfestationZone);
+                foreach (var z in zones)
+                {
+                    Vector2Int randPos = new Vector2Int(
+                        Random.Range(z.position.x, z.position.x + z.size.x),
+                        Random.Range(z.position.y, z.position.y + z.size.y));
+
+                    var type = corruptionPrefabs[Random.Range(0, corruptionPrefabs.Count)].tileType;
+                    TryPlaceCorruption(randPos, type);
+                }
+
+                yield return new WaitForSeconds(interval);
+            }
         }
     }
 }

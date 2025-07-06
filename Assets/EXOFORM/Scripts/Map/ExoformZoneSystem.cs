@@ -109,8 +109,10 @@ namespace Exoform.Scripts.Map
                 float chance = Random.value;
                 if (chance < 0.3f) return TileType.StandardZone;
                 if (chance < 0.5f) return TileType.TechnicalZone;
-                if (chance < 0.8f) return TileType.ArtifactZone;
-                return TileType.CorruptedTrap;
+                if (chance < 0.7f) return TileType.ArtifactZone;
+                if (chance < 0.9f) return TileType.CorruptedTrap;
+                if (chance < 0.97f) return TileType.InfestationZone;
+                return TileType.BossZone;
             }
         }
         
@@ -122,6 +124,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => 1.3f,
                 TileType.ArtifactZone => 1.7f,
                 TileType.CorruptedTrap => 2.5f,
+                TileType.InfestationZone => 2.0f,
+                TileType.BossZone => 3.0f,
                 _ => 1.0f
             };
             
@@ -138,6 +142,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => Random.Range(0.1f, 0.3f),
                 TileType.ArtifactZone => Random.Range(0.3f, 0.5f),
                 TileType.CorruptedTrap => Random.Range(0.7f, 1.0f),
+                TileType.InfestationZone => Random.Range(0.5f, 0.9f),
+                TileType.BossZone => Random.Range(0.6f, 1.0f),
                 _ => 0f
             };
         }
@@ -159,6 +165,12 @@ namespace Exoform.Scripts.Map
                     break;
                 case TileType.CorruptedTrap:
                     rewards.AddRange(new[] { "Corrupted_Samples", "Biomass", "Danger_Intel" });
+                    break;
+                case TileType.InfestationZone:
+                    rewards.AddRange(new[] { "Corrupted_Spores", "Mutated_Tissue" });
+                    break;
+                case TileType.BossZone:
+                    rewards.AddRange(new[] { "Boss_Trophy", "High_Tech" });
                     break;
             }
             
@@ -183,6 +195,12 @@ namespace Exoform.Scripts.Map
                 case TileType.CorruptedTrap:
                     enemies.AddRange(new[] { "Corruption_Mass", "Tentacle_Swarm", "Spore_Cloud" });
                     break;
+                case TileType.InfestationZone:
+                    enemies.AddRange(new[] { "Infested_Soldier", "Spore_Host" });
+                    break;
+                case TileType.BossZone:
+                    enemies.Add("Boss_Guardian");
+                    break;
             }
             
             return enemies;
@@ -196,6 +214,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => 0.2f,
                 TileType.ArtifactZone => 0.4f,
                 TileType.CorruptedTrap => 0.6f,
+                TileType.InfestationZone => 0.5f,
+                TileType.BossZone => 0.8f,
                 _ => 0f
             };
         }
@@ -210,6 +230,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => Random.value < 0.5f ? "Malfunctioning_AI" : "Hidden_Lab",
                 TileType.ArtifactZone => Random.value < 0.5f ? "Ancient_Vault" : "Psi_Anomaly",
                 TileType.CorruptedTrap => Random.value < 0.5f ? "Corruption_Outbreak" : "Hive_Mind",
+                TileType.InfestationZone => Random.value < 0.5f ? "Infested_Nest" : "Spore_Burst",
+                TileType.BossZone => "Boss_Awakening",
                 _ => ""
             };
         }
@@ -326,6 +348,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => "🔧",
                 TileType.ArtifactZone => "🧬",
                 TileType.CorruptedTrap => "⚠️",
+                TileType.InfestationZone => "🦠",
+                TileType.BossZone => "👹",
                 _ => "❓"
             };
         }
@@ -338,6 +362,8 @@ namespace Exoform.Scripts.Map
                 TileType.TechnicalZone => "Техническая", 
                 TileType.ArtifactZone => "Артефактная",
                 TileType.CorruptedTrap => "Заражённая",
+                TileType.InfestationZone => "Инфестация",
+                TileType.BossZone => "Боевая",
                 _ => "Неизвестная"
             };
         }

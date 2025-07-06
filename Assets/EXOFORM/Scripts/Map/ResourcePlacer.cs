@@ -14,12 +14,14 @@ namespace Exoform.Scripts.Map
         private List<PrefabSettings> resourcePrefabs;
         private MonoBehaviour coroutineRunner;
         private ExoformMapGenerator _exoformMapGenerator;
+        private ExoformZoneSystem zoneSystem;
 
-        public ResourcePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, ExoformMapGenerator generator)
+        public ResourcePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, ExoformMapGenerator generator, ExoformZoneSystem zoneSystem)
         {
             cityGrid = grid;
             coroutineRunner = runner;
             _exoformMapGenerator = generator;
+            this.zoneSystem = zoneSystem;
             LoadResourcePrefabs(prefabs);
         }
 
@@ -136,8 +138,8 @@ namespace Exoform.Scripts.Map
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
                     Vector2Int pos = new Vector2Int(x, y);
-                    
-                    if (IsGoodResourcePosition(pos))
+
+                    if (IsGoodResourcePosition(pos) && IsStandardZone(pos))
                     {
                         positions.Add(pos);
                     }
@@ -196,6 +198,12 @@ namespace Exoform.Scripts.Map
 
         bool TryPlaceResource(Vector2Int position, TileType resourceType)
         {
+            if (!IsStandardZone(position))
+            {
+                Debug.Log($"[ResourcePlacer] Зона несовместима в {position}");
+                return false;
+            }
+
             if (!cityGrid.IsValidPosition(position) || cityGrid.IsCellOccupiedByBuilding(position))
                 return false;
 
@@ -291,9 +299,17 @@ namespace Exoform.Scripts.Map
 
         void RemoveNearbyPositions(List<Vector2Int> positions, Vector2Int center, int distance)
         {
-            positions.RemoveAll(pos => 
-                Mathf.Abs(pos.x - center.x) <= distance && 
+            positions.RemoveAll(pos =>
+                Mathf.Abs(pos.x - center.x) <= distance &&
                 Mathf.Abs(pos.y - center.y) <= distance);
+        }
+
+        bool IsStandardZone(Vector2Int pos)
+        {
+            var zone = zoneSystem?.GetZoneAt(pos);
+            if (zone.HasValue && zone.Value.zoneType == TileType.StandardZone)
+                return true;
+            return false;
         }
     }
 }

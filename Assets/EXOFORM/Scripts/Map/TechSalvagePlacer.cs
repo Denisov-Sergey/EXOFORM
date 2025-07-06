@@ -14,12 +14,16 @@ namespace Exoform.Scripts.Map
         private List<PrefabSettings> techSalvagePrefabs;
         private MonoBehaviour coroutineRunner;
         private Dictionary<PrefabSettings, int> spawnedCounts;
+        private ExoformZoneSystem zoneSystem;
+        public bool PlayerActivated { get; set; }
 
-        public TechSalvagePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner)
+        public TechSalvagePlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner, ExoformZoneSystem zoneSystem)
         {
             cityGrid = grid;
             coroutineRunner = runner;
             spawnedCounts = new Dictionary<PrefabSettings, int>();
+            this.zoneSystem = zoneSystem;
+            PlayerActivated = false;
             LoadTechSalvagePrefabs(prefabs);
         }
 
@@ -55,6 +59,12 @@ namespace Exoform.Scripts.Map
             if (techSalvagePrefabs.Count == 0)
             {
                 Debug.Log("  ⚠️ Нет префабов техники для размещения");
+                yield break;
+            }
+
+            if (!PlayerActivated)
+            {
+                Debug.Log("  ⏸️ Размещение техники отложено до активации игроком");
                 yield break;
             }
 
@@ -133,17 +143,14 @@ namespace Exoform.Scripts.Map
         List<Vector2Int> FindTechnicalZonePositions()
         {
             List<Vector2Int> positions = new List<Vector2Int>();
-            
-            // TODO: Интеграция с ExoformZoneSystem
-            // Пока что ищем позиции, подходящие для технических объектов
-            
+
             for (int x = 0; x < cityGrid.Width; x++)
             {
                 for (int y = 0; y < cityGrid.Height; y++)
                 {
                     Vector2Int pos = new Vector2Int(x, y);
-                    
-                    if (IsGoodTechnicalPosition(pos))
+
+                    if (IsGoodTechnicalPosition(pos) && IsTechnicalZone(pos))
                     {
                         positions.Add(pos);
                     }
@@ -187,8 +194,8 @@ namespace Exoform.Scripts.Map
                                 if (Mathf.Abs(dx) < 2 && Mathf.Abs(dy) < 2) continue; // Слишком близко
                                 
                                 Vector2Int pos = structurePos + new Vector2Int(dx, dy);
-                                
-                                if (CanPlaceTechAt(pos) && !positions.Contains(pos))
+
+                                if (CanPlaceTechAt(pos) && !positions.Contains(pos) && IsTechnicalZone(pos))
                                 {
                                     positions.Add(pos);
                                 }
@@ -244,6 +251,12 @@ namespace Exoform.Scripts.Map
 
         bool TryPlaceTechSalvage(Vector2Int position, TileType techType)
         {
+            if (!IsTechnicalZone(position))
+            {
+                Debug.Log($"[TechSalvagePlacer] Зона несовместима в {position}");
+                return false;
+            }
+
             if (!CanPlaceTechAt(position)) return false;
             
             // Проверяем лимиты
@@ -351,6 +364,14 @@ namespace Exoform.Scripts.Map
                 TileType.TechSalvageResource => "🔧",
                 _ => "⚙️"
             };
+        }
+
+        bool IsTechnicalZone(Vector2Int pos)
+        {
+            var zone = zoneSystem?.GetZoneAt(pos);
+            if (zone.HasValue && zone.Value.zoneType == TileType.TechnicalZone)
+                return true;
+            return false;
         }
     }
 }
