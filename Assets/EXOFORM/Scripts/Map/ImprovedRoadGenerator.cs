@@ -10,7 +10,6 @@ namespace Exoform.Scripts.Map
     public class ImprovedRoadGenerator
     {
         private CityGrid cityGrid;
-        private bool pathwaysOverGrass;
         
         [System.Serializable]
         public class RoadSettings
@@ -30,11 +29,10 @@ namespace Exoform.Scripts.Map
         
         private RoadSettings settings;
 
-        public ImprovedRoadGenerator(CityGrid grid, RoadSettings roadSettings = null, bool pathwaysOverGrass = false)
+        public ImprovedRoadGenerator(CityGrid grid, RoadSettings roadSettings = null)
         {
             cityGrid = grid;
             settings = roadSettings ?? new RoadSettings();
-            this.pathwaysOverGrass = pathwaysOverGrass;
         }
 
         public IEnumerator GenerateRoads(float density, int roadLength, float animationSpeed)
@@ -48,11 +46,6 @@ namespace Exoform.Scripts.Map
             
             Debug.Log($"🛤️ Генерация улучшенных дорог (цель: {targetRoadCells} клеток, длина сегментов: {settings.minSegmentLength}-{settings.maxSegmentLength})");
             
-            if (pathwaysOverGrass)
-            {
-                Debug.Log("  📌 Режим: дороги размещаются поверх травы");
-            }
-
             // Создаем основные магистрали
             yield return CreateMainRoads(animationSpeed);
             

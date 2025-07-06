@@ -10,12 +10,10 @@ namespace Exoform.Scripts.Map
     public class RoadGenerator
     {
         private CityGrid cityGrid;
-        private bool pathwaysOverGrass;
 
-        public RoadGenerator(CityGrid grid, bool pathwaysOverGrass = false)
+        public RoadGenerator(CityGrid grid)
         {
             cityGrid = grid;
-            this.pathwaysOverGrass = pathwaysOverGrass;
         }
 
         public IEnumerator GenerateRoads(float density, int roadLength, float animationSpeed)
@@ -25,11 +23,6 @@ namespace Exoform.Scripts.Map
             int roadSegments = Mathf.Max(1, targetRoadCells / roadLength);
 
             Debug.Log($"🛤️ Планируем создать {roadSegments} сегментов (целевое количество клеток: {targetRoadCells}, {density * 100:F1}% карты)");
-            
-            if (pathwaysOverGrass)
-            {
-                Debug.Log("  📌 Режим: дороги размещаются поверх травы");
-            }
 
             // Подсчитываем дороги до генерации
             int roadsBefore = CountRoadCells();
@@ -72,19 +65,7 @@ namespace Exoform.Scripts.Map
 
         Vector2Int GetRandomStartPosition()
         {
-            // Если дороги поверх травы, можем начинать с любой позиции
-            if (pathwaysOverGrass)
-            {
-                return new Vector2Int(
-                    Random.Range(0, cityGrid.Width),
-                    Random.Range(0, cityGrid.Height)
-                );
-            }
-            else
-            {
-                // Старый режим - ищем только траву
-                return GetRandomGrassPosition();
-            }
+            return GetRandomGrassPosition();
         }
 
         Vector2Int GetRandomGrassPosition()

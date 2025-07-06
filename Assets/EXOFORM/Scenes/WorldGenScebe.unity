@@ -334,7 +334,6 @@ MonoBehaviour:
   createCorruptionClusters: 1
   techSalvageDensity: 0.05
   pathwayLength: 30
-  useImprovedPathwayGenerator: 1
   advancedPathwaySettings:
     branchProbability: 0.3
     minSegmentLength: 10
@@ -349,7 +348,6 @@ MonoBehaviour:
   supplyCacheClusterSize: 3
   animationSpeed: 0.5
   useBatchedVisualUpdates: 1
-  pathwaysOverGrass: 1
   grassPrefabs:
   - {fileID: 8350565405820835728, guid: a3f672e3be2f5c34db6509158f75506b, type: 3}
   - {fileID: 8350565405820835728, guid: 4680cf934f0edda4e80790168fb7d926, type: 3}
