@@ -218,25 +218,10 @@ namespace Exoform.Scripts.Map
             {
                 try
                 {
-                    // ИСПРАВЛЕНИЕ: Валидация ПЕРЕД инициализацией
-                    if (!ValidateGenerationSettings())
-                    {
-                        Debug.LogError("❌ Генерация отменена из-за некорректных настроек");
-                        return;
-                    }
-            
                     InitializeComponents();
-            
-                    // Проверяем успешность инициализации
-                    if (cityGrid == null || zoneSystem == null)
-                    {
-                        Debug.LogError("❌ Критическая ошибка инициализации компонентов");
-                        return;
-                    }
-            
                     if (!isGenerating)
                     {
-                        GenerateMap();
+                        StartCoroutine(GenerateMap());
                     }
                 }
                 catch (System.Exception e)
@@ -272,21 +257,16 @@ namespace Exoform.Scripts.Map
 
         void InitializeComponents()
         {
-            // ВАЖНО: Сначала инициализируем основную сетку
+            // Инициализация основной сетки
             cityGrid ??= new CityGrid(gridWidth, gridHeight, tileSize);
 
-            // КРИТИЧНО: Зоны должны быть инициализированы ПЕРВЫМИ
-            Debug.Log("🗺️ Инициализация системы зон...");
-            zoneSystem ??= new ExoformZoneSystem(cityGrid);
-    
             // Получаем актуальный список префабов
             var allPrefabs = GetAllPrefabs();
-            Debug.Log($"📦 Загружено префабов: {allPrefabs.Count}");
 
             // Инициализация генераторов путей
             InitializePathwayGenerators();
 
-            // Инициализация всех плейсеров ПОСЛЕ зон
+            // Инициализация всех плейсеров
             InitializePlacers(allPrefabs);
 
             // Инициализация EXOFORM систем
@@ -295,7 +275,7 @@ namespace Exoform.Scripts.Map
             // Инициализация спавнера тайлов с поддержкой массивов префабов
             tileSpawner ??= new TileSpawner(cityGrid, transform, pathwaysOverGrass);
 
-            LogDebug("Все компоненты инициализированы в правильном порядке");
+            LogDebug("Все компоненты инициализированы");
         }
 
         private void InitializePathwayGenerators()
@@ -312,19 +292,19 @@ namespace Exoform.Scripts.Map
 
         private void InitializePlacers(List<GameObject> allPrefabs)
         {
-            objectPlacer ??= new ObjectPlacer(cityGrid, zoneSystem, allPrefabs, this);
-            vegetationPlacer ??= new VegetationPlacer(cityGrid, zoneSystem, allPrefabs, this);
+            objectPlacer ??= new ObjectPlacer(cityGrid, allPrefabs, this);
+            vegetationPlacer ??= new VegetationPlacer(cityGrid, allPrefabs, this);
             resourcePlacer ??= new ResourcePlacer(cityGrid, allPrefabs, this, this);
-            decorationPlacer ??= new DecorationPlacer(cityGrid, zoneSystem, allPrefabs, this);
-            roadObjectsPlacer ??= new RoadObjectsPlacer(cityGrid, zoneSystem, allPrefabs, this);
+            decorationPlacer ??= new DecorationPlacer(cityGrid, allPrefabs, this);
+            roadObjectsPlacer ??= new RoadObjectsPlacer(cityGrid, allPrefabs, this);
             lootPlacer ??= new LootPlacer(cityGrid, allPrefabs, this, this);
         }
 
         private void InitializeExoformSystems(List<GameObject> allPrefabs)
         {
-            // zoneSystem ??= new ExoformZoneSystem(cityGrid);
+            zoneSystem ??= new ExoformZoneSystem(cityGrid);
             staticCorruptionPlacer ??= new StaticCorruptionPlacer(cityGrid, allPrefabs, this);
-            techSalvagePlacer ??= new TechSalvagePlacer(cityGrid, zoneSystem, allPrefabs, this);
+            techSalvagePlacer ??= new TechSalvagePlacer(cityGrid, allPrefabs, this);
         }
 
         /// <summary>
@@ -416,7 +396,7 @@ namespace Exoform.Scripts.Map
                 _generateMap = false;
                 if (!isGenerating)
                 {
-                    GenerateMap();
+                    StartCoroutine(GenerateMap());
                 }
             }
 
@@ -437,266 +417,63 @@ namespace Exoform.Scripts.Map
 
         #region Generation Pipeline
 
-        private void GenerateMap()
+        private IEnumerator GenerateMap()
         {
-            if (isGenerating)
-            {
-                Debug.LogWarning("⚠️ Генерация уже выполняется!");
-                return;
-            }
+            if (isGenerating) yield break;
 
             isGenerating = true;
             var startTime = Time.time;
 
-            Debug.Log("🧬 === НАЧАЛО ГЕНЕРАЦИИ КАРТЫ EXOFORM ===");
-            Debug.Log($"📏 Размер карты: {gridWidth}x{gridHeight}");
-            Debug.Log($"🗺️ Размер зоны: {zoneSize}x{zoneSize}");
-    
-            try
-            {
-                // Предварительные расчеты
-                CalculateExpectedCounts();
-        
-                // Валидация настроек
-                if (!ValidateGenerationSettings())
-                {
-                    Debug.LogError("❌ Некорректные настройки генерации!");
-                    isGenerating = false;
-                    return;
-                }
+            Debug.Log("🧬 Начинаем генерацию карты EXOFORM...");
+            CalculateExpectedCounts();
 
-                // Выполняем генерацию
-                ExecuteGenerationPipeline();
+            // Выполняем генерацию
+            yield return StartCoroutine(ExecuteGenerationPipeline());
 
-                // Завершение генерации
-                currentStage = GenerationStage.Completed;
-                var generationTime = Time.time - startTime;
+            // Завершение генерации
+            currentStage = GenerationStage.Completed;
+            var generationTime = Time.time - startTime;
 
-                Debug.Log($"\n✅ === ГЕНЕРАЦИЯ ЗАВЕРШЕНА ЗА {generationTime:F2} СЕКУНД ===");
-                LogExoformStatistics();
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"💥 КРИТИЧЕСКАЯ ОШИБКА ГЕНЕРАЦИИ: {e.Message}\n{e.StackTrace}");
-                currentStage = GenerationStage.None;
-            }
-            finally
-            {
-                isGenerating = false;
-            }
-        }
-        
-        bool ValidateGenerationSettings()
-        {
-            bool isValid = true;
-    
-            // Проверка размеров
-            if (gridWidth < 10 || gridHeight < 10)
-            {
-                Debug.LogError($"❌ Карта слишком маленькая: {gridWidth}x{gridHeight}. Минимум: 10x10");
-                isValid = false;
-            }
-    
-            if (zoneSize < 5 || zoneSize > Mathf.Min(gridWidth, gridHeight) / 2)
-            {
-                Debug.LogError($"❌ Неправильный размер зоны: {zoneSize}. Должен быть 5-{Mathf.Min(gridWidth, gridHeight) / 2}");
-                isValid = false;
-            }
-    
-            // Проверка префабов
-            if (grassPrefabs == null || grassPrefabs.Length == 0 || grassPrefabs.Any(p => p == null))
-            {
-                Debug.LogError("❌ Массив префабов травы пуст или содержит null элементы!");
-                isValid = false;
-            }
-    
-            if (pathwayPrefabs == null || pathwayPrefabs.Length == 0 || pathwayPrefabs.Any(p => p == null))
-            {
-                Debug.LogError("❌ Массив префабов путей пуст или содержит null элементы!");
-                isValid = false;
-            }
-            
-            var allPrefabs = GetAllPrefabs();
-            if (allPrefabs.Count == 0)
-            {
-                Debug.LogError("❌ Нет загруженных префабов!");
-                isValid = false;
-            }
-    
-            
-            // Проверка плотностей
-            float totalDensity = structureDensity + vegetationDensity + resourceDensity + decorationDensity;
-            if (totalDensity > 1.5f)
-            {
-                Debug.LogWarning($"⚠️ Высокая суммарная плотность объектов: {totalDensity:P1}. Может привести к конфликтам размещения.");
-            }
-    
-            if (isValid)
-            {
-                Debug.Log("✅ Все настройки генерации валидны");
-            }
-    
-            return isValid;
-        }
-        
-        void ValidateZoneCoverage()
-        {
-            if (zoneSystem == null || cityGrid == null) 
-            {
-                Debug.LogWarning("⚠️ Системы не инициализированы для проверки покрытия зон");
-                return;
-            }
-            
-            int coveredCells = 0;
-            int totalCells = cityGrid.Width * cityGrid.Height;
-    
-            for (int x = 0; x < cityGrid.Width; x++)
-            {
-                for (int y = 0; y < cityGrid.Height; y++)
-                {
-                    var zone = zoneSystem.GetZoneAt(new Vector2Int(x, y));
-                    if (zone.HasValue)
-                    {
-                        coveredCells++;
-                    }
-                }
-            }
-    
-            float coverage = (float)coveredCells / totalCells;
-            Debug.Log($"🗺️ Покрытие карты зонами: {coveredCells}/{totalCells} ({coverage:P1})");
-    
-            if (coverage < 0.95f)
-            {
-                Debug.LogWarning($"⚠️ Низкое покрытие карты зонами: {coverage:P1}. Некоторые объекты могут не разместиться!");
-            }
-        }
-        
-        void LogStageStatistics(string stageName)
-        {
-            Debug.Log($"📊 === СТАТИСТИКА ПОСЛЕ ЭТАПА '{stageName}' ===");
-    
-            // Статистика основной сетки
-            int totalCells = cityGrid.Width * cityGrid.Height;
-            int grassCells = 0, roadCells = 0;
-    
-            for (int x = 0; x < cityGrid.Width; x++)
-            {
-                for (int y = 0; y < cityGrid.Height; y++)
-                {
-                    var tileType = cityGrid.Grid[x][y];
-                    if (tileType == TileType.Grass) grassCells++;
-                    else if (tileType == TileType.PathwayStraight) roadCells++;
-                }
-            }
-    
-            Debug.Log($"🗺️ Базовая сетка: {totalCells} клеток");
-            Debug.Log($"  • Трава: {grassCells} ({(float)grassCells/totalCells:P1})");
-            Debug.Log($"  • Дороги: {roadCells} ({(float)roadCells/totalCells:P1})");
-    
-            // Статистика зданий
-            if (cityGrid.BuildingOccupancy != null)
-            {
-                Debug.Log($"🏢 Размещенные объекты: {cityGrid.BuildingOccupancy.Count} типов");
-                foreach (var kvp in cityGrid.BuildingOccupancy)
-                {
-                    Debug.Log($"  • {kvp.Key}: {kvp.Value.Count} объектов");
-                }
-            }
-    
-            // Статистика зон
-            if (zoneSystem != null)
-            {
-                var zones = zoneSystem.ExportZoneData();
-                Debug.Log($"🗺️ Зоны: {zones.Count} созданных зон");
-            }
-    
-            Debug.Log("================================================");
-        }
-        
-        public void SafeClearMap()
-        {
-            try
-            {
-                StopAllCoroutines();
-                SafeClearAllTiles();
-                ResetState();
-                Debug.Log("🧹 Карта EXOFORM безопасно очищена");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"❌ Ошибка при очистке карты: {e.Message}");
-            }
+            Debug.Log($"\n✅ Генерация EXOFORM завершена за {generationTime:F2} секунд!");
+            LogExoformStatistics();
+
+            isGenerating = false;
         }
 
-
-
-        private void ExecuteGenerationPipeline()
+        private IEnumerator ExecuteGenerationPipeline()
         {
-            var steps = new (string name, string emoji, System.Func<IEnumerator> action, bool critical)[]
+            var steps = new (string name, string emoji, System.Func<IEnumerator> action)[]
             {
-                ("Создание базы (трава)", "🟩", InitializeBaseLayer, true),
-                ("Инициализация зон EXOFORM", "🗺️", InitializeExoformZones, true), // ПЕРВЫМ после базы
-                ("Генерация путей", "🛤️", GeneratePathways, true),
-                ("Размещение структур", "🏢", PlaceStructures, false),
-                ("Размещение растительности", "🌳", PlaceVegetation, false),
-                ("Размещение ресурсов", "⛏️", PlaceResources, false),
-                ("Размещение статичной Порчи", "🦠", PlaceStaticCorruption, false),
-                ("Размещение техники", "🔧", PlaceTechSalvage, false),
-                ("Размещение снабжения", "📦", PlaceSupplyCache, false),
-                ("Объекты на путях", "🚗", PlacePathwayObjects, false),
-                ("Размещение декораций", "🎨", PlaceDecorations, false)
+                ("Создание базы (трава)", "🟩", InitializeBaseLayer),
+                ("Инициализация зон EXOFORM", "🗺️", InitializeExoformZones),
+                ("Генерация путей", "🛤️", GeneratePathways),
+                ("Размещение структур", "🏢", PlaceStructures),
+                ("Размещение растительности", "🌳", PlaceVegetation),
+                ("Размещение ресурсов", "⛏️", PlaceResources),
+                ("Размещение статичной Порчи", "🦠", PlaceStaticCorruption),
+                ("Размещение техники", "🔧", PlaceTechSalvage),
+                ("Размещение снабжения", "📦", PlaceSupplyCache),
+                ("Объекты на путях", "🚗", PlacePathwayObjects),
+                ("Размещение декораций", "🎨", PlaceDecorations)
             };
 
             for (int i = 0; i < steps.Length; i++)
             {
-                var (name, emoji, action, critical) = steps[i];
+                var (name, emoji, action) = steps[i];
 
-                Debug.Log($"\n{emoji} === ЭТАП {i + 1}/{steps.Length}: {name.ToUpper()} ===");
+                Debug.Log($"\n{emoji} Этап {i + 1}/{steps.Length}: {name}");
                 currentStage = (GenerationStage)(i + 1);
 
-                try
-                {
-                    var routine = action?.Invoke();
-                    if (routine == null)
-                    {
-                        Debug.LogWarning($"⚠️ Этап '{name}' вернул null корутину");
-                        continue;
-                    }
-            
-                    RunSync(routine);
-                    Debug.Log($"✅ Этап '{name}' завершен успешно");
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogError($"❌ Ошибка на этапе '{name}': {e.Message}\n{e.StackTrace}");
-            
-                    if (critical)
-                    {
-                        Debug.LogError("🚨 КРИТИЧЕСКАЯ ОШИБКА! Прерывание генерации.");
-                        isGenerating = false;
-                        return;
-                    }
-                }
+                // Выполняем этап напрямую - обработка ошибок внутри каждого метода
+                yield return StartCoroutine(action());
 
-                // Обновляем визуал после каждого этапа (кроме оптимизации)
+                // Не обновляем визуалы после оптимизации
                 if (currentStage != GenerationStage.Optimization)
                 {
-                    try
-                    {
-                        RunSync(UpdateVisuals());
-                        Debug.Log($"🎨 Визуал обновлен после этапа '{name}'");
-                    }
-                    catch (System.Exception e)
-                    {
-                        Debug.LogWarning($"⚠️ Ошибка обновления визуала: {e.Message}");
-                    }
+                    yield return StartCoroutine(UpdateVisuals());
                 }
                 
-                // Диагностика состояния после критических этапов
-                if (critical)
-                {
-                    LogStageStatistics(name);
-                }
+                yield return new WaitForSeconds(animationSpeed * 2);
             }
         }
 
@@ -707,83 +484,52 @@ namespace Exoform.Scripts.Map
         private IEnumerator InitializeBaseLayer()
         {
             cityGrid.Initialize();
-            return tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed);
+            yield return StartCoroutine(tileSpawner.SpawnAllTiles(grassPrefabs, pathwayPrefabs, GetAllPrefabs(), animationSpeed));
         }
 
         private IEnumerator InitializeExoformZones()
         {
-            if (zoneSystem == null)
-            {
-                Debug.LogError("❌ ZoneSystem не инициализирована!");
-                yield break;
-            }
-    
-            if (cityGrid == null)
-            {
-                Debug.LogError("❌ CityGrid не инициализирована!");
-                yield break;
-            }
-
-            Debug.Log($"🗺️ Создание зон размером {zoneSize}x{zoneSize}...");
-    
-            // Инициализируем зоны
             zoneSystem.InitializeZones(zoneSize, zoneSize);
-    
-            // Проверяем результат
-            var zoneData = zoneSystem.ExportZoneData();
-            if (zoneData.Count == 0)
-            {
-                Debug.LogError("❌ Не удалось создать зоны!");
-                yield break;
-            }
-    
-            // Логируем статистику
             Debug.Log(zoneSystem.GetZoneStatistics());
-    
-            // Проверяем покрытие карты зонами
-            ValidateZoneCoverage();
-    
             yield return new WaitForSeconds(animationSpeed);
         }
-
 
         private IEnumerator GeneratePathways()
         {
             if (useImprovedPathwayGenerator)
             {
-                return improvedRoadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed);
+                yield return StartCoroutine(improvedRoadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
             }
             else
             {
-                return roadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed);
+                yield return StartCoroutine(roadGenerator.GenerateRoads(pathwayDensity, pathwayLength, animationSpeed));
             }
         }
 
         private IEnumerator PlaceStructures()
         {
-            return objectPlacer.PlaceObjects(structureDensity, animationSpeed);
+            yield return StartCoroutine(objectPlacer.PlaceObjects(structureDensity, animationSpeed));
         }
 
         private IEnumerator PlaceVegetation()
         {
-            return vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed);
+            yield return StartCoroutine(vegetationPlacer.PlaceVegetation(vegetationDensity, animationSpeed));
         }
 
         private IEnumerator PlaceResources()
         {
-            return resourcePlacer.PlaceResources(resourceDensity, animationSpeed);
+            yield return StartCoroutine(resourcePlacer.PlaceResources(resourceDensity, animationSpeed));
         }
 
         private IEnumerator PlaceStaticCorruption()
         {
             if (staticCorruptionPlacer != null)
             {
-                return staticCorruptionPlacer.PlaceStaticCorruption(staticCorruptionDensity, animationSpeed);
+                yield return StartCoroutine(staticCorruptionPlacer.PlaceStaticCorruption(staticCorruptionDensity, animationSpeed));
             }
             else
             {
                 LogDebug("StaticCorruptionPlacer не инициализирован - пропускаем этап");
-                return EmptyCoroutine();
             }
         }
 
@@ -791,28 +537,27 @@ namespace Exoform.Scripts.Map
         {
             if (techSalvagePlacer != null)
             {
-                return techSalvagePlacer.PlaceTechSalvage(techSalvageDensity, animationSpeed);
+                yield return StartCoroutine(techSalvagePlacer.PlaceTechSalvage(techSalvageDensity, animationSpeed));
             }
             else
             {
                 LogDebug("TechSalvagePlacer не инициализирован - пропускаем этап");
-                return EmptyCoroutine();
             }
         }
 
         private IEnumerator PlaceSupplyCache()
         {
-            return lootPlacer.PlaceLoot(animationSpeed);
+            yield return StartCoroutine(lootPlacer.PlaceLoot(animationSpeed));
         }
 
         private IEnumerator PlacePathwayObjects()
         {
-            return roadObjectsPlacer.PlaceRoadObjects(pathwayObjectDensity, animationSpeed);
+            yield return StartCoroutine(roadObjectsPlacer.PlaceRoadObjects(pathwayObjectDensity, animationSpeed));
         }
 
         private IEnumerator PlaceDecorations()
         {
-            return decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed);
+            yield return StartCoroutine(decorationPlacer.PlaceDecorations(decorationDensity, animationSpeed));
         }
         
 
@@ -821,12 +566,7 @@ namespace Exoform.Scripts.Map
             var allPrefabs = GetAllPrefabs();
             float updateSpeed = useBatchedVisualUpdates ? animationSpeed * 0.5f : animationSpeed;
 
-            return tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed);
-        }
-
-        private IEnumerator EmptyCoroutine()
-        {
-            yield break;
+            yield return StartCoroutine(tileSpawner.UpdateChangedTiles(grassPrefabs, pathwayPrefabs, allPrefabs, updateSpeed));
         }
 
         #endregion
@@ -1202,40 +942,6 @@ namespace Exoform.Scripts.Map
         {
             if (verboseLogging)
                 Debug.Log($"[ExoformMapGenerator] {message}");
-        }
-
-        private void RunSync(IEnumerator routine)
-        {
-            if (routine == null)
-            {
-                Debug.LogWarning("⚠️ Попытка выполнить null корутину");
-                return;
-            }
-    
-            var stack = new Stack<IEnumerator>();
-            stack.Push(routine);
-    
-            while (stack.Count > 0)
-            {
-                var e = stack.Peek();
-                try
-                {
-                    if (!e.MoveNext())
-                    {
-                        stack.Pop();
-                        continue;
-                    }
-                    if (e.Current is IEnumerator nested)
-                    {
-                        stack.Push(nested);
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogError($"Ошибка в корутине: {ex.Message}");
-                    stack.Pop(); // Прерываем проблемную корутину
-                }
-            }
         }
 
         /// <summary>

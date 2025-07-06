@@ -10,15 +10,13 @@ namespace Exoform.Scripts.Map
     public class RoadObjectsPlacer
     {
         private CityGrid cityGrid;
-        private ExoformZoneSystem zoneSystem;
         private List<PrefabSettings> roadObjectPrefabs;
         private MonoBehaviour coroutineRunner;
         private Dictionary<PrefabSettings, int> spawnedCounts;
 
-        public RoadObjectsPlacer(CityGrid grid, ExoformZoneSystem zones, List<GameObject> prefabs, MonoBehaviour runner)
+        public RoadObjectsPlacer(CityGrid grid, List<GameObject> prefabs, MonoBehaviour runner)
         {
             cityGrid = grid;
-            zoneSystem = zones;
             coroutineRunner = runner;
             spawnedCounts = new Dictionary<PrefabSettings, int>();
             LoadRoadObjectPrefabs(prefabs);
@@ -148,14 +146,6 @@ namespace Exoform.Scripts.Map
             // Проверяем, что это действительно дорога
             if (cityGrid.Grid[position.x][position.y] != TileType.PathwayStraight)
                 return false;
-
-            if (zoneSystem != null)
-            {
-                var zone = zoneSystem.GetZoneAt(position);
-                if (zone.HasValue && settings.allowedZones.Count > 0 &&
-                    !settings.allowedZones.Contains(zone.Value.zoneType))
-                    return false;
-            }
 
             // Проверяем, не занята ли позиция другим объектом
             if (cityGrid.IsCellOccupiedByBuilding(position))
