@@ -56,19 +56,9 @@ namespace Exoform.Scripts.Map
         
         [Tooltip("Список разрешенных углов поворота (0, 90, 180, 270)")]
         public List<float> allowedRotations = new List<float> { 0f, 90f, 180f, 270f };
-
+        
         [Tooltip("Случайный поворот если дорога не найдена")]
         public bool randomRotationIfNoRoad = false;
-
-        [Header("Zone Restrictions")]
-        [Tooltip("Зоны, в которых может появляться данный префаб")]
-        public List<TileType> allowedZones = new List<TileType>
-        {
-            TileType.StandardZone,
-            TileType.TechnicalZone,
-            TileType.ArtifactZone,
-            TileType.CorruptedTrap
-        };
 
         // ====== ВЫЧИСЛЯЕМЫЕ СВОЙСТВА ======
         
