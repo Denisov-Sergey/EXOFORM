@@ -87,8 +87,9 @@ namespace Exoform.Scripts.Map
             foreach (Transform child in parent)
             {
                     
-                if (child.name.StartsWith("Building_") || 
-                    child.name.StartsWith("Vegetation_") || 
+                if (child.name.StartsWith("Building_") ||
+                    child.name.StartsWith("Structure_") ||
+                    child.name.StartsWith("Vegetation_") ||
                     child.name.StartsWith("RoadObject_") ||
                     child.name.StartsWith("Loot_") ||
                     child.name.StartsWith("Pathway_"))
