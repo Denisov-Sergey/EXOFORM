@@ -165,7 +165,9 @@ namespace Exoform.Scripts.Ecs.Systems.UnitLogicSystems
             #if UNITY_EDITOR && !BURST_COMPILE
             if (navAgent.ValueRO.CurrentWaypoint == 0) // Логируем только первый waypoint
             {
-                Debug.Log($"Движение: дистанция до цели {distanceToWaypoint:F3}, порог {waypointReachThreshold:F3}");
+                float dist = math.round(distanceToWaypoint * 1000f) / 1000f;
+                float thr = math.round(waypointReachThreshold * 1000f) / 1000f;
+                Debug.Log($"Движение: дистанция до цели {dist}, порог {thr}");
             }
             #endif
 
@@ -191,7 +193,8 @@ namespace Exoform.Scripts.Ecs.Systems.UnitLogicSystems
                         float distanceToFinalTarget = math.distance(currentPosition, targetTransform.Position);
                         
                         #if UNITY_EDITOR && !BURST_COMPILE
-                        Debug.Log($"Проверка финальной цели: дистанция {distanceToFinalTarget:F3}");
+                        float distFinal = math.round(distanceToFinalTarget * 1000f) / 1000f;
+                        Debug.Log($"Проверка финальной цели: дистанция {distFinal}");
                         #endif
                         
                         // Если юнит действительно близко к финальной цели
@@ -209,7 +212,8 @@ namespace Exoform.Scripts.Ecs.Systems.UnitLogicSystems
                         {
                             // Юнит не у цели - пересчитываем путь
                             #if UNITY_EDITOR && !BURST_COMPILE
-                            Debug.LogWarning($"Юнит НЕ у цели (дистанция {distanceToFinalTarget:F3}), пересчитываем путь");
+                            float distFinalWarn = math.round(distanceToFinalTarget * 1000f) / 1000f;
+                            Debug.LogWarning($"Юнит НЕ у цели (дистанция {distFinalWarn}), пересчитываем путь");
                             #endif
                             navAgent.ValueRW.PathCalculated = false;
                             // Сбрасываем время для немедленного пересчета
@@ -315,7 +319,8 @@ namespace Exoform.Scripts.Ecs.Systems.UnitLogicSystems
             if (totalDistance < minPathDistance)
             {
                 #if UNITY_EDITOR && !BURST_COMPILE
-                Debug.Log($"Дистанция слишком мала ({totalDistance:F3}), создаем прямой путь");
+                float distShort = math.round(totalDistance * 1000f) / 1000f;
+                Debug.Log($"Дистанция слишком мала ({distShort}), создаем прямой путь");
                 #endif
                 
                 // Создаем простой путь для коротких дистанций
@@ -326,7 +331,8 @@ namespace Exoform.Scripts.Ecs.Systems.UnitLogicSystems
             }
             
             #if UNITY_EDITOR && !BURST_COMPILE
-            Debug.Log($"Расчет пути от {fromPosition} до {toPosition}, дистанция: {totalDistance:F3}");
+            float distAll = math.round(totalDistance * 1000f) / 1000f;
+            Debug.Log($"Расчет пути от {fromPosition} до {toPosition}, дистанция: {distAll}");
             #endif
 
             // Увеличиваем размер области поиска для лучшего поиска
