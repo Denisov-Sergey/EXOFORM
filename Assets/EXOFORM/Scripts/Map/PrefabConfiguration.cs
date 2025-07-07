@@ -34,6 +34,14 @@ namespace Exoform.Scripts.Map
         [Tooltip("Декоративные объекты")]
         public List<GameObject> decorationPrefabs = new List<GameObject>();
 
+        [Header("🦠 Статичная Порча")]
+        [Tooltip("Префабы статичных элементов Порчи")]
+        public List<GameObject> staticCorruptionPrefabs = new List<GameObject>();
+
+        [Header("🔧 Техника для восстановления")]
+        [Tooltip("Префабы техники для восстановления")]
+        public List<GameObject> techSalvagePrefabs = new List<GameObject>();
+
         /// <summary>
         /// Получить все префабы в едином списке для обратной совместимости
         /// </summary>
@@ -47,6 +55,8 @@ namespace Exoform.Scripts.Map
             allPrefabs.AddRange(roadObjectPrefabs.Where(p => p != null));
             allPrefabs.AddRange(lootPrefabs.Where(p => p != null));
             allPrefabs.AddRange(decorationPrefabs.Where(p => p != null));
+            allPrefabs.AddRange(staticCorruptionPrefabs.Where(p => p != null));
+            allPrefabs.AddRange(techSalvagePrefabs.Where(p => p != null));
 
             return allPrefabs;
         }
@@ -64,6 +74,8 @@ namespace Exoform.Scripts.Map
                 PrefabCategory.RoadObjects => roadObjectPrefabs.Where(p => p != null).ToList(),
                 PrefabCategory.Loot => lootPrefabs.Where(p => p != null).ToList(),
                 PrefabCategory.Decorations => decorationPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.StaticCorruption => staticCorruptionPrefabs.Where(p => p != null).ToList(),
+                PrefabCategory.TechSalvage => techSalvagePrefabs.Where(p => p != null).ToList(),
                 _ => new List<GameObject>()
             };
         }
@@ -143,11 +155,17 @@ namespace Exoform.Scripts.Map
                 TileType.BiomassResource or TileType.MetalResource => PrefabCategory.Resources,
                 
                 TileType.AbandonedVehicle or TileType.Barricade or TileType.WreckageDebris => PrefabCategory.RoadObjects,
-                
+
                 TileType.SupplyCache => PrefabCategory.Loot,
-                
+
                 TileType.Decoration => PrefabCategory.Decorations,
-                
+
+                TileType.TentacleGrowth or TileType.TumorNode or TileType.CorruptedGround or
+                TileType.SporeEmitter or TileType.BiologicalMass => PrefabCategory.StaticCorruption,
+
+                TileType.DamagedGenerator or TileType.BrokenRobot or TileType.CorruptedTerminal or
+                TileType.TechSalvageResource => PrefabCategory.TechSalvage,
+
                 _ => PrefabCategory.Buildings
             };
         }
@@ -160,7 +178,9 @@ namespace Exoform.Scripts.Map
             if (roadObjectPrefabs.Contains(prefab)) return PrefabCategory.RoadObjects;
             if (lootPrefabs.Contains(prefab)) return PrefabCategory.Loot;
             if (decorationPrefabs.Contains(prefab)) return PrefabCategory.Decorations;
-            
+            if (staticCorruptionPrefabs.Contains(prefab)) return PrefabCategory.StaticCorruption;
+            if (techSalvagePrefabs.Contains(prefab)) return PrefabCategory.TechSalvage;
+
             return PrefabCategory.Buildings; // по умолчанию
         }
 
@@ -176,6 +196,8 @@ namespace Exoform.Scripts.Map
             stats += $"🚗 Дорожных объектов: {roadObjectPrefabs.Count(p => p != null)}\n";
             stats += $"📦 Лута: {lootPrefabs.Count(p => p != null)}\n";
             stats += $"🎨 Декораций: {decorationPrefabs.Count(p => p != null)}\n";
+            stats += $"🦠 Порчи: {staticCorruptionPrefabs.Count(p => p != null)}\n";
+            stats += $"🔧 Техники: {techSalvagePrefabs.Count(p => p != null)}\n";
             stats += $"📝 Всего: {GetAllPrefabs().Count}\n";
             
             return stats;
@@ -219,6 +241,12 @@ namespace Exoform.Scripts.Map
                         case PrefabCategory.Decorations:
                             decorationPrefabs.Add(prefab);
                             break;
+                        case PrefabCategory.StaticCorruption:
+                            staticCorruptionPrefabs.Add(prefab);
+                            break;
+                        case PrefabCategory.TechSalvage:
+                            techSalvagePrefabs.Add(prefab);
+                            break;
                     }
                 }
             }
@@ -232,7 +260,9 @@ namespace Exoform.Scripts.Map
         Resources,
         RoadObjects,
         Loot,
-        Decorations
+        Decorations,
+        StaticCorruption,
+        TechSalvage
     }
 
     /// <summary>
