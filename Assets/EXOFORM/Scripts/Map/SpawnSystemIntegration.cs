@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using EXOFORM.Scripts.Ecs.Authoring.Spawing;
+using EXOFORM.Scripts.Ecs.Authoring.Spawning;
 using EXOFORM.Scripts.Ecs.Components.Spawning;
 using Exoform.Scripts.Map;
 

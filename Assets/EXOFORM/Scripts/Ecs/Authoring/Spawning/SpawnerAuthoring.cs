@@ -4,7 +4,7 @@ using Exoform.Scripts.Map;
 using Unity.Entities;
 using UnityEngine;
 
-namespace EXOFORM.Scripts.Ecs.Authoring.Spawing
+namespace EXOFORM.Scripts.Ecs.Authoring.Spawning
 {
     /// <summary>
     /// Authoring компонент для настройки спаунера
