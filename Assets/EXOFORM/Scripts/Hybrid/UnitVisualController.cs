@@ -62,16 +62,13 @@ namespace Exoform.Scripts.Hybrid
         {
             InitializeComponents();
             CacheAnimatorParameters();
-            
-            // Если ECS еще не готов, попробуем найти Entity позже
-            if (world != null && entityManager != null)
+
+            if (linkedEntity == Entity.Null)
             {
-                FindLinkedEntity();
-            }
-            else
-            {
-                // Повторяем попытку через короткое время
-                Invoke(nameof(DelayedEntitySearch), 0.1f);
+                if (IsECSReady())
+                    FindLinkedEntity();
+                else
+                    Invoke(nameof(DelayedEntitySearch), 0.1f);
             }
         }
 
@@ -172,7 +169,7 @@ namespace Exoform.Scripts.Hybrid
 
         void FindLinkedEntity()
         {
-            if (world == null || entityManager == null) 
+            if (!IsECSReady())
             {
                 Debug.LogWarning("EntityManager not available, retrying in next frame...");
                 return;
@@ -202,7 +199,7 @@ namespace Exoform.Scripts.Hybrid
 
         void Update()
         {
-            if (linkedEntity == Entity.Null || world == null || entityManager == null || !entityManager.Exists(linkedEntity))
+            if (linkedEntity == Entity.Null || !IsECSReady() || !entityManager.Exists(linkedEntity))
                 return;
 
             UpdateFromECS();
@@ -211,7 +208,7 @@ namespace Exoform.Scripts.Hybrid
 
         void UpdateFromECS()
         {
-            if (world == null || entityManager == null || !entityManager.Exists(linkedEntity))
+            if (!IsECSReady() || !entityManager.Exists(linkedEntity))
                 return;
 
             // Получаем данные от ECS
@@ -442,6 +439,22 @@ namespace Exoform.Scripts.Hybrid
             linkedEntity = Entity.Null;
         }
 
+        public void LinkEntity(Entity entity)
+        {
+            linkedEntity = entity;
+            if (world == null)
+                world = World.DefaultGameObjectInjectionWorld;
+            if (world != null)
+                entityManager = world.EntityManager;
+        }
+
+        bool IsECSReady()
+        {
+            return World.DefaultGameObjectInjectionWorld != null &&
+                   World.DefaultGameObjectInjectionWorld.IsCreated &&
+                   World.DefaultGameObjectInjectionWorld.EntityManager.IsCreated;
+        }
+
         // Обработка кликов для выбора
         void OnMouseDown()
         {
@@ -457,3 +470,4 @@ namespace Exoform.Scripts.Hybrid
         }
     }
 }
+

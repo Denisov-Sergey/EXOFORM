@@ -3,6 +3,7 @@ using EXOFORM.Scripts.Ecs.Systems.Spawning;
 using Unity.Entities;
 using UnityEngine;
 
+using Exoform.Scripts.Ecs.Components.UnitLogicComponents;
 namespace Exoform.Scripts.Hybrid
 {
     /// <summary>
@@ -62,5 +63,21 @@ namespace Exoform.Scripts.Hybrid
             
             query.Dispose();
         }
+
+        /// <summary>
+        /// Спаун юнита в указанной позиции
+        /// </summary>
+        public static Entity SpawnUnit(Vector3 position, UnitType type, int teamId)
+        {
+            var spawner = Object.FindObjectOfType<UnitSpawner>();
+            if (spawner == null)
+            {
+                Debug.LogError("UnitSpawner not found in scene!");
+                return Entity.Null;
+            }
+
+            return spawner.SpawnUnitAtPosition(position, type, teamId);
+        }
     }
 }
+
