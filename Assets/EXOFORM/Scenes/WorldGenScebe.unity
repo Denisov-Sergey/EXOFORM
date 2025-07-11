@@ -325,10 +325,12 @@ MonoBehaviour:
   resourceDensity: 0.08
   decorationDensity: 0.1
   zoneSize: 10
-  standardZoneDensity: 0.6
-  technicalZoneDensity: 0.2
-  artifactZoneDensity: 0.15
-  corruptedTrapDensity: 0.05
+  standardZoneDensity: 0.57142854
+  technicalZoneDensity: 0.19047618
+  artifactZoneDensity: 0.14285713
+  corruptedTrapDensity: 0.047619045
+  infestZoneDensity: 0.028571427
+  bossZoneDensity: 0.019047618
   initialCorruptionLevel: 0.1
   staticCorruptionDensity: 0.1
   createCorruptionClusters: 1
@@ -346,7 +348,7 @@ MonoBehaviour:
   maxSupplyCacheCount: 30
   clusterSupplyCache: 1
   supplyCacheClusterSize: 3
-  animationSpeed: 0.5
+  animationSpeed: 0.01
   useBatchedVisualUpdates: 1
   grassPrefabs:
   - {fileID: 8350565405820835728, guid: a3f672e3be2f5c34db6509158f75506b, type: 3}
@@ -374,7 +376,7 @@ MonoBehaviour:
   _generateMap: 0
   _clearMap: 0
   _validatePrefabs: 0
-  showGizmos: 0
+  showGizmos: 1
   verboseLogging: 1
 --- !u!1 &1996543179
 GameObject:
