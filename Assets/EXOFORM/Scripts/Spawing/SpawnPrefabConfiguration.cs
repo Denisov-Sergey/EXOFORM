@@ -348,9 +348,50 @@ namespace Exoform.Scripts.Spawning
             var config = LoadConfiguration();
             if (config == null) return false;
 
-            // TODO: Реализовать проверку лимитов через ECS
-            // Пока что возвращаем true
-            return true;
+            // Определяем лимит из конфигурации
+            int maxAllowed = 0;
+            bool hasLimit = false;
+            var units = config.GetUnitsForTeam(teamId);
+            foreach (var unit in units)
+            {
+                if (unit.unitType != unitType) continue;
+                if (unit.maxSimultaneous > 0)
+                {
+                    maxAllowed += unit.maxSimultaneous;
+                    hasLimit = true;
+                }
+            }
+
+            if (!hasLimit) return true; // нет ограничений в конфиге
+
+            // Подсчитываем существующие юниты через ECS
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null) return true;
+
+            var entityManager = world.EntityManager;
+            var query = entityManager.CreateEntityQuery(
+                ComponentType.ReadOnly<UnitLogicComponent>(),
+                ComponentType.ReadOnly<CombatComponent>());
+
+            var logicArray = query.ToComponentDataArray<UnitLogicComponent>(Allocator.Temp);
+            var combatArray = query.ToComponentDataArray<CombatComponent>(Allocator.Temp);
+
+            int currentCount = 0;
+            for (int i = 0; i < logicArray.Length; i++)
+            {
+                if (combatArray[i].IsDead) continue;
+
+                if (logicArray[i].TeamId == teamId && logicArray[i].UnitType == unitType)
+                {
+                    currentCount++;
+                }
+            }
+
+            logicArray.Dispose();
+            combatArray.Dispose();
+            query.Dispose();
+
+            return currentCount < maxAllowed;
         }
     }
 }
