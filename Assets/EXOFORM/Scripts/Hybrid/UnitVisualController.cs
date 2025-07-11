@@ -450,9 +450,24 @@ namespace Exoform.Scripts.Hybrid
 
         bool IsECSReady()
         {
-            return World.DefaultGameObjectInjectionWorld != null &&
-                   World.DefaultGameObjectInjectionWorld.IsCreated &&
-                   World.DefaultGameObjectInjectionWorld.EntityManager.IsCreated;
+            // Проверяем существование мира
+            if (World.DefaultGameObjectInjectionWorld == null)
+                return false;
+
+            // В новых версиях Unity DOTS используем прямую проверку EntityManager
+            try
+            {
+                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+                // Простая проверка - попытка создать пустой запрос
+                // Если EntityManager не инициализирован, это вызовет исключение
+                var testQuery = em.CreateEntityQuery(ComponentType.ReadOnly<LocalTransform>());
+                testQuery.Dispose();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         // Обработка кликов для выбора
