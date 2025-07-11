@@ -72,9 +72,10 @@ namespace Exoform.Scripts.Ecs.Systems.UnitLogicSystems
 
             if (visualController != null)
             {
-                // Назначаем уникальный ID
+                // Назначаем уникальный ID и связываем с Entity
                 int unitId = nextUnitId++;
                 visualController.unitId = unitId;
+                visualController.LinkEntity(entity);
 
                 // Добавляем UnitProxyComponent к Entity
                 EntityManager.AddComponentData(entity, new UnitProxyComponent

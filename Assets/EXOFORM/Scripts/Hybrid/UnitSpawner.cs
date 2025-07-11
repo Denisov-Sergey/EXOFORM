@@ -1,6 +1,7 @@
 ﻿using Exoform.Scripts.Ecs.Components;
 using Exoform.Scripts.Ecs.Components.UnitComponents;
 using Exoform.Scripts.Ecs.Components.UnitLogicComponents;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
@@ -42,6 +43,7 @@ namespace Exoform.Scripts.Hybrid
         private bool isInitialized = false;
         private int nextUnitId = 1; // ИСПРАВЛЕНИЕ: добавлена отсутствующая переменная
 
+        private Dictionary<UnitType, EntityArchetype> archetypeCache = new Dictionary<UnitType, EntityArchetype>();
         void Start()
         {
             InitializeECS();
@@ -164,13 +166,14 @@ namespace Exoform.Scripts.Hybrid
                 Debug.LogWarning($"Position {position} is not on NavMesh, spawning anyway");
             }
 
-            // Создаем Entity
-            var entity = entityManager.CreateEntity();
+            // Создаем Entity через архетип
+            var archetype = GetUnitArchetype(unitType);
+            var entity = entityManager.CreateEntity(archetype);
 
             // Базовые компоненты
-            entityManager.AddComponentData(entity, LocalTransform.FromPosition(position));
+            entityManager.SetComponentData(entity, LocalTransform.FromPosition(position));
 
-            entityManager.AddComponentData(entity, new UnitLogicComponent
+            entityManager.SetComponentData(entity, new UnitLogicComponent
             {
                 TeamId = teamId,
                 UnitType = unitType,
@@ -181,7 +184,7 @@ namespace Exoform.Scripts.Hybrid
             });
 
             // Навигация
-            entityManager.AddComponentData(entity, new NavAgentComponent
+            entityManager.SetComponentData(entity, new NavAgentComponent
             {
                 TargetEntity = Entity.Null,
                 MovementSpeed = 5f,
@@ -191,17 +194,18 @@ namespace Exoform.Scripts.Hybrid
                 MaxPathIterations = 100
             });
 
-            entityManager.AddBuffer<WaypointBuffer>(entity);
+            if (!entityManager.HasBuffer<WaypointBuffer>(entity))
+                entityManager.AddBuffer<WaypointBuffer>(entity);
 
             // Игрок
-            entityManager.AddComponentData(entity, new PlayerUnitComponent
+            entityManager.SetComponentData(entity, new PlayerUnitComponent
             {
                 IsSelected = false,
                 SelectionRadius = 1f
             });
 
             // Анимация
-            entityManager.AddComponentData(entity, new AnimationStateComponent
+            entityManager.SetComponentData(entity, new AnimationStateComponent
             {
                 CurrentState = UnitAnimationState.Idle,
                 PreviousState = UnitAnimationState.Idle,
@@ -214,7 +218,7 @@ namespace Exoform.Scripts.Hybrid
                 TriggerDeath = false
             });
 
-            entityManager.AddComponentData(entity, new AnimationLODComponent
+            entityManager.SetComponentData(entity, new AnimationLODComponent
             {
                 CurrentLOD = AnimationLODLevel.High,
                 DistanceToCamera = 0f,
@@ -222,7 +226,7 @@ namespace Exoform.Scripts.Hybrid
             });
 
             // Бой
-            entityManager.AddComponentData(entity, new CombatComponent
+            entityManager.SetComponentData(entity, new CombatComponent
             {
                 Health = 100f,
                 MaxHealth = 100f,
@@ -238,6 +242,26 @@ namespace Exoform.Scripts.Hybrid
             }
 
             return entity;
+        }
+
+        EntityArchetype GetUnitArchetype(UnitType unitType)
+        {
+            if (!archetypeCache.TryGetValue(unitType, out var archetype))
+            {
+                archetype = entityManager.CreateArchetype(
+                    typeof(LocalTransform),
+                    typeof(UnitLogicComponent),
+                    typeof(NavAgentComponent),
+                    typeof(WaypointBuffer),
+                    typeof(PlayerUnitComponent),
+                    typeof(AnimationStateComponent),
+                    typeof(AnimationLODComponent),
+                    typeof(CombatComponent)
+                );
+                archetypeCache[unitType] = archetype;
+            }
+
+            return archetype;
         }
 
         /// <summary>
