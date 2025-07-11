@@ -1,5 +1,7 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
+using Unity.Entities;
+using Unity.Collections;
 using Exoform.Scripts.Ecs.Components.UnitLogicComponents;
 using Exoform.Scripts.Map;
 
