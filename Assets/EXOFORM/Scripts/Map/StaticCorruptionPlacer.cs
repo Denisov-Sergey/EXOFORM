@@ -87,7 +87,7 @@ namespace Exoform.Scripts.Map
 
             for (int i = 0; i < clustersToCreate && clusterCenters.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, clusterCenters.Count);
+                int randomIndex = UnityEngine.Random.Range(0, clusterCenters.Count);
                 Vector2Int center = clusterCenters[randomIndex];
                 
                 yield return PlaceCorruptionCluster(center, animationSpeed);
@@ -101,8 +101,8 @@ namespace Exoform.Scripts.Map
 
         IEnumerator PlaceCorruptionCluster(Vector2Int center, float animationSpeed)
         {
-            int clusterSize = Random.Range(3, 8);
-            float clusterRadius = Random.Range(2f, 4f);
+            int clusterSize = UnityEngine.Random.Range(3, 8);
+            float clusterRadius = UnityEngine.Random.Range(2f, 4f);
             
             Debug.Log($"    🦠 Создание кластера в {center}, размер: {clusterSize}, радиус: {clusterRadius}");
             
@@ -133,10 +133,10 @@ namespace Exoform.Scripts.Map
             
             for (int i = 0; i < randomCorruptionCount && validPositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, validPositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, validPositions.Count);
                 Vector2Int position = validPositions[randomIndex];
                 
-                var randomType = corruptionPrefabs[Random.Range(0, corruptionPrefabs.Count)].tileType;
+                var randomType = corruptionPrefabs[UnityEngine.Random.Range(0, corruptionPrefabs.Count)].tileType;
                 
                 if (TryPlaceCorruption(position, randomType))
                 {
@@ -214,7 +214,7 @@ namespace Exoform.Scripts.Map
             // Выбираем случайные позиции
             while (positions.Count < count && candidates.Count > 0)
             {
-                int randomIndex = Random.Range(0, candidates.Count);
+                int randomIndex = UnityEngine.Random.Range(0, candidates.Count);
                 positions.Add(candidates[randomIndex]);
                 candidates.RemoveAt(randomIndex);
             }
@@ -391,10 +391,10 @@ namespace Exoform.Scripts.Map
                 foreach (var z in zones)
                 {
                     Vector2Int randPos = new Vector2Int(
-                        Random.Range(z.position.x, z.position.x + z.size.x),
-                        Random.Range(z.position.y, z.position.y + z.size.y));
+                        UnityEngine.Random.Range(z.position.x, z.position.x + z.size.x),
+                        UnityEngine.Random.Range(z.position.y, z.position.y + z.size.y));
 
-                    var type = corruptionPrefabs[Random.Range(0, corruptionPrefabs.Count)].tileType;
+                    var type = corruptionPrefabs[UnityEngine.Random.Range(0, corruptionPrefabs.Count)].tileType;
                     TryPlaceCorruption(randPos, type);
                 }
 

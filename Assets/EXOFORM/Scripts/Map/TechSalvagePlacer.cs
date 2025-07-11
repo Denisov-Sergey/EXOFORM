@@ -95,7 +95,7 @@ namespace Exoform.Scripts.Map
             
             for (int i = 0; i < techItemsToPlace && technicalZonePositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, technicalZonePositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, technicalZonePositions.Count);
                 Vector2Int position = technicalZonePositions[randomIndex];
                 
                 var techType = ChooseTechTypeForTechnicalZone();
@@ -123,7 +123,7 @@ namespace Exoform.Scripts.Map
             
             for (int i = 0; i < techItemsToPlace && structureNearbyPositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, structureNearbyPositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, structureNearbyPositions.Count);
                 Vector2Int position = structureNearbyPositions[randomIndex];
                 
                 var techType = ChooseTechTypeForStructures();

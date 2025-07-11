@@ -193,7 +193,7 @@ namespace Exoform.Scripts.Map
 
             for (int i = 0; i < objectsToPlace && validPositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, validPositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, validPositions.Count);
                 Vector2Int position = validPositions[randomIndex];
 
                 if (TryPlaceObject(settings, position, out int rotation))
@@ -399,7 +399,7 @@ namespace Exoform.Scripts.Map
         {
             if (settings.useRandomRotation && settings.allowedRotations.Count > 0)
             {
-                int idx = Random.Range(0, settings.allowedRotations.Count);
+                int idx = UnityEngine.Random.Range(0, settings.allowedRotations.Count);
                 return Mathf.RoundToInt(settings.allowedRotations[idx]);
             }
 
@@ -415,7 +415,7 @@ namespace Exoform.Scripts.Map
                 {
                     if (settings.randomRotationIfNoRoad)
                     {
-                        int idx = Random.Range(0, settings.allowedRotations.Count);
+                        int idx = UnityEngine.Random.Range(0, settings.allowedRotations.Count);
                         return Mathf.RoundToInt(settings.allowedRotations[idx]);
                     }
 

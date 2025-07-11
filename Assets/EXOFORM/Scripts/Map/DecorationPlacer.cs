@@ -115,7 +115,7 @@ namespace Exoform.Scripts.Map
             int placedCount = 0;
             for (int i = 0; i < objectsToPlace && validPositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, validPositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, validPositions.Count);
                 Vector2Int position = validPositions[randomIndex];
 
                 if (TryPlaceDecoration(position, settings))
@@ -241,7 +241,7 @@ namespace Exoform.Scripts.Map
         {
             for (int i = 0; i < list.Count; i++)
             {
-                int randomIndex = Random.Range(i, list.Count);
+                int randomIndex = UnityEngine.Random.Range(i, list.Count);
                 T temp = list[i];
                 list[i] = list[randomIndex];
                 list[randomIndex] = temp;

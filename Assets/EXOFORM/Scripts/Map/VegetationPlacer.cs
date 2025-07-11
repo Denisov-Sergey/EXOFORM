@@ -75,7 +75,7 @@ namespace Exoform.Scripts.Map
 
             for (int i = 0; i < forestsToPlace && forestAreas.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, forestAreas.Count);
+                int randomIndex = UnityEngine.Random.Range(0, forestAreas.Count);
                 Vector2Int position = forestAreas[randomIndex];
 
                 if (TryPlaceForest(position, forestSettings))
@@ -102,7 +102,7 @@ namespace Exoform.Scripts.Map
 
             for (int i = 0; i < gardensToPlace && gardenAreas.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, gardenAreas.Count);
+                int randomIndex = UnityEngine.Random.Range(0, gardenAreas.Count);
                 Vector2Int position = gardenAreas[randomIndex];
 
                 if (TryPlaceGarden(position, gardenSettings))
@@ -145,7 +145,7 @@ namespace Exoform.Scripts.Map
 
             for (int i = 0; i < objectsToPlace && validPositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, validPositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, validPositions.Count);
                 Vector2Int position = validPositions[randomIndex];
 
                 if (TryPlaceVegetation(position, settings))
@@ -320,8 +320,8 @@ namespace Exoform.Scripts.Map
         {
             // Размещаем лес как группу деревьев
             Vector2Int forestSize = new Vector2Int(
-                Random.Range(3, 6), 
-                Random.Range(3, 6)
+                UnityEngine.Random.Range(3, 6),
+                UnityEngine.Random.Range(3, 6)
             );
 
             List<Vector2Int> forestCells = new List<Vector2Int>();

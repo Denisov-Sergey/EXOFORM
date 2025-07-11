@@ -116,7 +116,7 @@ namespace Exoform.Scripts.Spawning
                 totalWeight += unit.spawnWeight;
             }
 
-            float randomValue = Random.Range(0f, totalWeight);
+            float randomValue = UnityEngine.Random.Range(0f, totalWeight);
             float currentWeight = 0f;
 
             foreach (var unit in units)

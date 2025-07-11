@@ -91,7 +91,7 @@ namespace Exoform.Scripts.Map
             for (int i = 0; i < clusterCount && positions.Count > 0 && placedCount < targetCount; i++)
             {
                 // Выбираем центр кластера
-                int centerIndex = Random.Range(0, positions.Count);
+                int centerIndex = UnityEngine.Random.Range(0, positions.Count);
                 Vector2Int center = positions[centerIndex];
 
                 // Размещаем кластер
@@ -127,7 +127,7 @@ namespace Exoform.Scripts.Map
 
             for (int i = 0; i < positions.Count && placedCount < targetCount; i += skipInterval)
             {
-                int randomOffset = Random.Range(-skipInterval/2, skipInterval/2);
+                int randomOffset = UnityEngine.Random.Range(-skipInterval/2, skipInterval/2);
                 int index = Mathf.Clamp(i + randomOffset, 0, positions.Count - 1);
                 
                 if (TryPlaceLoot(positions[index]))
@@ -168,7 +168,7 @@ namespace Exoform.Scripts.Map
             // Перемешиваем для случайности
             for (int i = 0; i < positions.Count; i++)
             {
-                int randomIndex = Random.Range(i, positions.Count);
+                int randomIndex = UnityEngine.Random.Range(i, positions.Count);
                 var temp = positions[i];
                 positions[i] = positions[randomIndex];
                 positions[randomIndex] = temp;
@@ -217,7 +217,7 @@ namespace Exoform.Scripts.Map
                 return false;
 
             // Выбираем случайный префаб лута
-            var lootPrefab = lootPrefabs[Random.Range(0, lootPrefabs.Count)];
+            var lootPrefab = lootPrefabs[UnityEngine.Random.Range(0, lootPrefabs.Count)];
             
             if (!cityGrid.BuildingOccupancy.ContainsKey(TileType.SupplyCache))
                 cityGrid.BuildingOccupancy[TileType.SupplyCache] = new List<OccupiedCell>();

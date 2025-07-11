@@ -66,13 +66,13 @@ namespace Exoform.Scripts.Map
         IEnumerator CreateMainRoads(float animationSpeed)
         {
             // Создаем главные магистрали (горизонтальные и вертикальные)
-            int horizontalRoads = Random.Range(2, 4);
-            int verticalRoads = Random.Range(2, 4);
+            int horizontalRoads = UnityEngine.Random.Range(2, 4);
+            int verticalRoads = UnityEngine.Random.Range(2, 4);
             
             // Горизонтальные магистрали
             for (int i = 0; i < horizontalRoads; i++)
             {
-                int y = Random.Range(cityGrid.Height / 4, 3 * cityGrid.Height / 4);
+                int y = UnityEngine.Random.Range(cityGrid.Height / 4, 3 * cityGrid.Height / 4);
                 yield return CreateRoadLine(
                     new Vector2Int(0, y), 
                     new Vector2Int(cityGrid.Width - 1, y), 
@@ -83,7 +83,7 @@ namespace Exoform.Scripts.Map
             // Вертикальные магистрали
             for (int i = 0; i < verticalRoads; i++)
             {
-                int x = Random.Range(cityGrid.Width / 4, 3 * cityGrid.Width / 4);
+                int x = UnityEngine.Random.Range(cityGrid.Width / 4, 3 * cityGrid.Width / 4);
                 yield return CreateRoadLine(
                     new Vector2Int(x, 0), 
                     new Vector2Int(x, cityGrid.Height - 1), 
@@ -116,7 +116,7 @@ namespace Exoform.Scripts.Map
         IEnumerator CreateBranch(Vector2Int startPoint, float animationSpeed)
         {
             Vector2Int[] directions = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
-            Vector2Int direction = directions[Random.Range(0, directions.Length)];
+            Vector2Int direction = directions[UnityEngine.Random.Range(0, directions.Length)];
             
             // Проверяем, не идет ли дорога уже в этом направлении
             Vector2Int checkPos = startPoint + direction;
@@ -126,7 +126,7 @@ namespace Exoform.Scripts.Map
                 yield break;
             }
             
-            int length = Random.Range(settings.minSegmentLength, settings.maxSegmentLength);
+            int length = UnityEngine.Random.Range(settings.minSegmentLength, settings.maxSegmentLength);
             Vector2Int current = startPoint;
             
             for (int i = 0; i < length; i++)
@@ -208,7 +208,7 @@ namespace Exoform.Scripts.Map
             
             if (roadCells.Count > 0)
             {
-                return roadCells[Random.Range(0, roadCells.Count)];
+                return roadCells[UnityEngine.Random.Range(0, roadCells.Count)];
             }
             
             return null;
