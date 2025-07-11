@@ -362,10 +362,10 @@ namespace Exoform.Scripts.Map
             spawnPoint.transform.SetParent(transform);
 
             // Добавляем SpawnPointAuthoring если его нет
-            var authoring = spawnPoint.GetComponent<SpawnPointAuthoring>();
+            var authoring = spawnPoint.GetComponent<EXOFORM.Scripts.Ecs.Authoring.Spawning.SpawnPointAuthoring>();
             if (authoring == null)
             {
-                authoring = spawnPoint.AddComponent<SpawnPointAuthoring>();
+                authoring = spawnPoint.AddComponent<EXOFORM.Scripts.Ecs.Authoring.Spawning.SpawnPointAuthoring>();
             }
 
             authoring.spawnType = spawnType;
@@ -474,7 +474,7 @@ namespace Exoform.Scripts.Map
             {
                 if (spawnPoint != null)
                 {
-                    var authoring = spawnPoint.GetComponent<SpawnPointAuthoring>();
+                    var authoring = spawnPoint.GetComponent<EXOFORM.Scripts.Ecs.Authoring.Spawning.SpawnPointAuthoring>();
                     if (authoring != null)
                     {
                         if (!spawnStats.ContainsKey(authoring.spawnType))
@@ -535,7 +535,7 @@ namespace Exoform.Scripts.Map
             {
                 if (spawnPoint != null)
                 {
-                    var authoring = spawnPoint.GetComponent<SpawnPointAuthoring>();
+                    var authoring = spawnPoint.GetComponent<EXOFORM.Scripts.Ecs.Authoring.Spawning.SpawnPointAuthoring>();
                     if (authoring != null && authoring.spawnType == spawnType)
                     {
                         positions.Add(spawnPoint.transform.position);
