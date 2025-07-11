@@ -3,7 +3,7 @@ using Exoform.Scripts.Ecs.Components.UnitLogicComponents;
 using Unity.Entities;
 using UnityEngine;
 
-namespace EXOFORM.Scripts.Ecs.Systems.Spawing
+namespace EXOFORM.Scripts.Ecs.Systems.Spawning
 {
     /// <summary>
     /// Система для управления спауном игроков по запросу

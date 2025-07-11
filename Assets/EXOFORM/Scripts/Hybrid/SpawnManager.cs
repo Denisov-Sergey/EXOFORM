@@ -1,5 +1,5 @@
 ﻿using EXOFORM.Scripts.Ecs.Components.Spawning;
-using EXOFORM.Scripts.Ecs.Systems.Spawing;
+using EXOFORM.Scripts.Ecs.Systems.Spawning;
 using Unity.Entities;
 using UnityEngine;
 

@@ -6,7 +6,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace EXOFORM.Scripts.Ecs.Systems.Spawing
+namespace EXOFORM.Scripts.Ecs.Systems.Spawning
 {
     /// <summary>
     /// Главная система спауна
