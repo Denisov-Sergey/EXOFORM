@@ -125,7 +125,7 @@ namespace Exoform.Scripts.Map
             // Размещаем объекты
             for (int i = 0; i < objectsToPlace && validPositions.Count > 0; i++)
             {
-                int randomIndex = Random.Range(0, validPositions.Count);
+                int randomIndex = UnityEngine.Random.Range(0, validPositions.Count);
                 Vector2Int position = validPositions[randomIndex];
 
                 if (TryPlaceRoadObject(position, settings))

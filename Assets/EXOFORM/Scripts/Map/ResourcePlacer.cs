@@ -99,7 +99,7 @@ namespace Exoform.Scripts.Map
                 for (int cluster = 0; cluster < clustersCount && positions.Count > 0; cluster++)
                 {
                     // Выбираем центр кластера
-                    Vector2Int center = positions[Random.Range(0, positions.Count)];
+                    Vector2Int center = positions[UnityEngine.Random.Range(0, positions.Count)];
                     
                     // Размещаем кластер
                     var clusterPositions = GetResourceClusterPositions(center, positions, resourcesPerCluster);
@@ -149,7 +149,7 @@ namespace Exoform.Scripts.Map
             // Перемешиваем для случайности
             for (int i = 0; i < positions.Count; i++)
             {
-                int randomIndex = Random.Range(i, positions.Count);
+                int randomIndex = UnityEngine.Random.Range(i, positions.Count);
                 var temp = positions[i];
                 positions[i] = positions[randomIndex];
                 positions[randomIndex] = temp;

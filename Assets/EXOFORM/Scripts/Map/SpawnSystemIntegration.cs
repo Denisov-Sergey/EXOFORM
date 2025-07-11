@@ -445,7 +445,7 @@ namespace Exoform.Scripts.Map
         {
             for (int i = 0; i < list.Count; i++)
             {
-                int randomIndex = Random.Range(i, list.Count);
+                int randomIndex = UnityEngine.Random.Range(i, list.Count);
                 T temp = list[i];
                 list[i] = list[randomIndex];
                 list[randomIndex] = temp;

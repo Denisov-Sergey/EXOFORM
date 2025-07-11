@@ -124,7 +124,7 @@ namespace Exoform.Scripts.Map
             GameObject grassPrefab = GetRandomPrefab(grassPrefabs);
             if (grassPrefab == null) return;
 
-            GameObject grassTile = Object.Instantiate(grassPrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
+            GameObject grassTile = Object.Instantiate(grassPrefab, position, Quaternion.Euler(0, UnityEngine.Random.Range(0, 4) * 90, 0));
             grassTile.name = $"Base_{x}_{y}_Grass";
             grassTile.transform.SetParent(parent);
             cityGrid.SpawnedTiles[x][y] = grassTile;
@@ -151,7 +151,7 @@ namespace Exoform.Scripts.Map
 
             if (tilePrefab != null)
             {
-                GameObject baseTile = Object.Instantiate(tilePrefab, position, Quaternion.Euler(0, Random.Range(0, 4) * 90, 0));
+                GameObject baseTile = Object.Instantiate(tilePrefab, position, Quaternion.Euler(0, UnityEngine.Random.Range(0, 4) * 90, 0));
                 baseTile.name = $"Base_{x}_{y}_{baseTileType}";
                 baseTile.transform.SetParent(parent);
                 cityGrid.SpawnedTiles[x][y] = baseTile;
@@ -174,7 +174,7 @@ namespace Exoform.Scripts.Map
             if (validPrefabs.Count == 0)
                 return null;
                 
-            return validPrefabs[Random.Range(0, validPrefabs.Count)];
+            return validPrefabs[UnityEngine.Random.Range(0, validPrefabs.Count)];
         }
 
         void CreateBuildingsLayer(List<GameObject> prefabsWithSettings)
@@ -410,7 +410,7 @@ namespace Exoform.Scripts.Map
             for (int i = 0; i < weights.Count; i++)
                 totalWeight += weights[i];
 
-            float randomValue = Random.Range(0f, totalWeight);
+            float randomValue = UnityEngine.Random.Range(0f, totalWeight);
             float currentWeight = 0f;
 
             for (int i = 0; i < prefabs.Count; i++)

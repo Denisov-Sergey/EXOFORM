@@ -131,7 +131,7 @@ namespace Exoform.Scripts.Map
             };
             
             // Добавляем случайную вариацию ±20%
-            float variation = Random.Range(0.8f, 1.2f);
+            float variation = UnityEngine.Random.Range(0.8f, 1.2f);
             return baseDifficulty * variation;
         }
         
@@ -139,12 +139,12 @@ namespace Exoform.Scripts.Map
         {
             return zoneType switch
             {
-                TileType.StandardZone => Random.Range(0f, 0.1f),
-                TileType.TechnicalZone => Random.Range(0.1f, 0.3f),
-                TileType.ArtifactZone => Random.Range(0.3f, 0.5f),
-                TileType.CorruptedTrap => Random.Range(0.7f, 1.0f),
-                TileType.InfestationZone => Random.Range(0.5f, 0.9f),
-                TileType.BossZone => Random.Range(0.6f, 1.0f),
+                TileType.StandardZone => UnityEngine.Random.Range(0f, 0.1f),
+                TileType.TechnicalZone => UnityEngine.Random.Range(0.1f, 0.3f),
+                TileType.ArtifactZone => UnityEngine.Random.Range(0.3f, 0.5f),
+                TileType.CorruptedTrap => UnityEngine.Random.Range(0.7f, 1.0f),
+                TileType.InfestationZone => UnityEngine.Random.Range(0.5f, 0.9f),
+                TileType.BossZone => UnityEngine.Random.Range(0.6f, 1.0f),
                 _ => 0f
             };
         }

@@ -128,8 +128,8 @@ namespace Exoform.Scripts.Map
         {
             if (!useVisualOffset) return Vector3.zero;
             
-            float x = Random.Range(-visualOffset, visualOffset);
-            float z = Random.Range(-visualOffset, visualOffset);
+            float x = UnityEngine.Random.Range(-visualOffset, visualOffset);
+            float z = UnityEngine.Random.Range(-visualOffset, visualOffset);
             
             return new Vector3(x, 0, z);
         }
@@ -142,7 +142,7 @@ namespace Exoform.Scripts.Map
             if (!useRandomRotation || allowedRotations.Count == 0)
                 return Quaternion.identity;
                 
-            float angle = allowedRotations[Random.Range(0, allowedRotations.Count)];
+            float angle = allowedRotations[UnityEngine.Random.Range(0, allowedRotations.Count)];
             return Quaternion.Euler(0, angle, 0);
         }
         
