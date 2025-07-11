@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using Exoform.Scripts.Ecs.Components.UnitLogicComponents;
 using Exoform.Scripts.Map;
+using Unity.Entities;
+using Unity.Collections;
 
 namespace Exoform.Scripts.Spawning
 {
@@ -348,9 +350,45 @@ namespace Exoform.Scripts.Spawning
             var config = LoadConfiguration();
             if (config == null) return false;
 
-            // TODO: Реализовать проверку лимитов через ECS
-            // Пока что возвращаем true
-            return true;
+            // Находим лимит для данного типа юнита
+            int limit = -1;
+            var units = config.GetUnitsForTeam(teamId);
+            foreach (var unit in units)
+            {
+                if (unit.unitType == unitType && unit.maxSimultaneous >= 0)
+                {
+                    if (limit < 0 || unit.maxSimultaneous < limit)
+                        limit = unit.maxSimultaneous;
+                }
+            }
+
+            if (limit < 0) return true; // Безлимитно
+
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null) return true; // Нет ECS мира
+
+            var entityManager = world.EntityManager;
+            var query = entityManager.CreateEntityQuery(
+                ComponentType.ReadOnly<UnitLogicComponent>(),
+                ComponentType.ReadOnly<CombatComponent>());
+
+            var logicArray = query.ToComponentDataArray<UnitLogicComponent>(Allocator.Temp);
+            var combatArray = query.ToComponentDataArray<CombatComponent>(Allocator.Temp);
+
+            int count = 0;
+            for (int i = 0; i < logicArray.Length; i++)
+            {
+                if (logicArray[i].TeamId == teamId && logicArray[i].UnitType == unitType && !combatArray[i].IsDead)
+                {
+                    count++;
+                }
+            }
+
+            logicArray.Dispose();
+            combatArray.Dispose();
+            query.Dispose();
+
+            return count < limit;
         }
     }
 }
